@@ -70,6 +70,7 @@ footer{padding-top:40px;padding-bottom:80px;background:#060607;border-top:1px so
 :focus-visible{outline:2px solid var(--gold2);outline-offset:3px}
 @media (max-width:900px){nav{display:none}}
 @media (max-width:760px){.pad{padding-left:20px;padding-right:20px}}
+.head-acoes{display:flex;gap:10px;align-items:center}.btn-login{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;font-size:14px;font-weight:700;color:var(--gold);border:1px solid rgba(226,182,87,.55);background:rgba(226,182,87,.06)}.btn-login:hover{background:rgba(226,182,87,.14);color:var(--gold2)}
 </style>
 </head>
 <body>
@@ -81,11 +82,15 @@ footer{padding-top:40px;padding-bottom:80px;background:#060607;border-top:1px so
   <nav aria-label="Principal">
     <a href="/#treinamentos">Treinamentos</a>
     <a href="/#cr">Processo do CR</a>
+    <a href="/assinatura/">Planos</a>
     <a href="/resultados/" aria-current="page">Resultados</a>
     <a href="/#conteudos">Conteúdos</a>
     <a href="/#faq">Dúvidas</a>
   </nav>
-  <a class="btn" href="https://wa.me/5517974006070?text=Ol%C3%A1%20Everton%2C%20vi%20os%20resultados%20no%20site." target="_blank" rel="noopener">Falar no WhatsApp</a>
+  <div class="head-acoes">
+    <a class="btn-login" href="/painel/" aria-label="Área do atirador: entrar no painel"><svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Área do atirador</a>
+    <a class="btn" href="https://wa.me/5517974006070?text=Ol%C3%A1%20Everton%2C%20vi%20os%20resultados%20no%20site." target="_blank" rel="noopener">Falar no WhatsApp</a>
+  </div>
 </header>
 
 <main>
