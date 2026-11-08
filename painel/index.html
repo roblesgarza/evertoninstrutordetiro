@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel do Atirador · Acompanhamento CAC · Everton Barbosa</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0A0A0C;--card:#141418;--card2:#1A1A1F;--line:rgba(255,255,255,.08);--ouro:#E2B657;--txt:#ECECEF;--sub:#A9A9B2;--verde:#3FCB7E;--amarelo:#F0B429;--vermelho:#F0524F}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.55 Inter,system-ui,sans-serif}
+h1,h2,h3,.tit{font-family:'Chakra Petch',sans-serif;letter-spacing:.02em;margin:0}
+a{color:var(--ouro)}
+button{font:inherit;cursor:pointer}
+.marca{display:flex;align-items:center;gap:10px;font:700 17px 'Chakra Petch';letter-spacing:.08em}
+.marca small{display:block;font:500 11px Inter;letter-spacing:.18em;color:var(--sub)}
+/* login */
+#login{min-height:100vh;display:grid;place-items:center;padding:24px;background-image:linear-gradient(rgba(226,182,87,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(226,182,87,.05) 1px,transparent 1px);background-size:48px 48px}
+.caixa{width:100%;max-width:400px;background:var(--card);border:1px solid rgba(226,182,87,.25);padding:32px;display:flex;flex-direction:column;gap:18px}
+.caixa h1{font-size:26px;text-transform:uppercase}
+label{font-size:13px;color:var(--sub);display:flex;flex-direction:column;gap:6px}
+input{background:#0E0E11;border:1px solid var(--line);color:var(--txt);padding:14px;font-size:17px;outline:none}
+input:focus{border-color:var(--ouro)}
+.btn{background:var(--ouro);color:#0A0A0C;border:0;padding:14px 18px;font-weight:700;min-height:50px}
+.btn.sec{background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:600}
+.msg{font-size:14px;color:var(--sub);min-height:20px}
+.msg.erro{color:var(--vermelho)}
+/* app */
+#app{display:none;min-height:100vh}
+aside{position:fixed;inset:0 auto 0 0;width:230px;background:#0E0E11;border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:22px}
+nav{display:flex;flex-direction:column;gap:2px}
+nav button{display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--sub);padding:11px 12px;text-align:left;font:600 13px 'Chakra Petch';letter-spacing:.12em;text-transform:uppercase;border-left:2px solid transparent}
+nav button.ativo{color:var(--ouro);background:rgba(226,182,87,.08);border-left-color:var(--ouro)}
+nav svg{width:18px;height:18px;flex:none}
+main{margin-left:230px;padding:32px 36px 90px;max-width:1180px}
+.topo{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.topo h2{font-size:28px;text-transform:uppercase}
+.topo p{margin:4px 0 0;color:var(--sub)}
+.grade{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);padding:20px}
+.rotulo{font:600 11px 'Chakra Petch';letter-spacing:.16em;text-transform:uppercase;color:var(--sub)}
+.grande{font:700 30px 'Chakra Petch';margin:8px 0 2px}
+.pequeno{font-size:13px;color:var(--sub)}
+.ok{color:var(--verde)}.at{color:var(--amarelo)}.cr{color:var(--vermelho)}
+.alerta{border:1px solid rgba(240,82,79,.35);background:rgba(240,82,79,.06);padding:18px 20px;display:flex;gap:14px;align-items:flex-start;margin-bottom:18px}
+.alerta.verde{border-color:rgba(63,203,126,.35);background:rgba(63,203,126,.06)}
+.aviso{border-left:3px solid var(--sub);background:var(--card2);padding:14px 16px;display:flex;flex-direction:column;gap:3px}
+.aviso.critico{border-left-color:var(--vermelho)}.aviso.atencao{border-left-color:var(--amarelo)}.aviso.info{border-left-color:#6E9BF5}
+.etiqueta{display:inline-block;font:700 10px 'Chakra Petch';letter-spacing:.14em;padding:3px 7px;border:1px solid currentColor;text-transform:uppercase}
+.anel{width:110px;height:110px}
+.lista{display:flex;flex-direction:column;gap:10px}
+.linha{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;background:var(--card);border:1px solid var(--line)}
+.linha .t{font-weight:600}
+.dados{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:12px}
+.dados div span{display:block;font-size:11px;color:var(--sub);letter-spacing:.1em;text-transform:uppercase}
+.sec-tit{margin:28px 0 12px;font-size:15px;text-transform:uppercase;letter-spacing:.14em;color:var(--sub)}
+.mes{font:700 13px 'Chakra Petch';letter-spacing:.14em;color:var(--ouro);margin:22px 0 8px;text-transform:uppercase}
+.vazio{color:var(--sub);padding:18px;border:1px dashed var(--line)}
+.wpp{display:inline-flex;align-items:center;gap:8px;background:#1F8B4C;color:#fff;text-decoration:none;padding:12px 16px;font-weight:600}
+/* mobile */
+@media (max-width:860px){
+  aside{inset:auto 0 0 0;width:auto;height:64px;flex-direction:row;padding:0;border-right:0;border-top:1px solid var(--line);z-index:5}
+  aside .marca,aside .rodape{display:none}
+  nav{flex-direction:row;width:100%;overflow-x:auto}
+  nav button{flex:1;flex-direction:column;gap:3px;font-size:9px;letter-spacing:.06em;padding:9px 4px;border-left:0;border-top:2px solid transparent;justify-content:center;min-width:64px}
+  nav button.ativo{border-top-color:var(--ouro)}
+  main{margin-left:0;padding:20px 16px 90px}
+  .topo h2{font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<section id="login">
+  <div class="caixa">
+    <div class="marca"><svg width="30" height="30" viewBox="0 0 34 34" fill="none" stroke="#E2B657" stroke-width="2"><circle cx="17" cy="17" r="13"/><circle cx="17" cy="17" r="5"/><path d="M17 1v8M17 25v8M1 17h8M25 17h8"/></svg><div>EVERTON BARBOSA<small>ACOMPANHAMENTO CAC</small></div></div>
+    <h1>Área do atirador</h1>
+    <p class="pequeno" style="margin:-8px 0 0">Sem senha: você recebe um código no WhatsApp cadastrado.</p>
+    <div id="passo1" style="display:flex;flex-direction:column;gap:14px">
+      <label>Seu WhatsApp (com DDD)<input id="fone" inputmode="tel" autocomplete="tel" placeholder="(17) 99999-9999"></label>
+      <button class="btn" id="bt-codigo">Receber código no WhatsApp</button>
+    </div>
+    <div id="passo2" style="display:none;flex-direction:column;gap:14px">
+      <label>Código de 6 dígitos<input id="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></label>
+      <button class="btn" id="bt-entrar">Entrar</button>
+      <button class="btn sec" id="bt-voltar">Trocar número</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+</section>
+
+<div id="app">
+  <aside>
+    <div class="marca"><svg width="28" height="28" viewBox="0 0 34 34" fill="none" stroke="#E2B657" stroke-width="2"><circle cx="17" cy="17" r="13"/><circle cx="17" cy="17" r="5"/><path d="M17 1v8M17 25v8M1 17h8M25 17h8"/></svg><div>EVERTON<small>ACOMPANHAMENTO CAC</small></div></div>
+    <nav id="menu"></nav>
+    <div class="rodape" style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
+      <a class="wpp" href="https://wa.me/5517997941845" target="_blank" rel="noopener">Falar no WhatsApp</a>
+      <button class="btn sec" id="bt-sair">Sair</button>
+    </div>
+  </aside>
+  <main id="conteudo"></main>
+</div>
+
+<script>
+const API = "https://qlgumtqedhlkkgpoydvs.supabase.co/functions/v1/painel-api";
+const $ = (s) => document.querySelector(s);
+const guardar = { get(k){ try{return localStorage.getItem(k)}catch{return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch{} }, del(k){ try{localStorage.removeItem(k)}catch{} } };
+let D = null, tela = "painel";
+
+async function api(acao, extra = {}) {
+  const token = guardar.get("cac_token");
+  const r = await fetch(API, { method: "POST", headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) }, body: JSON.stringify({ acao, ...extra }) });
+  const j = await r.json().catch(() => ({ ok: false, erro: "Falha de conexão." }));
+  if (r.status === 401) { guardar.del("cac_token"); mostrarLogin(); }
+  return j;
+}
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const br = (iso) => iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—";
+const prazo = (d) => d === null || d === undefined ? "" : d < 0 ? `venceu há ${-d} dias` : d === 0 ? "vence hoje" : d < 60 ? `em ${d} dias` : `em ~${Math.round(d / 30)} meses`;
+const cor = (d) => d === null || d === undefined ? "" : d < 0 ? "cr" : d <= 60 ? "at" : "ok";
+
+// ---------- login ----------
+function mostrarLogin() { $("#app").style.display = "none"; $("#login").style.display = "grid"; }
+$("#bt-codigo").onclick = async () => {
+  const fone = $("#fone").value.replace(/\D/g, "");
+  if (fone.length < 10) return msg("Digite o WhatsApp com DDD.", true);
+  msg("Enviando…");
+  const r = await api("pedir_codigo", { whatsapp: fone });
+  if (!r.ok) return msg(r.erro || "Não foi possível enviar.", true);
+  $("#passo1").style.display = "none"; $("#passo2").style.display = "flex";
+  msg("Se este número for de um assinante, o código chega no WhatsApp em instantes.");
+  $("#codigo").focus();
+};
+$("#bt-entrar").onclick = async () => {
+  msg("Conferindo…");
+  const r = await api("entrar", { whatsapp: $("#fone").value.replace(/\D/g, ""), codigo: $("#codigo").value });
+  if (!r.ok) return msg(r.erro || "Código inválido.", true);
+  guardar.set("cac_token", r.token); msg(""); carregar();
+};
+$("#bt-voltar").onclick = () => { $("#passo2").style.display = "none"; $("#passo1").style.display = "flex"; msg(""); };
+$("#codigo").addEventListener("keydown", (e) => e.key === "Enter" && $("#bt-entrar").click());
+$("#fone").addEventListener("keydown", (e) => e.key === "Enter" && $("#bt-codigo").click());
+$("#bt-sair").onclick = async () => { await api("sair"); guardar.del("cac_token"); location.reload(); };
+function msg(t, erro) { $("#msg").textContent = t; $("#msg").className = "msg" + (erro ? " erro" : ""); }
+
+// ---------- app ----------
+const ICON = {
+  painel: '<path d="M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z"/>',
+  acervo: '<path d="M3 8h14l4 3-4 3H3zM6 14v5"/>',
+  habitualidade: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/>',
+  guias: '<path d="M3 17h13l3-5H6zM7 17v3M16 17v3M6 12l2-5h8"/>',
+  calendario: '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  documentos: '<path d="M6 3h9l4 4v14H6zM15 3v4h4"/>',
+};
+const MENU = [["painel", "Painel"], ["acervo", "Acervo"], ["habitualidade", "Habitualidade"], ["guias", "Guias"], ["calendario", "Calendário"], ["documentos", "Documentos"]];
+function montarMenu() {
+  $("#menu").innerHTML = MENU.map(([k, t]) => `<button data-t="${k}" class="${k === tela ? "ativo" : ""}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON[k]}</svg>${t}</button>`).join("");
+  $("#menu").querySelectorAll("button").forEach((b) => b.onclick = () => { tela = b.dataset.t; montarMenu(); render(); window.scrollTo(0, 0); });
+}
+
+async function carregar() {
+  $("#login").style.display = "none"; $("#app").style.display = "block";
+  $("#conteudo").innerHTML = '<p class="pequeno">Carregando sua ficha…</p>';
+  const r = await api("dados");
+  if (!r.ok) { if (r.erro) $("#conteudo").innerHTML = `<p class="cr">${esc(r.erro)}</p>`; return; }
+  D = r; montarMenu(); render();
+}
+
+function anel(pct, cor) {
+  const c = 2 * Math.PI * 46, p = Math.max(0, Math.min(1, pct));
+  return `<svg class="anel" viewBox="0 0 110 110"><circle cx="55" cy="55" r="46" fill="none" stroke="#26262c" stroke-width="10"/><circle cx="55" cy="55" r="46" fill="none" stroke="${cor}" stroke-width="10" stroke-dasharray="${c * p} ${c}" transform="rotate(-90 55 55)" stroke-linecap="round"/><text x="55" y="61" text-anchor="middle" fill="#ECECEF" font-family="Chakra Petch" font-weight="700" font-size="22">${Math.round(p * 100)}%</text></svg>`;
+}
+function grupos() {
+  const s = D.habitualidade.situacao, nomes = D.habitualidade.grupos_nomes || {};
+  if (s.dispensado) return '<div class="card"><p>Você está no primeiro ano do CR: dispensado da habitualidade. Mesmo assim, registre seus treinos.</p></div>';
+  return `<div class="grade g4">${(s.grupos || []).map((g) => {
+    const meta = Object.values(g.feitos).reduce((a, b) => a + b, 0) + g.total;
+    const pct = meta ? 1 - g.total / Math.max(meta, 1) : 1;
+    const falta = Object.entries(g.falta).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${k.replace(/_/g, " ")}`).join(", ");
+    return `<div class="card" style="display:flex;gap:16px;align-items:center">${anel(g.total === 0 ? 1 : pct, g.total === 0 ? "#3FCB7E" : pct < .5 ? "#F0524F" : "#F0B429")}<div><div class="tit" style="font-size:15px">${esc(nomes[g.grupo] || g.nome)}</div><div class="pequeno">${g.feitos.treinos} treinos · ${g.feitos.competicoes} competições</div><div class="pequeno ${g.total ? "at" : "ok"}">${g.total ? "faltam " + esc(falta) : "completo"}</div></div></div>`;
+  }).join("")}</div>`;
+}
+
+function render() {
+  const c = $("#conteudo"), a = D.assinante, primeiro = esc((a.nome || "").split(" ")[0]);
+  const docs = D.documentos;
+  if (tela === "painel") {
+    const crit = D.avisos.filter((x) => x.nivel === "critico").length;
+    const cr = D.resumo.cr;
+    c.innerHTML = `
+      <div class="topo"><div><h2>Olá, ${primeiro}</h2><p>Situação em ${br(D.hoje)} · Atirador nível ${D.nivel.declarado}${a.clube ? " · " + esc(a.clube) : ""}</p></div></div>
+      ${crit ? `<div class="alerta"><b class="cr tit" style="font-size:18px">${crit} ${crit > 1 ? "pontos exigem" : "ponto exige"} ação</b><span class="pequeno">Resolva antes que afete seu CR ou seu direito de transportar.</span></div>`
+             : `<div class="alerta verde"><b class="ok tit" style="font-size:18px">Tudo sob controle</b><span class="pequeno">Nenhum ponto crítico hoje. A gente avisa no WhatsApp quando algo se aproximar.</span></div>`}
+      <div class="grade g4">
+        <div class="card"><div class="rotulo">Certificado de Registro</div><div class="grande ${cr && cr.validade ? cor(cr.dias) : "at"}">${cr && cr.validade ? br(cr.validade) : "a informar"}</div><div class="pequeno">${cr && cr.validade ? prazo(cr.dias) : "mande o CR pelo WhatsApp"}</div></div>
+        <div class="card"><div class="rotulo">Acervo</div><div class="grande">${D.resumo.armas}</div><div class="pequeno">armas com CRAF${D.resumo.autorizacoes ? ` · ${D.resumo.autorizacoes} autorização(ões) em andamento` : ""}</div></div>
+        <div class="card"><div class="rotulo">Transporte hoje</div><div class="grande ${D.resumo.transporte.semGuia ? "at" : "ok"}">${D.resumo.transporte.podeLevar} com guia</div><div class="pequeno">${D.resumo.transporte.semGuia} arma(s) com CRAF sem guia vigente</div></div>
+        <div class="card"><div class="rotulo">Nível</div><div class="grande">${D.nivel.declarado} <span class="pequeno">declarado</span></div><div class="pequeno ${D.nivel.comprovado >= D.nivel.declarado ? "ok" : "at"}">${D.nivel.comprovado ? "nível " + D.nivel.comprovado + " comprovado" : "nenhum nível comprovado ainda"}</div></div>
+      </div>
+      <h3 class="sec-tit">Precisa de atenção</h3>
+      <div class="lista">${D.avisos.length ? D.avisos.map((x) => `<div class="aviso ${x.nivel}"><span class="etiqueta ${x.nivel === "critico" ? "cr" : x.nivel === "atencao" ? "at" : ""}" style="width:max-content">${x.nivel === "critico" ? "Crítico" : x.nivel === "atencao" ? "Atenção" : "Info"}</span><b>${esc(x.titulo)}</b><span class="pequeno">${esc(x.texto)}</span></div>`).join("") : '<div class="vazio">Nada pendente.</div>'}</div>
+      <h3 class="sec-tit">Habitualidade por grupo de arma · últimos 12 meses</h3>
+      ${grupos()}
+      <p class="pequeno" style="margin-top:16px">Treinou ou competiu? Conte no WhatsApp que a gente registra.</p>`;
+  }
+  if (tela === "acervo") {
+    const crafs = docs.filter((d) => d.tipo === "CRAF"), auts = docs.filter((d) => d.tipo === "AUTORIZACAO");
+    c.innerHTML = `<div class="topo"><div><h2>Acervo</h2><p>Cada arma com o CRAF e o prazo de renovação.</p></div></div>
+      <div class="grade g2">${crafs.map((d) => cardDoc(d, "CRAF válido até")).join("") || '<div class="vazio">Nenhum CRAF cadastrado. Mande a foto pelo WhatsApp.</div>'}</div>
+      ${auts.length ? `<h3 class="sec-tit">Autorizações de aquisição (aguardando CRAF)</h3><div class="grade g2">${auts.map((d) => cardDoc(d, "Autorização válida até")).join("")}</div>` : ""}`;
+  }
+  if (tela === "habitualidade") {
+    const s = D.habitualidade.situacao, regs = D.habitualidade.registros;
+    c.innerHTML = `<div class="topo"><div><h2>Habitualidade</h2><p>Nível ${D.nivel.declarado} · ${esc(s.exigencia || "")} · janela móvel de 12 meses</p></div></div>
+      ${grupos()}
+      <h3 class="sec-tit">Registros (${regs.length})</h3>
+      <div class="lista">${regs.map((r) => `<div class="linha"><div><div class="t">${r.tipo === "competicao" ? "Competição" : "Treino"} · ${esc(r.clube || "")}</div><div class="pequeno">${esc([r.arma, r.calibre, r.ambito].filter(Boolean).join(" · "))}</div></div><div class="pequeno">${br(r.data)}</div></div>`).join("") || '<div class="vazio">Nenhum treino registrado nos últimos 12 meses. Conte no WhatsApp: "treinei hoje no clube X com a pistola 9mm".</div>'}</div>`;
+  }
+  if (tela === "guias") {
+    const g = D.guias;
+    c.innerHTML = `<div class="topo"><div><h2>Guias de tráfego</h2><p>Sem guia vigente não se transporta a arma até o estande.</p></div></div>
+      ${g.semGuia.length ? `<div class="alerta"><div><b class="at tit" style="font-size:16px">${g.semGuia.length} arma(s) sem guia vigente</b><div class="pequeno">${g.semGuia.map(esc).join(" · ")}</div></div></div>` : ""}
+      <h3 class="sec-tit">Pode levar hoje (${g.podeLevar.length})</h3>
+      <div class="lista">${g.podeLevar.map((x) => `<div class="linha"><div><div class="t">${esc(x.arma)}</div><div class="pequeno">GT ${esc(x.numero || "")} · ${esc(x.finalidade || "")}</div></div><div style="text-align:right"><div class="${cor(x.dias)}">até ${br(x.validade)}</div><div class="pequeno">${prazo(x.dias)}</div></div></div>`).join("") || '<div class="vazio">Nenhuma guia vigente.</div>'}</div>`;
+  }
+  if (tela === "calendario") {
+    let mesAtual = "", html = "";
+    for (const e of D.calendario) {
+      const m = new Date(e.data + "T12:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      if (m !== mesAtual) { html += `<div class="mes">${m}</div>`; mesAtual = m; }
+      html += `<div class="linha"><div><div class="pequeno" style="text-transform:uppercase;letter-spacing:.1em">${esc(e.tipo)}</div><div class="t">${esc(e.titulo)}</div></div><div style="text-align:right"><div class="${cor(e.dias)}">${br(e.data)}</div><div class="pequeno">${prazo(e.dias)}</div></div></div>`;
+    }
+    c.innerHTML = `<div class="topo"><div><h2>Calendário</h2><p>Todo prazo do seu acervo num lugar só.</p></div></div><div class="lista">${html || '<div class="vazio">Nenhum prazo nos próximos 24 meses.</div>'}</div>`;
+  }
+  if (tela === "documentos") {
+    const ordem = ["CR", "EXAME_PSICOLOGICO", "EXAME_TECNICO", "CRAF", "AUTORIZACAO", "GT", "OUTRO"];
+    const nomes = { CR: "Certificado de Registro", EXAME_PSICOLOGICO: "Laudo psicológico", EXAME_TECNICO: "Capacidade técnica", CRAF: "CRAFs", AUTORIZACAO: "Autorizações de aquisição", GT: "Guias de tráfego", OUTRO: "Outros" };
+    const temLaudo = (t) => docs.some((d) => d.tipo === t);
+    c.innerHTML = `<div class="topo"><div><h2>Documentos</h2><p>Para atualizar, é só mandar a foto ou o PDF no WhatsApp: a gente lê, guarda e o Everton confere.</p></div><a class="wpp" href="https://wa.me/5517997941845" target="_blank" rel="noopener">Enviar documento</a></div>
+      ${!temLaudo("EXAME_TECNICO") || !temLaudo("EXAME_PSICOLOGICO") ? `<div class="aviso atencao" style="margin-bottom:12px"><b>Laudos para o CR</b><span class="pequeno">Exigidos na revalidação do CR (pedir até 30 dias antes do vencimento). ${!temLaudo("EXAME_PSICOLOGICO") ? "Falta o laudo psicológico. " : ""}${!temLaudo("EXAME_TECNICO") ? "Falta o comprovante de capacidade técnica." : ""}</span></div>` : ""}
+      ${ordem.filter((t) => docs.some((d) => d.tipo === t)).map((t) => `<h3 class="sec-tit">${nomes[t]}</h3><div class="lista">${docs.filter((d) => d.tipo === t).map((d) => `<div class="linha"><div><div class="t">${esc(d.arma || d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`).join("")}</div>`).join("") || '<div class="vazio">Nenhum documento ainda.</div>'}`;
+  }
+}
+function cardDoc(d, rotuloValidade) {
+  return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div class="tit" style="font-size:17px">${esc(d.arma || d.descricao)}</div><span class="etiqueta ${cor(d.dias)}">${d.dias === null ? "sem data" : d.dias < 0 ? "vencido" : d.dias <= 60 ? "atenção" : "em dia"}</span></div>
+    <div class="dados"><div><span>Nº</span>${esc(d.numero || "—")}</div><div><span>${rotuloValidade}</span><b class="${cor(d.dias)}">${br(d.validade)}</b><div class="pequeno">${prazo(d.dias)}</div></div>${d.descricao ? `<div><span>Obs.</span>${esc(d.descricao)}</div>` : ""}</div>
+    ${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno" style="display:inline-block;margin-top:10px">ver documento</a>` : ""}</div>`;
+}
+
+if (guardar.get("cac_token")) carregar(); else mostrarLogin();
+</script>
+</body>
+</html>
