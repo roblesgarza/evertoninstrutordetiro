@@ -168,12 +168,13 @@ footer{padding-top:40px;padding-bottom:80px;background:#060607;border-top:1px so
     pods=pods.slice(0,12);
     $('podios').innerHTML=pods.length?pods.map(function(p){return '<div class="pod"><span class="medal m'+p.r.cl+'">'+p.r.cl+'º</span><div><div class="n">'+esc(cap(p.r.atleta))+'</div><div class="c">'+esc(p.r.categoria)+'</div><div class="c">'+esc(clubeCurto(p.r.clube))+' · '+esc(p.r.total)+' pts · '+esc(p.e.nome)+'</div></div></div>'}).join(''):'<p class="empty">Nenhum pódio com esses filtros nas últimas etapas.</p>';
     // etapas
+    etapas=etapas.filter(function(e){return !/^teste|\(teste\)/i.test(e.nome)&&(e.resultados||[]).some(filtra)});
     var html=etapas.map(function(e,i){
       var rs=(e.resultados||[]).filter(filtra).sort(function(a,b){return a.categoria.localeCompare(b.categoria)||(a.cl||999)-(b.cl||999)});
       var corpo=rs.length?'<div class="tbl"><table><thead><tr><th>CL</th><th>ATLETA</th><th>MODALIDADE / CATEGORIA</th><th>PONTOS</th><th>CLUBE</th></tr></thead><tbody>'+rs.map(function(r){return '<tr><td class="cl">'+(r.cl?r.cl+'º':'–')+(r.participantes?'<span class="meta" style="font-weight:400"> /'+r.participantes+'</span>':'')+'</td><td>'+esc(cap(r.atleta))+'</td><td class="cat">'+esc(r.categoria)+'</td><td>'+esc(r.total)+'</td><td class="cat">'+esc(clubeCurto(r.clube))+'</td></tr>'}).join('')+'</tbody></table></div>':'<p class="empty" style="padding:0 20px 20px">Sem atletas da região com esses filtros nesta etapa.</p>';
       return '<details class="etapa"'+(i===0?' open':'')+'><summary><span><span class="et-n">'+esc(e.nome)+'</span><br><span class="meta">'+dt(e.inicio)+' a '+dt(e.fim)+' · '+rs.length+' resultado(s) da região</span></span><span style="display:flex;gap:10px;align-items:center">'+badge(e.status)+'<a href="'+esc(e.url)+'" target="_blank" rel="noopener" class="meta">ver no site oficial</a></span></summary>'+corpo+'</details>';
     }).join('');
-    $('etapas').innerHTML=html||'<p class="empty">Ainda não há etapas com resultados.</p>';
+    $('etapas').innerHTML=html||'<p class="empty">Nenhuma etapa com atletas da região para esses filtros.</p>';
   }
   function renderFixos(){
     var hoje=new Date(Date.now()-3*3600e3).toISOString().slice(0,10);
