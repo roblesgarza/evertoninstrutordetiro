@@ -92,7 +92,7 @@ async function coletarLinade(ano, antigo) {
       const cab = parseLinadeCabecalho(html);
       if (!cab) { if (id > maxVisto) vazios++; continue; }
       vazios = 0; maxVisto = Math.max(maxVisto, id);
-      if (!cab.inicio || !cab.inicio.startsWith(String(ano))) continue;
+      if (!cab.inicio || !cab.inicio.startsWith(String(ano)) || /^teste/i.test(cab.nome)) continue;
       const resultados = cab.inicio <= hoje ? parseLinadeResultados(html) : [];
       const status = cab.inicio > hoje ? 'agendada' : (cab.fim >= hoje ? 'em andamento' : 'encerrada');
       porId.set(id, { id: String(id), ...cab, url: `${LIN}/etapa/resultados-categorias/${id}`, status, resultados });
@@ -147,7 +147,7 @@ export function parseFpteResultados(html, siglas = CLUBES_FPTE) {
 }
 
 async function coletarFpte(ano, antigo) {
-  const eventos = parseFpteEventos(await get(`${FP}/template.php?pagina=resultados`), ano).filter(e => e.ano === String(ano));
+  const eventos = parseFpteEventos(await get(`${FP}/template.php?pagina=resultados`), ano).filter(e => e.ano === String(ano) && !/\(teste\)|^teste/i.test(e.nome));
   const hoje = hojeISO();
   const out = [];
   for (const e of eventos) {
