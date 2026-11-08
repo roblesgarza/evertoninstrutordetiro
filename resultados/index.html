@@ -93,7 +93,7 @@ footer{padding-top:40px;padding-bottom:80px;background:#060607;border-top:1px so
   <div class="wrap" style="display:flex;flex-direction:column;gap:20px">
     <div class="eyebrow">LINADE · FPTE · <span id="ano">2026</span></div>
     <h1>Resultados dos atiradores <span style="color:var(--gold)">da região.</span></h1>
-    <p style="margin:0;color:var(--mut);max-width:720px;font-size:18px">Classificações e pódios da <b>ADTM (Mirassol)</b> e do <b>Clube de Tiro Rio Preto</b> nas provas da Liga Nacional dos Atiradores Desportivos e da Federação Paulista de Tiro Esportivo.</p>
+    <p style="margin:0;color:var(--mut);max-width:720px;font-size:18px">Classificações e pódios dos atiradores que competem na <b>ADTM (Mirassol)</b> e no <b>Clube de Tiro Rio Preto</b> nas provas da Liga Nacional dos Atiradores Desportivos e da Federação Paulista de Tiro Esportivo.</p>
     <div><span class="upd"><span class="dot" aria-hidden="true"></span><span id="upd">Carregando resultados…</span></span></div>
   </div>
 </section>
@@ -154,7 +154,7 @@ footer{padding-top:40px;padding-bottom:80px;background:#060607;border-top:1px so
   var clubeCurto=function(c){return /mirassol/i.test(c)?'ADTM – Mirassol':(/rio preto/i.test(c)?'Clube de Tiro Rio Preto':c)};
   function filtra(r){
     var fc=$('f-clube').value, q=$('f-busca').value.trim().toLowerCase();
-    if(fc && String(r.clube).toLowerCase().indexOf(fc)<0) return false;
+    if(fc && (String(r.clube)+' '+String(r.sede||'')).toLowerCase().indexOf(fc)<0) return false;
     if(q && (r.atleta+' '+r.categoria).toLowerCase().indexOf(q)<0) return false;
     return true;
   }
