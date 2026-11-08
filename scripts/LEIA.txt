@@ -1,0 +1,1 @@
+coleta.mjs: robo que le os resultados publicos da LINADE e da FPTE, filtra os clubes da regiao (ADTM e Clube de Tiro Rio Preto) e grava data/resultados.json. Roda pelo GitHub Actions (.github/workflows/resultados.yml).
