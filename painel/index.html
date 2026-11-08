@@ -60,6 +60,8 @@ main{margin-left:230px;padding:32px 36px 90px;max-width:1180px}
 .sec-tit{margin:28px 0 12px;font-size:15px;text-transform:uppercase;letter-spacing:.14em;color:var(--sub)}
 .mes{font:700 13px 'Chakra Petch';letter-spacing:.14em;color:var(--ouro);margin:22px 0 8px;text-transform:uppercase}
 .vazio{color:var(--sub);padding:18px;border:1px dashed var(--line)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}.chip{background:var(--card);border:1px solid var(--line);color:var(--sub);padding:9px 14px;font:600 12px "Chakra Petch";letter-spacing:.1em;text-transform:uppercase}.chip b{color:var(--txt);margin-left:4px}.chip.ativo{border-color:var(--ouro);color:var(--ouro);background:rgba(226,182,87,.08)}
+select.troca-acervo{background:#0E0E11;color:var(--txt);border:1px solid var(--line);padding:6px 8px;font:13px Inter}
 .destino{cursor:pointer;transition:border-color .15s}.destino:hover,.destino.aberto{border-color:rgba(226,182,87,.45)}
 .wpp{display:inline-flex;align-items:center;gap:8px;background:#1F8B4C;color:#fff;text-decoration:none;padding:12px 16px;font-weight:600}
 /* mobile */
@@ -110,7 +112,7 @@ main{margin-left:230px;padding:32px 36px 90px;max-width:1180px}
 const API = "https://qlgumtqedhlkkgpoydvs.supabase.co/functions/v1/painel-api";
 const $ = (s) => document.querySelector(s);
 const guardar = { get(k){ try{return localStorage.getItem(k)}catch{return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch{} }, del(k){ try{localStorage.removeItem(k)}catch{} } };
-let D = null, tela = "painel", destinoAberto = -1;
+let D = null, tela = "painel", destinoAberto = -1, acervoFiltro = "todos";
 
 async function api(acao, extra = {}) {
   const token = guardar.get("cac_token");
@@ -209,10 +211,27 @@ function render() {
       <p class="pequeno" style="margin-top:16px">Treinou ou competiu? Conte no WhatsApp que a gente registra.</p>`;
   }
   if (tela === "acervo") {
-    const crafs = docs.filter((d) => d.tipo === "CRAF"), auts = docs.filter((d) => d.tipo === "AUTORIZACAO");
-    c.innerHTML = `<div class="topo"><div><h2>Acervo</h2><p>Cada arma com o CRAF e o prazo de renovação.</p></div></div>
-      <div class="grade g2">${crafs.map((d) => cardDoc(d, "CRAF válido até")).join("") || '<div class="vazio">Nenhum CRAF cadastrado. Mande a foto pelo WhatsApp.</div>'}</div>
-      ${auts.length ? `<h3 class="sec-tit">Autorizações de aquisição (aguardando CRAF)</h3><div class="grade g2">${auts.map((d) => cardDoc(d, "Autorização válida até")).join("")}</div>` : ""}`;
+    const TIPOS_AC = [["atirador", "Atirador desportivo"], ["cacador", "Caçador"], ["colecionador", "Colecionador"]];
+    const deAcervo = (d) => d.acervo || "atirador";
+    const armas = docs.filter((d) => d.tipo === "CRAF" || d.tipo === "AUTORIZACAO");
+    const qtd = (k) => armas.filter((d) => d.tipo === "CRAF" && deAcervo(d) === k).length;
+    const chips = [["todos", "Todos", docs.filter((d) => d.tipo === "CRAF").length], ...TIPOS_AC.map(([k, t]) => [k, t, qtd(k)])]
+      .map(([k, t, n]) => `<button class="chip ${acervoFiltro === k ? "ativo" : ""}" data-ac="${k}">${t} <b>${n}</b></button>`).join("");
+    const secoes = TIPOS_AC.filter(([k]) => acervoFiltro === "todos" || acervoFiltro === k).map(([k, t]) => {
+      const crafs = armas.filter((d) => d.tipo === "CRAF" && deAcervo(d) === k), auts = armas.filter((d) => d.tipo === "AUTORIZACAO" && deAcervo(d) === k);
+      if (acervoFiltro === "todos" && !crafs.length && !auts.length) return "";
+      return `<h3 class="sec-tit">Acervo de ${t.toLowerCase()} (${crafs.length})</h3>
+        <div class="grade g2">${crafs.map((d) => cardDoc(d, "CRAF válido até", true)).join("") || '<div class="vazio">Nenhuma arma neste acervo.</div>'}</div>
+        ${auts.length ? `<h3 class="sec-tit" style="font-size:13px">Autorizações de aquisição · ${t.toLowerCase()} (aguardando CRAF)</h3><div class="grade g2">${auts.map((d) => cardDoc(d, "Autorização válida até", true)).join("")}</div>` : ""}`;
+    }).join("");
+    c.innerHTML = `<div class="topo"><div><h2>Acervo</h2><p>Suas armas separadas por acervo, com o CRAF e o prazo de renovação.</p></div></div>
+      <div class="chips">${chips}</div>${secoes || '<div class="vazio">Nenhum CRAF cadastrado. Mande a foto pelo WhatsApp.</div>'}`;
+    c.querySelectorAll(".chip").forEach((b) => b.onclick = () => { acervoFiltro = b.dataset.ac; render(); });
+    c.querySelectorAll("select.troca-acervo").forEach((sel) => sel.onchange = async () => {
+      sel.disabled = true;
+      const r = await api("definir_acervo", { id: sel.dataset.id, acervo: sel.value });
+      if (r.ok) { const d = D.documentos.find((x) => x.id === sel.dataset.id); if (d) d.acervo = sel.value; render(); } else { sel.disabled = false; alert(r.erro || "Não foi possível alterar."); }
+    });
   }
   if (tela === "habitualidade") {
     const s = D.habitualidade.situacao, regs = D.habitualidade.registros;
@@ -279,10 +298,11 @@ function render() {
       ${ordem.filter((t) => docs.some((d) => d.tipo === t)).map((t) => `<h3 class="sec-tit">${nomes[t]}</h3><div class="lista">${docs.filter((d) => d.tipo === t).map((d) => `<div class="linha"><div><div class="t">${esc(d.arma || d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`).join("")}</div>`).join("") || '<div class="vazio">Nenhum documento ainda.</div>'}`;
   }
 }
-function cardDoc(d, rotuloValidade) {
+function cardDoc(d, rotuloValidade, comAcervo) {
+  const seletor = comAcervo ? `<div style="margin-top:12px;display:flex;align-items:center;gap:8px" class="pequeno">Acervo: <select class="troca-acervo" data-id="${d.id}">${[["atirador", "Atirador"], ["cacador", "Caçador"], ["colecionador", "Colecionador"]].map(([k, t]) => `<option value="${k}" ${(d.acervo || "atirador") === k ? "selected" : ""}>${t}</option>`).join("")}</select></div>` : "";
   return `<div class="card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div class="tit" style="font-size:17px">${esc(d.arma || d.descricao)}</div><span class="etiqueta ${cor(d.dias)}">${d.dias === null ? "sem data" : d.dias < 0 ? "vencido" : d.dias <= 60 ? "atenção" : "em dia"}</span></div>
     <div class="dados"><div><span>Nº</span>${esc(d.numero || "—")}</div><div><span>${rotuloValidade}</span><b class="${cor(d.dias)}">${br(d.validade)}</b><div class="pequeno">${prazo(d.dias)}</div></div>${d.descricao ? `<div><span>Obs.</span>${esc(d.descricao)}</div>` : ""}</div>
-    ${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno" style="display:inline-block;margin-top:10px">ver documento</a>` : ""}</div>`;
+    ${seletor}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno" style="display:inline-block;margin-top:10px">ver documento</a>` : ""}</div>`;
 }
 
 if (guardar.get("cac_token")) carregar(); else mostrarLogin();
