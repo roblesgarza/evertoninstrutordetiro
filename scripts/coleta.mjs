@@ -56,14 +56,18 @@ export function parseLinadeResultados(html, filtros = CLUBES_LINADE) {
     const cols = [...thead.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/gi)].map(x => txt(x[1]).toUpperCase());
     const cnt = /N[ºo°]\s*ATLETA\(S\):\s*(\d+)/i.exec(html.slice(p, p + 400000).replace(/<[^>]*>/g, ' '));
     const total = cnt ? Number(cnt[1]) : rows.length;
-    const iCL = cols.indexOf('CL'), iAt = cols.indexOf('ATLETA'), iClube = cols.indexOf('CLUBE'), iTot = cols.indexOf('TOTAL');
+    // Algumas competições usam "CLUBE", outras "CLUBE DEFENSOR"; "CLUBE SEDE" é onde a prova foi feita.
+    const iCL = cols.indexOf('CL'), iAt = cols.indexOf('ATLETA'), iTot = cols.indexOf('TOTAL');
+    const iClube = cols.indexOf('CLUBE') >= 0 ? cols.indexOf('CLUBE') : cols.indexOf('CLUBE DEFENSOR');
+    const iSede = cols.indexOf('CLUBE SEDE');
     for (const r of rows) {
       const tds = [...String(r).matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map(x => txt(x[1]));
       if (tds.length < 4) continue;
-      const clube = tds[iClube] ?? '';
-      if (!filtros.some(f => f.test(clube))) continue;
+      const clube = (iClube >= 0 ? tds[iClube] : '') || '';
+      const sede = (iSede >= 0 ? tds[iSede] : '') || '';
+      if (!filtros.some(f => f.test(clube) || f.test(sede))) continue;
       const cl = parseInt(tds[iCL], 10);
-      res.push({ categoria, cl: Number.isFinite(cl) ? cl : null, atleta: tds[iAt] ?? '', clube, total: tds[iTot] ?? '', participantes: total });
+      res.push({ categoria, cl: Number.isFinite(cl) ? cl : null, atleta: tds[iAt] ?? '', clube: clube || sede, sede, total: tds[iTot] ?? '', participantes: total });
     }
   }
   return res;
