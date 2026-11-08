@@ -60,6 +60,7 @@ main{margin-left:230px;padding:32px 36px 90px;max-width:1180px}
 .sec-tit{margin:28px 0 12px;font-size:15px;text-transform:uppercase;letter-spacing:.14em;color:var(--sub)}
 .mes{font:700 13px 'Chakra Petch';letter-spacing:.14em;color:var(--ouro);margin:22px 0 8px;text-transform:uppercase}
 .vazio{color:var(--sub);padding:18px;border:1px dashed var(--line)}
+.destino{cursor:pointer;transition:border-color .15s}.destino:hover,.destino.aberto{border-color:rgba(226,182,87,.45)}
 .wpp{display:inline-flex;align-items:center;gap:8px;background:#1F8B4C;color:#fff;text-decoration:none;padding:12px 16px;font-weight:600}
 /* mobile */
 @media (max-width:860px){
@@ -109,7 +110,7 @@ main{margin-left:230px;padding:32px 36px 90px;max-width:1180px}
 const API = "https://qlgumtqedhlkkgpoydvs.supabase.co/functions/v1/painel-api";
 const $ = (s) => document.querySelector(s);
 const guardar = { get(k){ try{return localStorage.getItem(k)}catch{return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch{} }, del(k){ try{localStorage.removeItem(k)}catch{} } };
-let D = null, tela = "painel";
+let D = null, tela = "painel", destinoAberto = -1;
 
 async function api(acao, extra = {}) {
   const token = guardar.get("cac_token");
@@ -221,11 +222,44 @@ function render() {
       <div class="lista">${regs.map((r) => `<div class="linha"><div><div class="t">${r.tipo === "competicao" ? "Competição" : "Treino"} · ${esc(r.clube || "")}</div><div class="pequeno">${esc([r.arma, r.calibre, r.ambito].filter(Boolean).join(" · "))}</div></div><div class="pequeno">${br(r.data)}</div></div>`).join("") || '<div class="vazio">Nenhum treino registrado nos últimos 12 meses. Conte no WhatsApp: "treinei hoje no clube X com a pistola 9mm".</div>'}</div>`;
   }
   if (tela === "guias") {
-    const g = D.guias;
-    c.innerHTML = `<div class="topo"><div><h2>Guias de tráfego</h2><p>Sem guia vigente não se transporta a arma até o estande.</p></div></div>
+    const g = D.guias, grupos = g.porDestino || [];
+    const linhaGuia = (x) => `<div class="linha"><div><div class="t">${esc(x.arma)}</div><div class="pequeno">GT ${esc(x.numero || "")}${x.destino ? " · " + esc(x.destino) : ""}</div></div><div style="text-align:right"><div class="${cor(x.dias)}">até ${br(x.validade)}</div><div class="pequeno">${prazo(x.dias)}</div></div></div>`;
+    const cardDestino = (d, i) => {
+      const n = d.guias.length, aberto = destinoAberto === i;
+      return `<div class="card destino ${aberto ? "aberto" : ""}" data-i="${i}">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div><div class="tit" style="font-size:16px">${esc(d.nome)}</div><div class="pequeno">${d.cidade ? esc(d.cidade) + " · " : ""}${d.cadastrado ? "clube cadastrado" : "destino das guias"}</div></div>
+          <span class="etiqueta ${n ? "ok" : "at"}">${n ? n + (n > 1 ? " guias" : " guia") : "sem guia"}</span>
+        </div>
+        <div class="pequeno" style="margin-top:10px">${n ? `Próximo vencimento: <b class="${cor(d.guias.find((x) => x.validade === d.proximo_vencimento)?.dias)}">${br(d.proximo_vencimento)}</b>` : "Nenhuma guia válida para este destino."}</div>
+        ${aberto ? `<div class="lista" style="margin-top:14px">${d.guias.map(linhaGuia).join("") || '<div class="vazio">Para ir a este clube é preciso tirar uma guia. Fale no WhatsApp que a gente ajuda.</div>'}</div>
+          ${d.cadastrado && d.id ? `<button class="btn sec rem" data-id="${d.id}" style="margin-top:12px;min-height:38px;padding:8px 12px">Remover clube</button>` : ""}` : `<div class="pequeno" style="margin-top:8px;color:var(--ouro)">Toque para ver as guias</div>`}
+      </div>`;
+    };
+    c.innerHTML = `<div class="topo"><div><h2>Guias de tráfego</h2><p>${g.podeLevar.length} guia(s) válida(s) hoje, separadas por destino. Sem guia vigente não se transporta a arma.</p></div><button class="btn" id="bt-novo-clube">+ Adicionar clube</button></div>
+      <div id="form-clube" class="card" style="display:none;margin-bottom:16px">
+        <div class="grade g4" style="align-items:end">
+          <label>Nome do clube ou local<input id="cl-nome" maxlength="80" placeholder="Ex.: Clube de Tiro Lima"></label>
+          <label>Cidade<input id="cl-cidade" maxlength="60" placeholder="Ex.: Guaimbê/SP"></label>
+          <label>Outros nomes (opcional)<input id="cl-apelidos" maxlength="120" placeholder="Separe por vírgula"></label>
+          <button class="btn" id="cl-salvar">Salvar clube</button>
+        </div>
+        <div class="pequeno" style="margin-top:8px">Os outros nomes ajudam a reconhecer o clube como aparece escrito nas guias (ex.: sigla ou razão social).</div>
+        <div class="msg" id="cl-msg"></div>
+      </div>
       ${g.semGuia.length ? `<div class="alerta"><div><b class="at tit" style="font-size:16px">${g.semGuia.length} arma(s) sem guia vigente</b><div class="pequeno">${g.semGuia.map(esc).join(" · ")}</div></div></div>` : ""}
-      <h3 class="sec-tit">Pode levar hoje (${g.podeLevar.length})</h3>
-      <div class="lista">${g.podeLevar.map((x) => `<div class="linha"><div><div class="t">${esc(x.arma)}</div><div class="pequeno">GT ${esc(x.numero || "")} · ${esc(x.finalidade || "")}</div></div><div style="text-align:right"><div class="${cor(x.dias)}">até ${br(x.validade)}</div><div class="pequeno">${prazo(x.dias)}</div></div></div>`).join("") || '<div class="vazio">Nenhuma guia vigente.</div>'}</div>`;
+      <h3 class="sec-tit">Por destino</h3>
+      <div class="grade g2">${grupos.map(cardDestino).join("") || '<div class="vazio">Nenhum clube cadastrado e nenhuma guia válida.</div>'}</div>
+      <h3 class="sec-tit">Todas as guias válidas (${g.podeLevar.length})</h3>
+      <div class="lista">${g.podeLevar.map(linhaGuia).join("") || '<div class="vazio">Nenhuma guia vigente.</div>'}</div>`;
+    c.querySelectorAll(".destino").forEach((el) => el.onclick = (e) => { if (e.target.closest(".rem")) return; const i = Number(el.dataset.i); destinoAberto = destinoAberto === i ? -1 : i; render(); });
+    c.querySelectorAll(".rem").forEach((b) => b.onclick = async () => { if (!confirm("Remover este clube da sua lista? As guias continuam guardadas.")) return; await api("remover_clube", { id: b.dataset.id }); destinoAberto = -1; carregar(); });
+    $("#bt-novo-clube").onclick = () => { const f = $("#form-clube"); f.style.display = f.style.display === "none" ? "block" : "none"; $("#cl-nome").focus(); };
+    $("#cl-salvar").onclick = async () => {
+      const r = await api("adicionar_clube", { nome: $("#cl-nome").value, cidade: $("#cl-cidade").value, apelidos: $("#cl-apelidos").value });
+      if (!r.ok) { $("#cl-msg").textContent = r.erro || "Não foi possível salvar."; $("#cl-msg").className = "msg erro"; return; }
+      carregar();
+    };
   }
   if (tela === "calendario") {
     let mesAtual = "", html = "";
