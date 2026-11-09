@@ -108,7 +108,7 @@ select.troca-acervo{background:#0E0E11;color:var(--txt);border:1px solid var(--l
     <div class="marca"><svg width="28" height="28" viewBox="0 0 34 34" fill="none" stroke="#E2B657" stroke-width="2"><circle cx="17" cy="17" r="13"/><circle cx="17" cy="17" r="5"/><path d="M17 1v8M17 25v8M1 17h8M25 17h8"/></svg><div>EVERTON<small>ACOMPANHAMENTO CAC</small></div></div>
     <nav id="menu"></nav>
     <div class="rodape" style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
-      <a class="wpp" href="https://wa.me/5517997941845" target="_blank" rel="noopener">Falar no WhatsApp</a>
+      <a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">Falar no WhatsApp</a>
       <button class="btn sec" id="bt-sair">Sair</button>
     </div>
   </aside>
@@ -300,7 +300,7 @@ function render() {
     const ordem = ["CR", "EXAME_PSICOLOGICO", "EXAME_TECNICO", "CRAF", "AUTORIZACAO", "GT", "OUTRO"];
     const nomes = { CR: "Certificado de Registro", EXAME_PSICOLOGICO: "Laudo psicológico", EXAME_TECNICO: "Capacidade técnica", CRAF: "CRAFs", AUTORIZACAO: "Autorizações de aquisição", GT: "Guias de tráfego", OUTRO: "Outros" };
     const temLaudo = (t) => docs.some((d) => d.tipo === t);
-    c.innerHTML = `<div class="topo"><div><h2>Documentos</h2><p>Para atualizar, é só mandar a foto ou o PDF no WhatsApp: a gente lê, guarda e o Everton confere.</p></div><a class="wpp" href="https://wa.me/5517997941845" target="_blank" rel="noopener">Enviar documento</a></div>
+    c.innerHTML = `<div class="topo"><div><h2>Documentos</h2><p>Para atualizar, é só mandar a foto ou o PDF no WhatsApp: a gente lê, guarda e o Everton confere.</p></div><a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">Enviar documento</a></div>
       ${!temLaudo("EXAME_TECNICO") || !temLaudo("EXAME_PSICOLOGICO") ? `<div class="aviso atencao" style="margin-bottom:12px"><b>Laudos para o CR</b><span class="pequeno">Exigidos na revalidação do CR (pedir até 30 dias antes do vencimento). ${!temLaudo("EXAME_PSICOLOGICO") ? "Falta o laudo psicológico. " : ""}${!temLaudo("EXAME_TECNICO") ? "Falta o comprovante de capacidade técnica." : ""}</span></div>` : ""}
       ${ordem.filter((t) => docs.some((d) => d.tipo === t)).map((t) => `<h3 class="sec-tit">${nomes[t]}</h3><div class="lista">${docs.filter((d) => d.tipo === t).map((d) => `<div class="linha"><div><div class="t">${esc(d.arma || d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`).join("")}</div>`).join("") || '<div class="vazio">Nenhum documento ainda.</div>'}`;
   }
