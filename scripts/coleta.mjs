@@ -1,3 +1,4 @@
+import "./binarios.mjs";
 // Robô de coleta de resultados LINADE + FPTE para evertoninstrutordetiro.com.br
 // Roda diariamente no GitHub Actions (Node 20+). Gera data/resultados.json.
 // Sem dependências externas.
