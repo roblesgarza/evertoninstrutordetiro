@@ -1,0 +1,31 @@
+{
+  "name": "Everton CAC – Painel do Atirador",
+  "short_name": "Everton CAC",
+  "description": "CR, CRAFs, guias e habitualidade sempre em dia, com avisos no WhatsApp.",
+  "id": "/painel/",
+  "start_url": "/painel/?origem=app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0A0C",
+  "theme_color": "#0A0A0C",
+  "lang": "pt-BR",
+  "categories": [
+    "productivity",
+    "sports"
+  ],
+  "icons": [
+    {
+      "src": "/data/app/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/data/app/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -75,6 +75,12 @@ select.troca-acervo{background:#0E0E11;color:var(--txt);border:1px solid var(--l
   .topo h2{font-size:22px}
 }
 </style>
+<meta name="theme-color" content="#0A0A0C">
+<link rel="manifest" href="/app/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/data/app/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Everton CAC">
+<meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
 
@@ -308,5 +314,6 @@ function cardDoc(d, rotuloValidade, comAcervo) {
 
 if (guardar.get("cac_token")) carregar(); else mostrarLogin();
 </script>
+<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});</script>
 </body>
 </html>
