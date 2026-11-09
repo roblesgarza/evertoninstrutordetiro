@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aprovar cadastro · Acompanhamento CAC</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0A0A0C;color:#ECECEF;font:16px/1.6 system-ui,sans-serif;padding:20px}
+.c{width:100%;max-width:440px;background:#141418;border:1px solid rgba(226,182,87,.35);padding:28px;display:flex;flex-direction:column;gap:14px}
+h1{margin:0;font-size:22px;text-transform:uppercase;letter-spacing:.04em;color:#E2B657}
+.d{background:#0E0E11;border:1px solid rgba(255,255,255,.08);padding:14px 16px}.d b{display:block;font-size:19px}.m{color:#A9A9B2;font-size:14px}
+button{min-height:52px;border:0;font:700 16px system-ui,sans-serif;cursor:pointer}
+.ok{background:#E2B657;color:#0A0A0C}.no{background:transparent;color:#ECECEF;border:1px solid rgba(255,255,255,.2)}
+#msg{min-height:22px}.verde{color:#5BD38A}.verm{color:#FF7A70}
+</style>
+</head>
+<body>
+<div class="c">
+  <h1>Aprovar cadastro</h1>
+  <div id="corpo" class="m">Carregando…</div>
+  <div id="msg" role="status"></div>
+</div>
+<script>
+(function(){
+  var API="https://qlgumtqedhlkkgpoydvs.supabase.co/functions/v1/painel-api";
+  var q=new URLSearchParams(location.search), id=q.get('id')||'', t=q.get('t')||'';
+  var corpo=document.getElementById('corpo'), msg=document.getElementById('msg');
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+  function post(acao){return fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({acao:acao,id:id,t:t})}).then(function(r){return r.json()})}
+  post('ver_aprovacao').then(function(r){
+    if(!r.ok){corpo.innerHTML='<span class="verm">'+esc(r.erro||'Link inválido.')+'</span>';return}
+    var f=String(r.whatsapp||'');
+    corpo.innerHTML='<div class="d"><b>'+esc(r.nome)+'</b><span class="m">WhatsApp +'+esc(f)+'</span><div class="m" style="margin-top:6px">'+esc(r.obs||'')+'</div></div>'+
+      '<p class="m">Aprove só depois de combinar o pagamento. Ao aprovar, a pessoa recebe no WhatsApp o acesso ao painel.</p>'+
+      '<div style="display:flex;flex-direction:column;gap:10px"><button class="ok" id="b-ok">Aprovar e liberar acesso</button><button class="no" id="b-no">Recusar cadastro</button></div>';
+    function decidir(acao){
+      document.getElementById('b-ok').disabled=document.getElementById('b-no').disabled=true;msg.textContent='Salvando…';
+      post(acao).then(function(x){
+        if(!x.ok){msg.className='verm';msg.textContent=x.erro||'Não foi possível salvar.';return}
+        corpo.innerHTML='';msg.className='verde';
+        msg.textContent=acao==='aprovar'?'Aprovado! '+x.nome+' já recebeu o acesso no WhatsApp.':'Cadastro recusado.';
+      }).catch(function(){msg.className='verm';msg.textContent='Falha de conexão. Tente de novo.'});
+    }
+    document.getElementById('b-ok').onclick=function(){decidir('aprovar')};
+    document.getElementById('b-no').onclick=function(){decidir('recusar')};
+  }).catch(function(){corpo.innerHTML='<span class="verm">Falha de conexão.</span>'});
+})();
+</script>
+</body>
+</html>

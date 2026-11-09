@@ -75,13 +75,19 @@ footer{padding-top:40px;padding-bottom:88px;background:#060607;border-top:1px so
 :focus-visible{outline:2px solid var(--gold2);outline-offset:3px}
 @media (max-width:900px){nav{display:none}}
 @media (max-width:760px){.pad{padding-left:20px;padding-right:20px}.hero h1{font-size:clamp(30px,9vw,44px)}.sec-title{font-size:30px}.sec{padding-top:64px;padding-bottom:64px}.head-cta{display:none}.wa-float{display:inline-flex}.preco{font-size:40px}.plano{padding:26px}}
+.cad{flex:1 1 380px;max-width:520px;background:var(--card);border:1px solid rgba(226,182,87,.35);padding:28px;display:flex;flex-direction:column;gap:16px}
+.cad label{display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--mut)}
+.cad input,.cad select{min-height:48px;background:#0E0E11;border:1px solid rgba(255,255,255,.14);color:var(--txt);padding:0 14px;font:inherit;font-size:16px}
+.cad input:focus,.cad select:focus{outline:none;border-color:var(--gold)}
+.cad .aceite{flex-direction:row;align-items:flex-start;gap:10px}.cad .aceite input{min-height:auto;width:20px;height:20px;margin-top:2px;accent-color:var(--gold)}
+.cad-msg{font-size:15px;min-height:22px;color:var(--mut)}.cad-msg.erro{color:#FF7A70}.cad-msg.ok{color:#5BD38A}
 </style>
 </head>
 <body>
 
 <header class="pad">
-  <a class="brand" href="/" aria-label="Everton Barbosa, início" style="white-space:nowrap">
-    <img src="/img/atica-logo.png" alt="Ática Treinamento" width="95" height="36" style="display:block;height:36px;width:auto"><span aria-hidden="true" style="width:1px;height:28px;background:rgba(226,182,87,.4)"></span>
+  <a class="brand" href="/" aria-label="Everton Barbosa, início">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true" fill="none" stroke="#E2B657" stroke-width="2"><circle cx="17" cy="17" r="13"/><circle cx="17" cy="17" r="5"/><path d="M17 1v8M17 25v8M1 17h8M25 17h8"/></svg>
     EVERTON BARBOSA
   </a>
   <nav aria-label="Principal">
@@ -134,7 +140,7 @@ footer{padding-top:40px;padding-bottom:88px;background:#060607;border-top:1px so
     </div>
     <div class="fundador">
       <div><div class="ch">Preço de fundador: R$ 199 no 1º ano</div><div class="lead" style="font-size:15px">Para os 20 primeiros assinantes do Acompanhamento CAC.</div></div>
-      <a class="btn btn-p" href="https://wa.me/5517974006070?text=Ol%C3%A1%20Everton%2C%20quero%20garantir%20o%20pre%C3%A7o%20de%20fundador%20do%20Acompanhamento%20CAC%20(R%24%20199)." target="_blank" rel="noopener">Garantir minha vaga</a>
+      <a class="btn btn-p" href="#cadastro" data-plano="fundador">Garantir minha vaga</a>
     </div>
     <div class="planos">
       <article class="plano dest">
@@ -149,7 +155,7 @@ footer{padding-top:40px;padding-bottom:88px;background:#060607;border-top:1px so
           <li>Checklist pronto na hora de renovar</li>
           <li>Linha direta com o Everton</li>
         </ul>
-        <a class="btn btn-p" href="https://wa.me/5517974006070?text=Ol%C3%A1%20Everton%2C%20quero%20assinar%20o%20Acompanhamento%20CAC%20(R%24%20249%2Fano)." target="_blank" rel="noopener">Quero este plano</a>
+        <a class="btn btn-p" href="#cadastro" data-plano="acompanhamento">Quero este plano</a>
       </article>
       <article class="plano">
         <h3>Acompanhamento + Renovação</h3>
@@ -159,10 +165,33 @@ footer{padding-top:40px;padding-bottom:88px;background:#060607;border-top:1px so
           <li>Conferência de todos os documentos antes do pedido</li>
           <li>Protocolo do pedido de renovação na Polícia Federal</li>
         </ul>
-        <a class="btn btn-g" href="https://wa.me/5517974006070?text=Ol%C3%A1%20Everton%2C%20quero%20assinar%20o%20Acompanhamento%20%2B%20Renova%C3%A7%C3%A3o%20(R%24%20497%2Fano)." target="_blank" rel="noopener">Quero este plano</a>
+        <a class="btn btn-g" href="#cadastro" data-plano="premium">Quero este plano</a>
       </article>
     </div>
     <p class="obs">Taxas da Polícia Federal, laudo psicológico, comprovante de capacidade técnica e provas práticas são cobrados à parte. O acompanhamento é uma orientação e não substitui análise jurídica nem o atendimento da PF.</p>
+  </div>
+</section>
+
+<section id="cadastro" class="sec pad" aria-labelledby="t-cad">
+  <div class="wrap" style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
+    <div style="flex:1 1 340px;display:flex;flex-direction:column;gap:14px">
+      <span class="eyebrow"><b>CADASTRO</b> — LEVA 1 MINUTO</span>
+      <h2 id="t-cad" class="sec-title">Faça seu cadastro.</h2>
+      <p class="lead">Preencha seus dados e escolha o plano. O Everton fala com você no WhatsApp para combinar o pagamento e, assim que aprovar, você recebe o acesso ao painel.</p>
+      <p class="lead" style="font-size:14px">Prefere conversar antes? <a href="https://wa.me/5517974006070?text=Ol%C3%A1%20Everton%2C%20quero%20saber%20mais%20sobre%20o%20Acompanhamento%20CAC." target="_blank" rel="noopener">Fale com o Everton no WhatsApp</a>.</p>
+    </div>
+    <form id="form-cad" class="cad" novalidate>
+      <label>Nome completo<input id="c-nome" autocomplete="name" maxlength="80" required></label>
+      <label>WhatsApp com DDD<input id="c-fone" inputmode="tel" autocomplete="tel" placeholder="(17) 99999-9999" required></label>
+      <label>Plano<select id="c-plano" required>
+        <option value="fundador">Fundador – R$ 199 no 1º ano (20 vagas)</option>
+        <option value="acompanhamento" selected>Acompanhamento CAC – R$ 249/ano</option>
+        <option value="premium">Acompanhamento + Renovação – R$ 497/ano</option>
+      </select></label>
+      <label class="aceite"><input type="checkbox" id="c-aceite"> <span>Li e aceito a <a href="/privacidade/" target="_blank">política de privacidade</a>.</span></label>
+      <button class="btn btn-p" type="submit" id="c-enviar">Enviar cadastro</button>
+      <div id="c-msg" role="status" class="cad-msg"></div>
+    </form>
   </div>
 </section>
 
@@ -173,7 +202,7 @@ footer{padding-top:40px;padding-bottom:88px;background:#060607;border-top:1px so
       <h2 class="sec-title" id="t-como">Em três passos.</h2>
     </div>
     <ol class="passos">
-      <li><span class="num">01</span><strong>Assine pelo WhatsApp</strong><span>Escolha o plano e fale com o Everton. Seu número entra no sistema.</span></li>
+      <li><span class="num">01</span><strong>Faça seu cadastro</strong><span>Escolha o plano aqui na página. O Everton combina o pagamento com você e libera o acesso.</span></li>
       <li><span class="num">02</span><strong>Mande seus documentos</strong><span>Foto ou PDF do CR, CRAFs e guias no WhatsApp. A gente lê, organiza e confere.</span></li>
       <li><span class="num">03</span><strong>Fique tranquilo</strong><span>Receba os avisos antes de vencer e acompanhe tudo na Área do atirador.</span></li>
     </ol>
@@ -209,5 +238,28 @@ footer{padding-top:40px;padding-bottom:88px;background:#060607;border-top:1px so
 </footer>
 
 <a class="btn btn-p wa-float" href="#planos" aria-label="Ver planos">Ver planos</a>
+<script>
+(function(){
+  var API="https://qlgumtqedhlkkgpoydvs.supabase.co/functions/v1/painel-api";
+  var $=function(id){return document.getElementById(id)};
+  document.querySelectorAll('[data-plano]').forEach(function(a){a.addEventListener('click',function(){$('c-plano').value=a.dataset.plano;setTimeout(function(){$('c-nome').focus()},400)})});
+  $('form-cad').addEventListener('submit',function(e){
+    e.preventDefault();
+    var m=$('c-msg'),b=$('c-enviar');
+    var dados={acao:'cadastrar',nome:$('c-nome').value,whatsapp:$('c-fone').value,plano:$('c-plano').value,aceite:$('c-aceite').checked};
+    if(dados.nome.trim().split(/\s+/).length<2){m.className='cad-msg erro';m.textContent='Informe nome e sobrenome.';return}
+    if(dados.whatsapp.replace(/\D/g,'').length<10){m.className='cad-msg erro';m.textContent='Informe o WhatsApp com DDD.';return}
+    if(!dados.aceite){m.className='cad-msg erro';m.textContent='Marque o aceite da política de privacidade.';return}
+    b.disabled=true;m.className='cad-msg';m.textContent='Enviando…';
+    fetch(API,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(dados)}).then(function(r){return r.json()}).then(function(r){
+      b.disabled=false;
+      if(!r.ok){m.className='cad-msg erro';m.textContent=r.erro||'Não foi possível enviar. Tente de novo.';return}
+      m.className='cad-msg ok';
+      m.innerHTML=r.situacao==='ativo'?'Você já é assinante! <a href="/painel/">Entre no painel</a>.':r.situacao==='pendente'?'Seu cadastro já foi recebido e está em análise. Em breve o Everton fala com você.':'Cadastro recebido! Você vai receber uma confirmação no WhatsApp e o Everton fala com você para combinar o pagamento.';
+      if(r.situacao==='recebido')$('form-cad').reset();
+    }).catch(function(){b.disabled=false;m.className='cad-msg erro';m.textContent='Falha de conexão. Tente de novo.'});
+  });
+})();
+</script>
 </body>
 </html>
