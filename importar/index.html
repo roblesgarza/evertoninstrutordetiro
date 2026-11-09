@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="robots" content="noindex, nofollow"><title>Importação de documentos</title>
+<style>body{background:#0A0A0C;color:#ECECEF;font:15px/1.5 system-ui,sans-serif;padding:24px}pre{white-space:pre-wrap;color:#A9A9B2}</style></head>
+<body><h1 style="color:#E2B657;font-size:20px">Importação de documentos</h1><p>Esta janela recebe os arquivos e envia para a ficha do assinante. Pode fechar quando terminar.</p><pre id="log">Aguardando arquivos…</pre>
+<script>
+(function(){
+  var FUNC='https://qlgumtqedhlkkgpoydvs.supabase.co/functions/v1/importar-documentos';
+  var ORIGENS=['https://web.whatsapp.com','https://sisgcorp.eb.mil.br'];
+  var log=document.getElementById('log');
+  window.addEventListener('message',async function(e){
+    if(ORIGENS.indexOf(e.origin)<0||!e.data||e.data.tipo!=='importar')return;
+    var d=e.data, res=[];
+    log.textContent='Enviando '+d.itens.length+' arquivo(s)…';
+    for(var i=0;i<d.itens.length;i+=4){
+      res=res.concat(await Promise.all(d.itens.slice(i,i+4).map(function(it){
+        return fetch(FUNC+'?whatsapp='+encodeURIComponent(d.whatsapp)+'&origem='+encodeURIComponent(d.origem||'whatsapp')+'&ref='+encodeURIComponent(it.ref),{method:'POST',headers:{'x-importacao':d.senha},body:it.buf})
+          .then(function(r){return r.json()}).catch(function(err){return {ok:false,erro:String(err)}}).then(function(j){j.ref=it.ref;return j});
+      })));
+      log.textContent='Enviados '+res.length+' de '+d.itens.length+'…';
+    }
+    log.textContent='Concluído: '+res.filter(function(r){return r.ok}).length+' de '+res.length+' importados.';
+    e.source.postMessage({tipo:'resultado',res:res},e.origin);
+  });
+  if(window.opener)ORIGENS.forEach(function(o){try{window.opener.postMessage({tipo:'pronto'},o)}catch(x){}});
+})();
+</script></body></html>
