@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Calculadora balística · Ática</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0A0A0C">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0A0A0C;--card:#141418;--card2:#1A1A1F;--line:rgba(255,255,255,.08);--ouro:#E2B657;--txt:#ECECEF;--sub:#A9A9B2;--verde:#3FCB7E;--amarelo:#F0B429;--vermelho:#F0524F;--azul:#6E9BF5}
+*{box-sizing:border-box}
+html,body{overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.55 Inter,system-ui,sans-serif}
+h1,h2,h3{font-family:'Chakra Petch',sans-serif;letter-spacing:.02em;margin:0}
+button{font:inherit;cursor:pointer}
+a{color:var(--ouro)}
+header{position:sticky;top:0;z-index:6;background:rgba(10,10,12,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top)}
+.barra{max-width:980px;margin:0 auto;padding:12px 16px 0;display:flex;align-items:center;gap:12px}
+.voltar{display:grid;place-items:center;width:40px;height:40px;border:1px solid var(--line);color:var(--txt);text-decoration:none;flex:none}
+.marca{font:700 16px 'Chakra Petch';letter-spacing:.08em;text-transform:uppercase;min-width:0}
+.marca small{display:block;font:500 10px Inter;letter-spacing:.18em;color:var(--sub)}
+.beta{font:700 10px 'Chakra Petch';letter-spacing:.14em;padding:2px 6px;border:1px solid var(--amarelo);color:var(--amarelo);vertical-align:2px;margin-left:4px}
+.abas{max-width:980px;margin:0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:8px 16px 0}
+.abas button{background:none;border:0;border-bottom:2px solid transparent;color:var(--sub);padding:11px 2px;font:600 12px 'Chakra Petch';letter-spacing:.12em;text-transform:uppercase}
+.abas button.ativo{color:var(--ouro);border-bottom-color:var(--ouro)}
+main{max-width:980px;margin:0 auto;padding:18px 16px calc(40px + env(safe-area-inset-bottom))}
+.tela{display:none;flex-direction:column;gap:14px}.tela.ativa{display:flex}
+.card{background:var(--card);border:1px solid var(--line);padding:16px;min-width:0}
+.rotulo{font:600 11px 'Chakra Petch';letter-spacing:.16em;text-transform:uppercase;color:var(--sub)}
+.pequeno{font-size:13px;color:var(--sub)}
+.sec-tit{margin:10px 0 0;font:600 13px 'Chakra Petch';text-transform:uppercase;letter-spacing:.14em;color:var(--sub)}
+label{font-size:12px;color:var(--sub);display:flex;flex-direction:column;gap:5px;min-width:0}
+input,select{background:#0E0E11;border:1px solid var(--line);color:var(--txt);padding:11px 10px;font:16px Inter;outline:none;width:100%;min-width:0;border-radius:0;min-height:46px}
+select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:calc(100% - 15px) 20px,calc(100% - 10px) 20px;background-size:5px 5px;background-repeat:no-repeat;padding-right:26px}
+input:focus,select:focus{border-color:var(--ouro)}
+.campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px}
+.c2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.junto{display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:0}.junto select{border-left:0}
+.btn{background:var(--ouro);color:#0A0A0C;border:0;padding:12px 16px;font-weight:700;min-height:46px}
+.btn.sec{background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:600}
+.btn.perigo{background:transparent;color:var(--vermelho);border:1px solid rgba(240,82,79,.35);font-weight:600}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{background:var(--card);border:1px solid var(--line);color:var(--sub);padding:9px 12px;font:600 11px 'Chakra Petch';letter-spacing:.1em;text-transform:uppercase;min-height:40px}
+.chip.ativo{border-color:var(--ouro);color:var(--ouro);background:rgba(226,182,87,.08)}
+/* conjunto em uso */
+.conjunto{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.conjunto label{font:600 10px 'Chakra Petch';letter-spacing:.14em;text-transform:uppercase}
+.conjunto select{font-size:14px;padding:9px 24px 9px 8px;min-height:42px;background-position:calc(100% - 13px) 18px,calc(100% - 8px) 18px}
+/* resultado */
+.herois{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.heroi{background:var(--card);border:1px solid rgba(226,182,87,.28);padding:16px;position:relative;overflow:hidden;min-width:0;background-image:linear-gradient(rgba(226,182,87,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(226,182,87,.04) 1px,transparent 1px);background-size:24px 24px}
+.heroi .n{font:700 clamp(34px,11vw,52px)/1 'Chakra Petch';color:var(--ouro);margin:10px 0 2px;font-variant-numeric:tabular-nums}
+.heroi .n small{font:600 13px 'Chakra Petch';letter-spacing:.12em;color:var(--sub);margin-left:6px}
+  .heroi .s{display:flex;align-items:center;flex-wrap:wrap;gap:4px 0;margin-top:8px;font:600 14px 'Chakra Petch';letter-spacing:.06em;color:var(--txt)}
+.sentido{display:inline-block;font:700 10px 'Chakra Petch';letter-spacing:.14em;padding:3px 7px;border:1px solid currentColor;text-transform:uppercase;color:var(--verde);margin-right:8px}
+.sentido.neutro{color:var(--sub)}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th{font:600 10px 'Chakra Petch';letter-spacing:.12em;text-transform:uppercase;color:var(--sub);text-align:right;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;font-size:14px}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card);font-weight:600}
+tr.alvo td{background:rgba(226,182,87,.08);color:var(--ouro)}tr.alvo td:first-child{background:#231f16}
+tr.zero td:first-child{color:var(--verde)}
+.rolagem{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0}
+.dados{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.dados div{background:var(--card);padding:12px 14px;min-width:0}
+.dados span{display:block;font-size:10px;color:var(--sub);letter-spacing:.12em;text-transform:uppercase;font-family:'Chakra Petch';font-weight:600}
+.dados b{font:600 18px 'Chakra Petch';font-variant-numeric:tabular-nums}
+.dados em{font-style:normal;font-size:12px;color:var(--sub);margin-left:3px}
+.aviso{border-left:3px solid var(--amarelo);background:var(--card2);padding:12px 14px;font-size:13px;color:var(--sub)}
+.aviso b{color:var(--txt)}
+.erro{border:1px dashed rgba(240,82,79,.45);color:var(--vermelho);padding:14px;font-size:14px}
+.rosa{width:74px;height:74px;flex:none}
+.vento{display:flex;gap:12px;align-items:center}
+.vento .campos{flex:1}
+#grafico svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.leitura{display:flex;gap:14px;flex-wrap:wrap;font:600 13px 'Chakra Petch';letter-spacing:.04em;min-height:22px;font-variant-numeric:tabular-nums}
+.leitura span{color:var(--sub)}
+.acoes{display:flex;gap:8px;flex-wrap:wrap}
+.item-cab{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:end;margin-bottom:12px}
+.item-cab .btn{padding:12px}
+@media (max-width:420px){#resultado th,#resultado td{padding:9px 6px}#resultado th{letter-spacing:.06em}.conjunto select{font-size:13px}.heroi{padding:13px}.campos{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (min-width:861px){.duas{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:14px;align-items:start}.duas>div{display:flex;flex-direction:column;gap:14px;min-width:0}.rolagem{margin:0}}
+@media (max-width:860px){.duas,.duas>div{display:flex;flex-direction:column;gap:14px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="barra">
+    <a class="voltar" href="/painel/" aria-label="Voltar ao painel"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5l-7 7 7 7"/></svg></a>
+    <div class="marca">Calculadora balística <span class="beta">Beta</span><small>ÁTICA · TIRO ESPORTIVO</small></div>
+  </div>
+  <div class="abas" id="abas">
+    <button data-t="tiro" class="ativo">Tiro</button><button data-t="tabela">Tabela</button><button data-t="grafico">Gráfico</button><button data-t="cadastro">Cadastro</button>
+  </div>
+</header>
+
+<main>
+  <div class="aviso" style="margin-bottom:14px"><b>Versão beta, em desenvolvimento.</b> Novas funções estão a caminho e os resultados ainda estão sendo conferidos. Confirme tudo no estande.</div>
+  <!-- TIRO -->
+  <section class="tela ativa" id="t-tiro">
+    <div class="conjunto">
+      <label>Rifle<select id="sel-rifle"></select></label>
+      <label>Mira<select id="sel-mira"></select></label>
+      <label>Munição<select id="sel-municao"></select></label>
+    </div>
+    <div class="duas">
+      <div>
+        <div class="card">
+          <div class="rotulo">Alvo</div>
+          <div class="c2" style="margin-top:10px">
+            <label>Distância (m)<input id="distancia" inputmode="decimal"></label>
+            <label>Inclinação (graus)<input id="inclinacao" inputmode="decimal"></label>
+          </div>
+        </div>
+        <div class="card">
+          <div class="rotulo">Vento</div>
+          <div class="vento" style="margin-top:10px">
+            <svg class="rosa" id="rosa" viewBox="0 0 80 80"></svg>
+            <div class="campos">
+              <label>Velocidade<div class="junto"><input id="ventoVel" inputmode="decimal"><select id="ventoUn"><option value="ms">m/s</option><option value="kmh">km/h</option></select></div></label>
+              <label>Vem de<select id="ventoHora"></select></label>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="rotulo">Clima</div>
+          <div class="chips" id="clima-modo" style="margin:10px 0">
+            <button class="chip" data-m="da">Alt. de densidade</button><button class="chip" data-m="pressao">Pressão</button><button class="chip" data-m="altitude">Altitude</button>
+          </div>
+          <div class="campos">
+            <label>Temperatura (°C)<input id="temperatura" inputmode="decimal"></label>
+            <label data-modo="da">Alt. de densidade (m)<input id="altitudeDensidade" inputmode="decimal"></label>
+            <label data-modo="pressao">Pressão no local (hPa)<input id="pressao" inputmode="decimal"></label>
+            <label data-modo="altitude">Altitude (m)<input id="altitude" inputmode="decimal"></label>
+            <label data-modo="pressao altitude">Umidade (%)<input id="umidade" inputmode="decimal"></label>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div id="resultado"></div>
+        <div class="aviso"><b>Estimativa para tiro esportivo.</b> Os valores são calculados a partir dos dados que você cadastrou e devem ser confirmados no estande antes de qualquer uso. Siga sempre as regras de segurança do clube e do seu instrutor.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABELA -->
+  <section class="tela" id="t-tabela">
+    <div class="card">
+      <div class="rotulo">Tabela balística</div>
+      <div class="campos" style="margin-top:10px;grid-template-columns:repeat(3,minmax(0,1fr))">
+        <label>Início (m)<input id="tabIni" inputmode="decimal"></label>
+        <label>Fim (m)<input id="tabFim" inputmode="decimal"></label>
+        <label>Passo (m)<input id="tabPasso" inputmode="decimal"></label>
+      </div>
+      <p class="pequeno" id="tab-resumo" style="margin:10px 0 0"></p>
+    </div>
+    <div class="card" style="padding-top:6px;padding-bottom:6px"><div class="rolagem" id="tabela"></div></div>
+    <div class="aviso"><b>Estimativa para tiro esportivo.</b> Confirme os valores no estande.</div>
+  </section>
+
+  <!-- GRÁFICO -->
+  <section class="tela" id="t-grafico">
+    <div class="card">
+      <div class="rotulo">Trajetória em relação à linha de visada</div>
+      <div class="leitura" id="leitura" style="margin:10px 0 6px"></div>
+      <div id="grafico"></div>
+      <p class="pequeno" style="margin:10px 0 0">Toque ou passe o dedo no gráfico para ler os valores em cada distância. O alcance do gráfico segue o fim da tabela.</p>
+    </div>
+    <div class="aviso"><b>Estimativa para tiro esportivo.</b> Confirme os valores no estande.</div>
+  </section>
+
+  <!-- CADASTRO -->
+  <section class="tela" id="t-cadastro">
+    <p class="pequeno" style="margin:0">Os cadastros ficam salvos só neste aparelho. Cadastre os dados do seu próprio equipamento e da sua munição, medidos por você.</p>
+    <div class="card" id="cad-rifle"></div>
+    <div class="card" id="cad-mira"></div>
+    <div class="card" id="cad-municao"></div>
+  </section>
+</main>
+
+<script>
+/* Motor balístico Ática — massa pontual (3 graus de liberdade), RK4, tabelas de arrasto padrão G1/G7 (públicas). */
+const Balistica = (() => {
+  const G1 = [[0,.2629],[.05,.2558],[.1,.2487],[.15,.2413],[.2,.2344],[.25,.2278],[.3,.2214],[.35,.2155],[.4,.2104],[.45,.2061],[.5,.2032],[.55,.202],[.6,.2034],[.7,.2165],[.725,.223],[.75,.2313],[.775,.2417],[.8,.2546],[.825,.2706],[.85,.2901],[.875,.3136],[.9,.3415],[.925,.3734],[.95,.4084],[.975,.4448],[1,.4805],[1.025,.5136],[1.05,.5427],[1.075,.5677],[1.1,.5883],[1.125,.6053],[1.15,.6191],[1.2,.6393],[1.25,.6518],[1.3,.6589],[1.35,.6621],[1.4,.6625],[1.45,.6607],[1.5,.6573],[1.55,.6528],[1.6,.6474],[1.65,.6413],[1.7,.6347],[1.75,.628],[1.8,.621],[1.85,.6141],[1.9,.6072],[1.95,.6003],[2,.5934],[2.05,.5867],[2.1,.5804],[2.15,.5743],[2.2,.5685],[2.25,.563],[2.3,.5577],[2.35,.5527],[2.4,.5481],[2.45,.5438],[2.5,.5397],[2.6,.5325],[2.7,.5264],[2.8,.5211],[2.9,.5168],[3,.5133],[3.1,.5105],[3.2,.5084],[3.3,.5067],[3.4,.5054],[3.5,.504],[3.6,.503],[3.7,.5022],[3.8,.5016],[3.9,.501],[4,.5006],[4.2,.4998],[4.4,.4995],[4.6,.4992],[4.8,.499],[5,.4988]];
+  const G7 = [[0,.1198],[.05,.1197],[.1,.1196],[.15,.1194],[.2,.1193],[.25,.1194],[.3,.1194],[.35,.1194],[.4,.1193],[.45,.1193],[.5,.1194],[.55,.1193],[.6,.1194],[.65,.1197],[.7,.1202],[.725,.1207],[.75,.1215],[.775,.1226],[.8,.1242],[.825,.1266],[.85,.1306],[.875,.1368],[.9,.1464],[.925,.166],[.95,.2054],[.975,.2993],[1,.3803],[1.025,.4015],[1.05,.4043],[1.075,.4034],[1.1,.4014],[1.125,.3987],[1.15,.3955],[1.2,.3884],[1.25,.381],[1.3,.3732],[1.35,.3657],[1.4,.358],[1.5,.344],[1.55,.3376],[1.6,.3315],[1.65,.326],[1.7,.3209],[1.75,.316],[1.8,.3117],[1.85,.3078],[1.9,.3042],[1.95,.301],[2,.298],[2.05,.2951],[2.1,.2922],[2.15,.2892],[2.2,.2864],[2.25,.2835],[2.3,.2807],[2.35,.2779],[2.4,.2752],[2.45,.2725],[2.5,.2697],[2.55,.267],[2.6,.2643],[2.65,.2615],[2.7,.2588],[2.75,.2561],[2.8,.2533],[2.85,.2506],[2.9,.2479],[2.95,.2451],[3,.2424],[3.1,.2368],[3.2,.2313],[3.3,.2258],[3.4,.2205],[3.5,.2154],[3.6,.2106],[3.7,.206],[3.8,.2017],[3.9,.1975],[4,.1935],[4.2,.1861],[4.4,.1793],[4.6,.173],[4.8,.1672],[5,.1618]];
+  const TAB = { G1, G7 };
+  const g = 9.80665, RHO0 = 1.225, LB_IN2 = 703.0696; // 1 lb/in² em kg/m²
+  const MOA_POR_MRAD = 3.4377468, SMOA_POR_MRAD = 3.6; // SMOA: 1 pol a 100 jardas
+
+  function cd(tab, mach) {
+    if (mach <= tab[0][0]) return tab[0][1];
+    let lo = 0, hi = tab.length - 1;
+    if (mach >= tab[hi][0]) return tab[hi][1];
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (tab[m][0] <= mach) lo = m; else hi = m; }
+    const [m0, c0] = tab[lo], [m1, c1] = tab[hi];
+    return c0 + (c1 - c0) * (mach - m0) / (m1 - m0);
+  }
+
+  // Atmosfera: modo "pressao" (pressão no local), "altitude" (pressão padrão para a altitude) ou "da" (altitude de densidade).
+  function atmosfera(c) {
+    const T = c.temperatura, TK = T + 273.15;
+    const som = 331.3 * Math.sqrt(TK / 273.15);
+    let rho, pressao = null;
+    if (c.modo === "da") {
+      rho = RHO0 * Math.pow(1 - 2.25577e-5 * c.altitudeDensidade, 4.25588);
+    } else {
+      pressao = c.modo === "altitude" ? 1013.25 * Math.pow(1 - 2.25577e-5 * c.altitude, 5.25588) : c.pressao;
+      const pv = (c.umidade / 100) * 6.1078 * Math.pow(10, 7.5 * T / (T + 237.3));
+      rho = ((pressao - pv) * 100) / (287.058 * TK) + (pv * 100) / (461.495 * TK);
+    }
+    const altDens = (1 - Math.pow(rho / RHO0, 1 / 4.25588)) / 2.25577e-5;
+    return { rho, som, pressao, altDens };
+  }
+
+  // Integra a trajetória. Eixos: x ao longo da linha de visada, y perpendicular para cima, z para a direita.
+  function voar(p, alfa, xMax, passoReg) {
+    const tab = TAB[p.arrasto] || G7;
+    const k = Math.PI * p.rho / (8 * p.cb * LB_IN2);
+    const th = (p.inclinacao || 0) * Math.PI / 180;
+    const gx = -g * Math.sin(th), gy = -g * Math.cos(th);
+    const d = (p.ventoDir || 0) * Math.PI / 180, w = p.ventoVel || 0;
+    const wx = -w * Math.cos(d), wz = -w * Math.sin(d); // direção = de onde o vento vem (0° de frente, 90° da direita)
+    let s = [0, -p.alturaMira, 0, p.v0 * Math.cos(alfa), p.v0 * Math.sin(alfa), 0], t = 0;
+    const f = (q) => {
+      const rx = q[3] - wx, ry = q[4], rz = q[5] - wz, vr = Math.hypot(rx, ry, rz);
+      const a = k * vr * cd(tab, vr / p.som);
+      return [q[3], q[4], q[5], -a * rx + gx, -a * ry + gy, -a * rz];
+    };
+    const soma = (q, dq, h) => q.map((v, i) => v + dq[i] * h);
+    const pontos = []; let prox = 0, yMax = -Infinity, xyMax = 0;
+    const reg = (q, tt) => ({ x: q[0], y: q[1], z: q[2], v: Math.hypot(q[3], q[4], q[5]), t: tt });
+    const dt = 0.0004;
+    for (let n = 0; n < 200000; n++) {
+      const k1 = f(s), k2 = f(soma(s, k1, dt / 2)), k3 = f(soma(s, k2, dt / 2)), k4 = f(soma(s, k3, dt));
+      const s2 = s.map((v, i) => v + dt / 6 * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]));
+      while (prox <= xMax + 1e-9 && s2[0] >= prox) {
+        const fr = (prox - s[0]) / (s2[0] - s[0]);
+        pontos.push(reg(s.map((v, i) => v + (s2[i] - v) * fr), t + dt * fr));
+        prox += passoReg;
+      }
+      if (s2[1] > yMax && s2[0] <= xMax) { yMax = s2[1]; xyMax = s2[0]; }
+      s = s2; t += dt;
+      if (s[0] >= xMax || s[3] < 30 || s[1] < -5000) break;
+    }
+    return { pontos, yMax, xyMax };
+  }
+
+  function em(p, alfa, x) { // estado exatamente na distância x
+    const r = voar(p, alfa, x, x > 0 ? x : 1).pontos;
+    return r[r.length - 1].x >= x - 1e-6 ? r[r.length - 1] : null;
+  }
+
+  // Ângulo de saída que zera na distância de zeragem (terreno plano, sem vento).
+  function zerar(p) {
+    const pz = { ...p, inclinacao: 0, ventoVel: 0 };
+    let alfa = p.alturaMira / p.zero;
+    for (let i = 0; i < 8; i++) {
+      const e = em(pz, alfa, p.zero);
+      if (!e) return null;
+      alfa -= e.y / p.zero;
+      if (Math.abs(e.y) < 1e-7) break;
+    }
+    return alfa;
+  }
+
+  function correcao(desvio, x, clique) { // desvio em metros (positivo = acima / direita do ponto visado)
+    const mrad = x > 0 ? -desvio / x * 1000 : 0;
+    return { mrad, moa: mrad * MOA_POR_MRAD, smoa: mrad * SMOA_POR_MRAD, cm: -desvio * 100, cliques: clique > 0 ? mrad / clique : null };
+  }
+
+  /* entrada: { massaKg, cb, arrasto, v0, alturaMira (m), zero (m), cliqueV, cliqueH (em mrad),
+                rho, som, inclinacao (graus), ventoVel (m/s), ventoDir (graus) } */
+  function calcular(p, distancia) {
+    const alfa = zerar(p);
+    if (alfa === null) return null;
+    const e = em(p, alfa, distancia);
+    if (!e) return null;
+    const en = (v) => 0.5 * p.massaKg * v * v;
+    const elev = correcao(e.y, distancia, p.cliqueV), vento = correcao(e.z, distancia, p.cliqueH);
+    const corr = voar(p, alfa + elev.mrad / 1000, distancia, distancia);
+    return {
+      alfa, elev, vento, velocidade: e.v, energia: en(e.v), energiaBoca: en(p.v0), tempo: e.t, mach: e.v / p.som,
+      quedaCm: e.y * 100, derivaCm: e.z * 100,
+      alturaMaxCm: Math.max(corr.yMax, 0) * 100, distAlturaMax: corr.yMax > 0 ? corr.xyMax : 0,
+      cliqueCmV: p.cliqueV * distancia / 10, cliqueCmH: p.cliqueH * distancia / 10,
+    };
+  }
+
+  function tabela(p, ini, fim, passo) {
+    const alfa = zerar(p);
+    if (alfa === null || !(passo > 0) || fim < ini) return [];
+    const linhas = [];
+    for (let x = ini; x <= fim + 1e-9; x += passo) {
+      const e = x === 0 ? { x: 0, y: -p.alturaMira, z: 0, v: p.v0, t: 0 } : em(p, alfa, x);
+      if (!e) break;
+      linhas.push({ x, v: e.v, energia: 0.5 * p.massaKg * e.v * e.v, t: e.t, quedaCm: e.y * 100, derivaCm: e.z * 100,
+        elev: correcao(e.y, x, p.cliqueV), vento: correcao(e.z, x, p.cliqueH) });
+    }
+    return linhas;
+  }
+
+  function curva(p, fim, n = 120) { // pontos para o gráfico (trajetória em relação à linha de visada)
+    const alfa = zerar(p);
+    if (alfa === null) return [];
+    return voar(p, alfa, fim, fim / n).pontos;
+  }
+
+  return { atmosfera, calcular, tabela, curva, cd, TAB, MOA_POR_MRAD, SMOA_POR_MRAD };
+})();
+
+</script>
+<script>
+const $ = (s) => document.querySelector(s);
+const CHAVE = "atica_balistica_v1";
+const guardar = { get(){ try{ return JSON.parse(localStorage.getItem(CHAVE)) }catch{ return null } }, set(v){ try{ localStorage.setItem(CHAVE, JSON.stringify(v)) }catch{} } };
+const num = (v) => { const n = parseFloat(String(v ?? "").replace(",", ".")); return isFinite(n) ? n : NaN; };
+const fmt = (n, d = 1) => isFinite(n) ? (Math.abs(n) < 0.5 / 10 ** d ? 0 : n).toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }) : "—";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const id = () => Math.random().toString(36).slice(2, 9);
+
+const EXEMPLO = () => ({
+  rifles: [{ id: "r1", nome: "Meu rifle (exemplo)", passo: "254", direcao: "direita" }],
+  miras: [{ id: "m1", nome: "Minha mira (exemplo)", zero: "100", altura: "6,5", unidade: "MRAD", cliqueV: "0,1", cliqueH: "0,1" }],
+  municoes: [{ id: "a1", nome: ".308 168 gr (exemplo)", diametro: "7,82", comprimento: "30,86", peso: "168", pesoUn: "gr", cb: "0,224", arrasto: "G7", v0: "755", tempMed: "25", sens: "0" }],
+  sel: { rifle: "r1", mira: "m1", municao: "a1" },
+  tiro: { distancia: "288", inclinacao: "0", ventoVel: "0", ventoUn: "ms", ventoHora: "3", modo: "da", temperatura: "25", pressao: "1013", umidade: "50", altitude: "0", altitudeDensidade: "1064" },
+  tab: { ini: "0", fim: "500", passo: "25" },
+});
+let E = guardar.get() || EXEMPLO();
+const salvar = () => guardar.set(E);
+const atual = (tipo) => { const lista = E[tipo === "rifle" ? "rifles" : tipo === "mira" ? "miras" : "municoes"]; return lista.find((x) => x.id === E.sel[tipo]) || lista[0]; };
+
+// ---------- montagem dos parâmetros ----------
+function parametros() {
+  const mira = atual("mira"), mun = atual("municao"), t = E.tiro;
+  if (!mira || !mun) return { erro: "Cadastre uma mira e uma munição na aba Cadastro." };
+  const fator = mira.unidade === "MOA" ? 1 / Balistica.MOA_POR_MRAD : 1;
+  const peso = num(mun.peso), massaKg = mun.pesoUn === "g" ? peso / 1000 : peso * 0.06479891 / 1000;
+  const temperatura = num(t.temperatura);
+  const clima = { modo: t.modo, temperatura, pressao: num(t.pressao), umidade: num(t.umidade), altitude: num(t.altitude), altitudeDensidade: num(t.altitudeDensidade) };
+  const falta = [];
+  if (!(massaKg > 0)) falta.push("peso do projétil");
+  if (!(num(mun.cb) > 0)) falta.push("coeficiente balístico");
+  if (!(num(mun.v0) > 30)) falta.push("velocidade na boca");
+  if (!(num(mira.zero) > 0)) falta.push("distância de zeragem");
+  if (!(num(mira.altura) >= 0)) falta.push("altura da mira");
+  if (!isFinite(temperatura)) falta.push("temperatura");
+  if (t.modo === "da" && !isFinite(clima.altitudeDensidade)) falta.push("altitude de densidade");
+  if (t.modo === "pressao" && !(clima.pressao > 300)) falta.push("pressão");
+  if (t.modo === "altitude" && !isFinite(clima.altitude)) falta.push("altitude");
+  if (falta.length) return { erro: "Confira: " + falta.join(", ") + "." };
+  if (!isFinite(clima.umidade)) clima.umidade = 50;
+  const atm = Balistica.atmosfera(clima);
+  const sens = num(mun.sens), tm = num(mun.tempMed);
+  const v0 = num(mun.v0) + (isFinite(sens) && isFinite(tm) ? sens * (temperatura - tm) : 0);
+  const vv = num(t.ventoVel) || 0;
+  return {
+    mira, mun, atm, unidade: mira.unidade, fator,
+    p: { massaKg, cb: num(mun.cb), arrasto: mun.arrasto, v0, alturaMira: num(mira.altura) / 100, zero: num(mira.zero),
+      cliqueV: (num(mira.cliqueV) || 0) * fator, cliqueH: (num(mira.cliqueH) || 0) * fator, rho: atm.rho, som: atm.som,
+      inclinacao: num(t.inclinacao) || 0, ventoVel: t.ventoUn === "kmh" ? vv / 3.6 : vv, ventoDir: (num(t.ventoHora) % 12) * 30 },
+  };
+}
+const naUnidade = (c, un) => un === "MOA" ? c.moa : c.mrad;
+const cliques = (c) => c.cliques === null ? "—" : fmt(Math.abs(Math.round(c.cliques)), 0);
+
+// ---------- TIRO ----------
+function renderTiro() {
+  const q = parametros(), d = num(E.tiro.distancia), el = $("#resultado");
+  desenharRosa();
+  if (q.erro) { el.innerHTML = `<div class="erro">${q.erro}</div>`; return; }
+  if (!(d > 0) || d > 3000) { el.innerHTML = `<div class="erro">Informe a distância do alvo (até 3.000 m).</div>`; return; }
+  const r = Balistica.calcular(q.p, d);
+  if (!r) { el.innerHTML = `<div class="erro">O projétil não chega a essa distância com os dados cadastrados.</div>`; return; }
+  const un = q.unidade, dec = un === "MOA" ? 2 : 1;
+  const heroi = (tit, c, pos, neg) => {
+    const v = naUnidade(c, un), nulo = Math.abs(v) < 0.005, n = c.cliques === null ? null : Math.round(c.cliques);
+    return `<div class="heroi"><div class="rotulo">${tit}</div>
+      <div class="n">${fmt(Math.abs(v), dec)}<small>${un}</small></div>
+      <div class="s"><span class="sentido ${nulo ? "neutro" : ""}">${nulo ? "Sem correção" : v > 0 ? pos : neg}</span>${n === null ? "Informe o clique" : nulo ? "" : Math.abs(n) + (Math.abs(n) === 1 ? " clique" : " cliques")}</div></div>`;
+  };
+  const linha = (tit, c) => `<tr><td>${tit}</td><td>${fmt(c.mrad, 2)}</td><td>${fmt(c.moa, 2)}</td><td>${fmt(c.smoa, 2)}</td><td>${fmt(c.cm, 1)}</td><td>${c.cliques === null ? "—" : fmt(c.cliques, 1)}</td></tr>`;
+  const sub = r.mach < 1.2 ? `<div class="aviso" style="border-left-color:var(--azul)">A ${fmt(d, 0)} m o projétil está em Mach ${fmt(r.mach, 2)}, perto ou abaixo da velocidade do som. Nessa faixa a previsão perde precisão.</div>` : "";
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="herois">${heroi("Elevação", r.elev, "Subir", "Descer")}${heroi("Vento", r.vento, "Direita", "Esquerda")}</div>
+    <div class="card" style="padding-top:8px;padding-bottom:8px"><div class="rolagem"><table>
+      <tr><th>Correção a ${fmt(d, 0)} m</th><th>MRAD</th><th>MOA</th><th>SMOA</th><th>cm</th><th>Cliques</th></tr>
+      ${linha("Elevação", r.elev)}${linha("Vento", r.vento)}</table></div></div>
+    <div class="dados">
+      <div><span>Velocidade retida</span><b>${fmt(r.velocidade, 0)}</b><em>m/s</em></div>
+      <div><span>Energia retida</span><b>${fmt(r.energia, 0)}</b><em>J</em></div>
+      <div><span>Energia na boca</span><b>${fmt(r.energiaBoca, 0)}</b><em>J</em></div>
+      <div><span>Tempo de voo</span><b>${fmt(r.tempo, 2)}</b><em>s</em></div>
+      <div><span>Velocidade do som</span><b>${fmt(q.atm.som, 0)}</b><em>m/s</em></div>
+      <div><span>Mach no alvo</span><b>${fmt(r.mach, 2)}</b></div>
+      <div><span>1 clique vale</span><b>${fmt(r.cliqueCmV, 1)}</b><em>cm a ${fmt(d, 0)} m</em></div>
+      <div><span>Altura máxima</span><b>${fmt(r.alturaMaxCm, 1)}</b><em>cm a ${fmt(r.distAlturaMax, 0)} m</em></div>
+      <div><span>Queda no alvo</span><b>${fmt(r.quedaCm, 1)}</b><em>cm</em></div>
+      <div><span>Alt. de densidade</span><b>${fmt(q.atm.altDens, 0)}</b><em>m</em></div>
+    </div>${sub}</div>`;
+}
+function desenharRosa() {
+  const h = num(E.tiro.ventoHora) % 12, a = h * 30 * Math.PI / 180, v = num(E.tiro.ventoVel) || 0;
+  const x = 40 + 30 * Math.sin(a), y = 40 - 30 * Math.cos(a), x2 = 40 + 9 * Math.sin(a), y2 = 40 - 9 * Math.cos(a);
+  const px = Math.cos(a) * 5, py = Math.sin(a) * 5, bx = 40 + 17 * Math.sin(a), by = 40 - 17 * Math.cos(a);
+  $("#rosa").innerHTML = `<circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.14)"/>
+    ${[0, 3, 6, 9].map((k) => { const b = k * 30 * Math.PI / 180; return `<text x="${40 + 27 * Math.sin(b)}" y="${40 - 27 * Math.cos(b) + 3}" fill="#A9A9B2" font-size="8" font-family="Chakra Petch" text-anchor="middle" opacity=".55">${k || 12}</text>`; }).join("")}
+    <path d="M40 34v12M34 40h12" stroke="#ECECEF" stroke-width="1.2"/>
+    ${v > 0 ? `<line x1="${x}" y1="${y}" x2="${bx}" y2="${by}" stroke="#E2B657" stroke-width="2"/><path d="M${x2} ${y2}L${bx + px} ${by + py}L${bx - px} ${by - py}Z" fill="#E2B657"/>` : ""}`;
+}
+
+// ---------- TABELA ----------
+function renderTabela() {
+  const q = parametros(), el = $("#tabela"), res = $("#tab-resumo");
+  if (q.erro) { el.innerHTML = `<div class="erro" style="margin:10px 16px">${q.erro}</div>`; res.textContent = ""; return; }
+  let ini = num(E.tab.ini), fim = num(E.tab.fim), passo = num(E.tab.passo);
+  if (!(ini >= 0) || !(fim > ini) || !(passo > 0) || fim > 3000) { el.innerHTML = `<div class="erro" style="margin:10px 16px">Informe início, fim (até 3.000 m) e passo válidos.</div>`; res.textContent = ""; return; }
+  if ((fim - ini) / passo > 200) passo = (fim - ini) / 200;
+  const L = Balistica.tabela(q.p, ini, fim, passo), un = q.unidade, dec = un === "MOA" ? 2 : 1, alvo = num(E.tiro.distancia);
+  res.textContent = `${atual("municao").nome} · zeragem ${fmt(q.p.zero, 0)} m · vento ${fmt(q.p.ventoVel, 1)} m/s às ${E.tiro.ventoHora} h · inclinação ${fmt(q.p.inclinacao, 0)}°`;
+  el.innerHTML = `<table><tr><th>Dist. m</th><th>Vel. m/s</th><th>Energia J</th><th>Tempo s</th><th>Queda cm</th><th>Elev. ${un}</th><th>Cliques</th><th>Deriva cm</th><th>Vento ${un}</th><th>Cliques</th></tr>` +
+    L.map((l) => `<tr class="${Math.abs(l.x - alvo) < 1e-6 ? "alvo" : Math.abs(l.x - q.p.zero) < 1e-6 ? "zero" : ""}"><td>${fmt(l.x, 0)}</td><td>${fmt(l.v, 0)}</td><td>${fmt(l.energia, 0)}</td><td>${fmt(l.t, 3)}</td><td>${fmt(l.quedaCm, 1)}</td><td>${fmt(naUnidade(l.elev, un), dec)}</td><td>${l.elev.cliques === null ? "—" : fmt(Math.round(l.elev.cliques), 0)}</td><td>${fmt(l.derivaCm, 1)}</td><td>${fmt(naUnidade(l.vento, un), dec)}</td><td>${l.vento.cliques === null ? "—" : fmt(Math.round(l.vento.cliques), 0)}</td></tr>`).join("") + "</table>" +
+    (L.length ? "" : `<div class="erro" style="margin:10px 16px">Sem resultados para esse intervalo.</div>`);
+}
+
+// ---------- GRÁFICO ----------
+let curvaAtual = null;
+function renderGrafico() {
+  const q = parametros(), el = $("#grafico");
+  if (q.erro) { el.innerHTML = `<div class="erro">${q.erro}</div>`; return; }
+  const alvo = num(E.tiro.distancia), fim = Math.min(3000, Math.max(num(E.tab.fim) || 0, alvo || 0, q.p.zero * 1.5, 50));
+  const P = Balistica.curva(q.p, fim, 160);
+  if (P.length < 3) { el.innerHTML = `<div class="erro">Sem dados para o gráfico.</div>`; return; }
+  const W = 360, H = 250, mE = 40, mD = 10, mT = 12, mB = 28;
+  const xMax = P[P.length - 1].x, ys = P.map((p) => p.y * 100);
+  let yMin = Math.min(...ys, 0), yMaxV = Math.max(...ys, 0);
+  const folga = (yMaxV - yMin) * 0.08 || 1; yMin -= folga; yMaxV += folga;
+  const X = (x) => mE + (x / xMax) * (W - mE - mD), Y = (y) => mT + (yMaxV - y) / (yMaxV - yMin) * (H - mT - mB);
+  const passoBom = (faixa, n) => { const bruto = faixa / n, pot = Math.pow(10, Math.floor(Math.log10(bruto))), f = bruto / pot; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * pot; };
+  const px = passoBom(xMax, 5), py = passoBom(yMaxV - yMin, 5);
+  let g = "";
+  for (let x = 0; x <= xMax + 1e-6; x += px) g += `<line x1="${X(x)}" y1="${mT}" x2="${X(x)}" y2="${H - mB}" stroke="rgba(255,255,255,.06)"/><text x="${X(x)}" y="${H - mB + 14}" text-anchor="middle">${fmt(x, 0)}</text>`;
+  for (let y = Math.ceil(yMin / py) * py; y <= yMaxV; y += py) g += `<line x1="${mE}" y1="${Y(y)}" x2="${W - mD}" y2="${Y(y)}" stroke="rgba(255,255,255,.06)"/><text x="${mE - 5}" y="${Y(y) + 3}" text-anchor="end">${fmt(y, 0)}</text>`;
+  const caminho = P.map((p, i) => (i ? "L" : "M") + X(p.x).toFixed(1) + " " + Y(p.y * 100).toFixed(1)).join("");
+  const marca = (x, cor, txt) => x > 0 && x <= xMax ? `<line x1="${X(x)}" y1="${mT}" x2="${X(x)}" y2="${H - mB}" stroke="${cor}" stroke-dasharray="3 3" opacity=".7"/><text x="${X(x) + (x > xMax * .85 ? -4 : 4)}" y="${mT + 9}" fill="${cor}" text-anchor="${x > xMax * .85 ? "end" : "start"}">${txt}</text>` : "";
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" font-family="Inter" font-size="9" fill="#A9A9B2" role="img" aria-label="Gráfico da trajetória">
+    ${g}<line x1="${mE}" y1="${Y(0)}" x2="${W - mD}" y2="${Y(0)}" stroke="#ECECEF" stroke-width="1" opacity=".55"/>
+    ${marca(q.p.zero, "#3FCB7E", "zero")}${marca(alvo, "#E2B657", "alvo")}
+    <path d="${caminho}" fill="none" stroke="#E2B657" stroke-width="2" stroke-linejoin="round"/>
+    <text x="${W - mD}" y="${H - 3}" text-anchor="end">distância (m)</text><text x="4" y="${mT + 2}" >cm</text>
+    <g id="cursor" style="display:none"><line id="cl" y1="${mT}" y2="${H - mB}" stroke="#ECECEF" opacity=".5"/><circle id="cp" r="4" fill="#0A0A0C" stroke="#E2B657" stroke-width="2"/></g></svg>`;
+  curvaAtual = { P, X, Y, xMax, mE, mD, W, q };
+  const svg = el.querySelector("svg");
+  const mover = (ev) => {
+    const b = svg.getBoundingClientRect(), cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - b.left;
+    const x = Math.max(0, Math.min(xMax, (cx / b.width * W - mE) / (W - mE - mD) * xMax));
+    lerPonto(x);
+  };
+  svg.addEventListener("pointermove", mover); svg.addEventListener("pointerdown", mover);
+  lerPonto(alvo > 0 && alvo <= xMax ? alvo : q.p.zero);
+}
+function lerPonto(x) {
+  const c = curvaAtual; if (!c) return;
+  let i = c.P.findIndex((p) => p.x >= x); if (i < 0) i = c.P.length - 1; if (i > 0 && x - c.P[i - 1].x < c.P[i].x - x) i--;
+  const p = c.P[i], un = c.q.unidade, mrad = p.x > 0 ? -p.y / p.x * 1000 : 0, corr = un === "MOA" ? mrad * Balistica.MOA_POR_MRAD : mrad;
+  $("#cursor").style.display = ""; $("#cl").setAttribute("x1", c.X(p.x)); $("#cl").setAttribute("x2", c.X(p.x));
+  $("#cp").setAttribute("cx", c.X(p.x)); $("#cp").setAttribute("cy", c.Y(p.y * 100));
+  $("#leitura").innerHTML = `<div><span>Dist.</span> ${fmt(p.x, 0)} m</div><div><span>Trajetória</span> ${fmt(p.y * 100, 1)} cm</div><div><span>Elev.</span> ${fmt(corr, un === "MOA" ? 2 : 1)} ${un}</div><div><span>Vel.</span> ${fmt(p.v, 0)} m/s</div><div><span>Tempo</span> ${fmt(p.t, 2)} s</div>`;
+}
+
+// ---------- CADASTRO ----------
+const CAD = {
+  rifle: { lista: "rifles", titulo: "Rifle", novo: () => ({ nome: "Novo rifle", passo: "", direcao: "direita" }),
+    campos: [["nome", "Nome do rifle", "texto"], ["passo", "Passo do estriamento (mm por volta)"], ["direcao", "Direção do estriamento", [["direita", "À direita"], ["esquerda", "À esquerda"]]]] },
+  mira: { lista: "miras", titulo: "Mira", novo: () => ({ nome: "Nova mira", zero: "100", altura: "5", unidade: "MRAD", cliqueV: "0,1", cliqueH: "0,1" }),
+    campos: [["nome", "Nome da mira", "texto"], ["zero", "Distância de zeragem (m)"], ["altura", "Altura da mira (cm)"], ["unidade", "Unidade do clique", [["MRAD", "MRAD"], ["MOA", "MOA"]]], ["cliqueV", "Clique vertical"], ["cliqueH", "Clique horizontal"]] },
+  municao: { lista: "municoes", titulo: "Munição", novo: () => ({ nome: "Nova munição", diametro: "", comprimento: "", peso: "", pesoUn: "gr", cb: "", arrasto: "G7", v0: "", tempMed: "20", sens: "0" }),
+    campos: [["nome", "Nome da munição", "texto"], ["diametro", "Diâmetro do projétil (mm)"], ["comprimento", "Comprimento do projétil (mm)"], ["peso", "Peso do projétil"], ["pesoUn", "Unidade do peso", [["gr", "grains (gr)"], ["g", "gramas (g)"]]], ["cb", "Coeficiente balístico"], ["arrasto", "Função de arrasto", [["G1", "G1"], ["G7", "G7"]]], ["v0", "Velocidade na boca (m/s)"], ["tempMed", "Temperatura da medição (°C)"], ["sens", "Variação da velocidade (m/s por °C)"]] },
+};
+function renderCadastro() {
+  for (const tipo of Object.keys(CAD)) {
+    const c = CAD[tipo], lista = E[c.lista], it = atual(tipo), el = $("#cad-" + tipo);
+    el.innerHTML = `<div class="item-cab"><label><span class="rotulo">${c.titulo}</span><select data-sel>${lista.map((x) => `<option value="${x.id}" ${it && x.id === it.id ? "selected" : ""}>${esc(x.nome)}</option>`).join("")}</select></label>
+      <button class="btn sec" data-novo>Novo</button><button class="btn perigo" data-del ${lista.length < 2 ? "disabled style='opacity:.4'" : ""}>Excluir</button></div>` +
+      (it ? `<div class="campos">${c.campos.map(([k, rot, tp]) => `<label ${k === "nome" ? 'style="grid-column:1/-1"' : ""}>${rot}${Array.isArray(tp)
+        ? `<select data-k="${k}">${tp.map(([v, t]) => `<option value="${v}" ${it[k] === v ? "selected" : ""}>${t}</option>`).join("")}</select>`
+        : `<input data-k="${k}" value="${esc(it[k])}" ${tp === "texto" ? 'maxlength="40"' : 'inputmode="decimal"'}>`}</label>`).join("")}</div>` : "") +
+      (tipo === "rifle" ? `<p class="pequeno" style="margin:10px 0 0">O estriamento fica guardado para o cálculo de desvio giroscópico, que entra em uma próxima versão.</p>` : "") +
+      (tipo === "municao" ? `<p class="pequeno" style="margin:10px 0 0">Use o coeficiente balístico e a velocidade medidos para a sua munição. Se não souber a variação por temperatura, deixe 0.</p>` : "");
+    el.querySelector("[data-sel]").onchange = (e) => { E.sel[tipo] = e.target.value; salvar(); renderTudo(); };
+    el.querySelector("[data-novo]").onclick = () => { const n = { id: id(), ...c.novo() }; lista.push(n); E.sel[tipo] = n.id; salvar(); renderTudo(); el.querySelector('[data-k="nome"]').select(); };
+    el.querySelector("[data-del]").onclick = (e) => {
+      if (lista.length < 2) return;
+      const b = e.currentTarget;
+      if (b.dataset.conf !== "1") { b.dataset.conf = "1"; b.textContent = "Confirmar"; setTimeout(() => { b.dataset.conf = ""; b.textContent = "Excluir"; }, 3000); return; }
+      E[c.lista] = lista.filter((x) => x.id !== it.id); E.sel[tipo] = E[c.lista][0].id; salvar(); renderTudo();
+    };
+    el.querySelectorAll("[data-k]").forEach((inp) => {
+      const grava = () => { it[inp.dataset.k] = inp.value; salvar(); };
+      inp.oninput = grava;
+      inp.onchange = () => { grava(); renderTudo(inp.tagName === "SELECT" || inp.dataset.k === "nome" ? null : tipo); };
+    });
+  }
+}
+
+// ---------- geral ----------
+function seletores() {
+  for (const [tipo, lista] of [["rifle", E.rifles], ["mira", E.miras], ["municao", E.municoes]]) {
+    const s = $("#sel-" + tipo), it = atual(tipo);
+    s.innerHTML = lista.map((x) => `<option value="${x.id}" ${it && x.id === it.id ? "selected" : ""}>${esc(x.nome)}</option>`).join("");
+    s.onchange = () => { E.sel[tipo] = s.value; salvar(); renderTudo(); };
+  }
+}
+function climaModo() {
+  document.querySelectorAll("#clima-modo .chip").forEach((b) => b.classList.toggle("ativo", b.dataset.m === E.tiro.modo));
+  document.querySelectorAll("[data-modo]").forEach((l) => l.style.display = l.dataset.modo.split(" ").includes(E.tiro.modo) ? "" : "none");
+}
+function renderTudo(pularCadastro) {
+  seletores(); climaModo(); renderTiro(); renderTabela(); renderGrafico();
+  if (!pularCadastro) renderCadastro();
+}
+$("#ventoHora").innerHTML = [[12, "12 h · de frente"], [1, "1 h"], [2, "2 h"], [3, "3 h · da direita"], [4, "4 h"], [5, "5 h"], [6, "6 h · de trás"], [7, "7 h"], [8, "8 h"], [9, "9 h · da esquerda"], [10, "10 h"], [11, "11 h"]].map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
+for (const k of ["distancia", "inclinacao", "ventoVel", "ventoUn", "ventoHora", "temperatura", "pressao", "umidade", "altitude", "altitudeDensidade"]) {
+  const inp = $("#" + k); inp.value = E.tiro[k] ?? "";
+  inp.oninput = inp.onchange = () => { E.tiro[k] = inp.value; salvar(); renderTiro(); renderTabela(); renderGrafico(); };
+}
+for (const [k, i] of [["ini", "tabIni"], ["fim", "tabFim"], ["passo", "tabPasso"]]) {
+  const inp = $("#" + i); inp.value = E.tab[k] ?? "";
+  inp.oninput = () => { E.tab[k] = inp.value; salvar(); renderTabela(); renderGrafico(); };
+}
+document.querySelectorAll("#clima-modo .chip").forEach((b) => b.onclick = () => { E.tiro.modo = b.dataset.m; salvar(); renderTudo(true); });
+document.querySelectorAll("#abas button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll("#abas button").forEach((x) => x.classList.toggle("ativo", x === b));
+  document.querySelectorAll(".tela").forEach((t) => t.classList.toggle("ativa", t.id === "t-" + b.dataset.t));
+  window.scrollTo(0, 0);
+});
+renderTudo();
+</script>
+</body>
+</html>
