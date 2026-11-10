@@ -103,17 +103,80 @@ select.troca-acervo{background:#0E0E11;color:var(--txt);border:1px solid var(--l
 
 /* balística */
 nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow(0 0 6px rgba(226,182,87,.45))}
-.bal-grade{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
-.bal-campos{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:10px}
-.bal-campos input,.bal-campos select{width:100%;background:#0E0E11;border:1px solid var(--line);color:var(--txt);padding:12px;font-size:16px;outline:none}
-.bal-campos select:focus{border-color:var(--ouro)}
-.bal-res{width:100%;border-collapse:collapse;margin:10px 0}.bal-res th,.bal-res td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:right}
-.bal-res thead th{font:600 11px 'Chakra Petch';letter-spacing:.14em;text-transform:uppercase;color:var(--sub)}
-.bal-res tbody th{text-align:left;font:600 12px 'Chakra Petch';letter-spacing:.1em;color:var(--sub);text-transform:uppercase}
-.bal-res td{font:700 20px 'Chakra Petch'}.bal-res tbody tr:first-child td{font-size:28px;color:var(--ouro)}
-.bal-rolagem{overflow-x:auto;margin-top:12px}.bal-tab{border-collapse:collapse;min-width:100%;font-size:14px;white-space:nowrap}
-.bal-tab th,.bal-tab td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right}.bal-tab th{font:600 11px 'Chakra Petch';letter-spacing:.08em;text-transform:uppercase;color:var(--sub)}
-.bal-tab td:first-child,.bal-tab th:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+#balx{display:flex;flex-direction:column;gap:14px}
+#balx .abas{padding:0;border-bottom:1px solid var(--line);max-width:none;margin:0}
+#balx *{box-sizing:border-box}
+#balx h2,#balx h3{font-family:'Chakra Petch',sans-serif;letter-spacing:.02em;margin:0}
+#balx .abas{max-width:980px;margin:0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:8px 10px 0}
+#balx .abas button{background:none;border:0;border-bottom:2px solid transparent;color:var(--sub);padding:11px 1px;font:600 11px 'Chakra Petch';letter-spacing:.06em;text-transform:uppercase;min-width:0}
+#balx .abas button.ativo{color:var(--ouro);border-bottom-color:var(--ouro)}
+#balx .tela{display:none;flex-direction:column;gap:14px}
+#balx .tela.ativa{display:flex}
+#balx .card{background:var(--card);border:1px solid var(--line);padding:16px;min-width:0}
+#balx .rotulo{font:600 11px 'Chakra Petch';letter-spacing:.16em;text-transform:uppercase;color:var(--sub)}
+#balx .pequeno{font-size:13px;color:var(--sub)}
+#balx .sec-tit{margin:10px 0 0;font:600 13px 'Chakra Petch';text-transform:uppercase;letter-spacing:.14em;color:var(--sub)}
+#balx label{font-size:12px;color:var(--sub);display:flex;flex-direction:column;gap:5px;min-width:0}
+#balx input,#balx select{background:#0E0E11;border:1px solid var(--line);color:var(--txt);padding:11px 10px;font:16px Inter;outline:none;width:100%;min-width:0;border-radius:0;min-height:46px}
+#balx select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--sub) 50%),linear-gradient(135deg,var(--sub) 50%,transparent 50%);background-position:calc(100% - 15px) 20px,calc(100% - 10px) 20px;background-size:5px 5px;background-repeat:no-repeat;padding-right:26px}
+#balx input:focus,#balx select:focus{border-color:var(--ouro)}
+#balx .campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px}
+#balx .c2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+#balx .junto{display:grid;grid-template-columns:minmax(0,1fr) 84px;gap:0}
+#balx .junto select{border-left:0}
+#balx .btn{background:var(--ouro);color:#0A0A0C;border:0;padding:12px 16px;font-weight:700;min-height:46px}
+#balx .btn.sec{background:transparent;color:var(--txt);border:1px solid var(--line);font-weight:600}
+#balx .btn.perigo{background:transparent;color:var(--vermelho);border:1px solid rgba(240,82,79,.35);font-weight:600}
+#balx .chips{display:flex;gap:8px;flex-wrap:wrap}
+#balx .chip{background:var(--card);border:1px solid var(--line);color:var(--sub);padding:9px 12px;font:600 11px 'Chakra Petch';letter-spacing:.1em;text-transform:uppercase;min-height:40px}
+#balx .chip.ativo{border-color:var(--ouro);color:var(--ouro);background:rgba(226,182,87,.08)}
+#balx .conjunto{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#balx .conjunto label{font:600 10px 'Chakra Petch';letter-spacing:.14em;text-transform:uppercase}
+#balx .conjunto select{font-size:14px;padding:9px 24px 9px 8px;min-height:42px;background-position:calc(100% - 13px) 18px,calc(100% - 8px) 18px}
+#balx .herois{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+#balx .heroi{background:var(--card);border:1px solid rgba(226,182,87,.28);padding:16px;position:relative;overflow:hidden;min-width:0;background-image:linear-gradient(rgba(226,182,87,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(226,182,87,.04) 1px,transparent 1px);background-size:24px 24px}
+#balx .heroi .n{font:700 clamp(34px,11vw,52px)/1 'Chakra Petch';color:var(--ouro);margin:10px 0 2px;font-variant-numeric:tabular-nums}
+#balx .heroi .n small{font:600 13px 'Chakra Petch';letter-spacing:.12em;color:var(--sub);margin-left:6px}
+#balx .heroi .s{display:flex;align-items:center;flex-wrap:wrap;gap:4px 0;margin-top:8px;font:600 14px 'Chakra Petch';letter-spacing:.06em;color:var(--txt)}
+#balx .sentido{display:inline-block;font:700 10px 'Chakra Petch';letter-spacing:.14em;padding:3px 7px;border:1px solid currentColor;text-transform:uppercase;color:var(--verde);margin-right:8px}
+#balx .sentido.neutro{color:var(--sub)}
+#balx table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+#balx th{font:600 10px 'Chakra Petch';letter-spacing:.12em;text-transform:uppercase;color:var(--sub);text-align:right;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+#balx td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;font-size:14px}
+#balx th:first-child,#balx td:first-child{text-align:left;position:sticky;left:0;background:var(--card);font-weight:600}
+#balx tr.alvo td{background:rgba(226,182,87,.08);color:var(--ouro)}
+#balx tr.alvo td:first-child{background:#231f16}
+#balx tr.zero td:first-child{color:var(--verde)}
+#balx .rolagem{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -16px;padding:0}
+#balx .dados{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+#balx .dados div{background:var(--card);padding:12px 14px;min-width:0}
+#balx .dados span{display:block;font-size:10px;color:var(--sub);letter-spacing:.12em;text-transform:uppercase;font-family:'Chakra Petch';font-weight:600}
+#balx .dados b{font:600 18px 'Chakra Petch';font-variant-numeric:tabular-nums}
+#balx .dados em{font-style:normal;font-size:12px;color:var(--sub);margin-left:3px}
+#balx .aviso{border-left:3px solid var(--amarelo);background:var(--card2);padding:12px 14px;font-size:13px;color:var(--sub)}
+#balx .aviso b{color:var(--txt)}
+#balx .cr{color:var(--vermelho)}
+#balx .at{color:var(--amarelo)}
+#balx .erro{border:1px dashed rgba(240,82,79,.45);color:var(--vermelho);padding:14px;font-size:14px}
+#balx .rosa{width:74px;height:74px;flex:none}
+#balx .vento{display:flex;gap:12px;align-items:center}
+#balx .vento .campos{flex:1}
+#balx #reticulo svg{display:block;width:100%;height:auto;background:#0E0E11;border:1px solid var(--line)}
+#balx #grafico svg{display:block;width:100%;height:auto;touch-action:pan-y}
+#balx .leitura{display:flex;gap:14px;flex-wrap:wrap;font:600 13px 'Chakra Petch';letter-spacing:.04em;min-height:22px;font-variant-numeric:tabular-nums}
+#balx .leitura span{color:var(--sub)}
+#balx .acoes{display:flex;gap:8px;flex-wrap:wrap}
+#balx .item-cab{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:end;margin-bottom:12px}
+#balx .item-cab .btn{padding:12px}
+@media (max-width:420px){#balx #resultado th,#balx #resultado td{padding:9px 6px}
+#balx #resultado th{letter-spacing:.06em}
+#balx .conjunto select{font-size:13px}
+#balx .heroi{padding:13px}
+#balx .campos{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (min-width:861px){#balx .duas{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:14px;align-items:start}
+#balx .duas>div{display:flex;flex-direction:column;gap:14px;min-width:0}
+#balx .rolagem{margin:0}}
+@media (max-width:860px){#balx .duas,#balx .duas>div{display:flex;flex-direction:column;gap:14px}}
 .bal-atalho{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid rgba(226,182,87,.4);background:rgba(226,182,87,.07);padding:16px 18px;margin-bottom:18px;width:100%;color:var(--txt);text-align:left}
 .bal-atalho b{font:700 16px 'Chakra Petch';letter-spacing:.06em;text-transform:uppercase;color:var(--ouro);display:block}
 </style>
@@ -169,7 +232,7 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 const API = "https://qlgumtqedhlkkgpoydvs.supabase.co/functions/v1/painel-api";
 const $ = (s) => document.querySelector(s);
 const guardar = { get(k){ try{return localStorage.getItem(k)}catch{return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch{} }, del(k){ try{localStorage.removeItem(k)}catch{} } };
-let D = null, tela = "painel", destinoAberto = -1, acervoFiltro = "todos";
+let D = null, tela = location.hash === "#balistica" ? "balistica" : "painel", destinoAberto = -1, acervoFiltro = "todos";
 
 const NATIVO = window.Nativo || null; // presente só no app instalado (Android/iOS)
 const SITE = "https://evertoninstrutordetiro.com.br";
@@ -258,196 +321,454 @@ function grupos() {
   }).join("")}</div>`;
 }
 
-// ---------- balística externa (massa pontual, arrasto padrão G1/G7) ----------
-const BAL = (() => {
-  const T = {
-    G7: [[0,.1198],[.05,.1197],[.1,.1196],[.15,.1194],[.2,.1193],[.25,.1194],[.3,.1194],[.35,.1194],[.4,.1193],[.45,.1193],[.5,.1194],[.55,.1193],[.6,.1194],[.65,.1197],[.7,.1202],[.725,.1207],[.75,.1215],[.775,.1226],[.8,.1242],[.825,.1266],[.85,.1306],[.875,.1368],[.9,.1464],[.925,.166],[.95,.2054],[.975,.2993],[1,.3803],[1.025,.4015],[1.05,.4043],[1.075,.4034],[1.1,.4014],[1.125,.3987],[1.15,.3955],[1.2,.3884],[1.25,.381],[1.3,.3732],[1.35,.3657],[1.4,.358],[1.5,.344],[1.55,.3376],[1.6,.3315],[1.65,.326],[1.7,.3209],[1.75,.316],[1.8,.3117],[1.85,.3078],[1.9,.3042],[1.95,.301],[2,.298],[2.05,.2951],[2.1,.2922],[2.15,.2892],[2.2,.2864],[2.25,.2835],[2.3,.2807],[2.35,.2779],[2.4,.2752],[2.45,.2725],[2.5,.2697],[2.55,.267],[2.6,.2643],[2.65,.2615],[2.7,.2588],[2.75,.2561],[2.8,.2533],[2.85,.2506],[2.9,.2479],[2.95,.2451],[3,.2424],[3.1,.2368],[3.2,.2313],[3.3,.2258],[3.4,.2205],[3.5,.2154],[3.6,.2106],[3.7,.206],[3.8,.2017],[3.9,.1975],[4,.1935],[4.2,.1861],[4.4,.1793],[4.6,.173],[4.8,.1672],[5,.1618]],
-    G1: [[0,.2629],[.05,.2558],[.1,.2487],[.15,.2413],[.2,.2344],[.25,.2278],[.3,.2214],[.35,.2155],[.4,.2104],[.45,.2061],[.5,.2032],[.55,.202],[.6,.2034],[.7,.2165],[.725,.223],[.75,.2313],[.775,.2417],[.8,.2546],[.825,.2706],[.85,.2901],[.875,.3136],[.9,.3415],[.925,.3734],[.95,.4084],[.975,.4448],[1,.4805],[1.025,.5136],[1.05,.5427],[1.075,.5677],[1.1,.5883],[1.125,.6053],[1.15,.6191],[1.2,.6393],[1.25,.6518],[1.3,.6589],[1.35,.6621],[1.4,.6625],[1.45,.6607],[1.5,.6573],[1.55,.6528],[1.6,.6474],[1.65,.6413],[1.7,.6347],[1.75,.628],[1.8,.621],[1.85,.6141],[1.9,.6072],[1.95,.6003],[2,.5934],[2.05,.5867],[2.1,.5804],[2.15,.5743],[2.2,.5685],[2.25,.563],[2.3,.5577],[2.35,.5527],[2.4,.5481],[2.45,.5438],[2.5,.5397],[2.6,.5325],[2.7,.5264],[2.8,.5211],[2.9,.5168],[3,.5133],[3.1,.5105],[3.2,.5084],[3.3,.5067],[3.4,.5054],[3.5,.504],[3.6,.503],[3.7,.5022],[3.8,.5016],[3.9,.501],[4,.5006],[4.2,.4998],[4.4,.4995],[4.6,.4992],[4.8,.499],[5,.4988]],
-  };
-  const cd = (tab, m) => {
-    const t = T[tab] || T.G1;
-    if (m <= 0) return t[0][1];
-    if (m >= 5) return t[t.length - 1][1];
-    let a = 0, b = t.length - 1;
-    while (b - a > 1) { const c = (a + b) >> 1; if (t[c][0] <= m) a = c; else b = c; }
-    return t[a][1] + (t[b][1] - t[a][1]) * (m - t[a][0]) / (t[b][0] - t[a][0]);
-  };
-  // ar: densidade (kg/m³) e velocidade do som (m/s)
-  function ar(c) {
-    const Tk = (c.temp ?? 15) + 273.15;
-    let rho;
-    if (c.modo === "da") rho = 1.225 * Math.pow(Math.max(0.05, 1 - 2.25577e-5 * (c.altDens || 0)), 4.25588);
-    else {
-      const P = (c.pressao || 1013.25) * 100;                       // hPa -> Pa (pressão na estação)
-      const es = 610.94 * Math.exp(17.625 * (c.temp ?? 15) / ((c.temp ?? 15) + 243.04));
-      const pv = Math.max(0, Math.min(1, (c.umidade ?? 50) / 100)) * es;
-      rho = (P - pv) / (287.058 * Tk) + pv / (461.495 * Tk);
-    }
-    return { rho, som: Math.sqrt(1.4 * 287.058 * Tk) * (1 + 0.0016 * ((c.umidade ?? 50) / 100)) };
-  }
-  // integra a trajetória; x ao longo da linha de visada, y perpendicular para cima, z para a direita
-  function voo(p, elev, deriva, xmax, passo, cada) {
-    const A = ar(p.clima), g = 9.80665, inc = (p.inclinacao || 0) * Math.PI / 180;
-    const k = A.rho * Math.PI / (8 * p.bc * 703.0696);
-    const wv = (p.vento?.vel || 0), wd = ((p.vento?.dir ?? 90)) * Math.PI / 180; // dir: de onde vem, 0 = de frente, 90 = da direita
-    const W = [-wv * Math.cos(wd), 0, -wv * Math.sin(wd)];
-    let s = [0, -(p.alturaMira || 0) / 100, 0, p.v0 * Math.cos(elev) * Math.cos(deriva), p.v0 * Math.sin(elev), p.v0 * Math.cos(elev) * Math.sin(deriva)], t = 0;
-    const f = (q) => {
-      const rx = q[3] - W[0], ry = q[4] - W[1], rz = q[5] - W[2], vr = Math.hypot(rx, ry, rz);
-      const d = k * vr * cd(p.arrasto, vr / A.som);
-      return [q[3], q[4], q[5], -d * rx - g * Math.sin(inc), -d * ry - g * Math.cos(inc), -d * rz];
-    };
-    const soma = (a, b, h) => a.map((v, i) => v + b[i] * h);
-    const pts = [], xs = [], ys = []; let prox = cada ? cada.de : null;
-    const grava = (q, tt) => pts.push({ x: q[0], y: q[1], z: q[2], v: Math.hypot(q[3], q[4], q[5]), t: tt });
-    const h0 = passo || 0.0005;
-    for (let n = 0; n < 400000; n++) {
-      if (s[0] >= xmax - 1e-9 || s[3] <= 20) break;
-      let h = h0; if (s[0] + s[3] * h > xmax) h = (xmax - s[0]) / s[3];
-      if (prox != null && s[0] < prox && s[0] + s[3] * h > prox) h = (prox - s[0]) / s[3];
-      const k1 = f(s), k2 = f(soma(s, k1, h / 2)), k3 = f(soma(s, k2, h / 2)), k4 = f(soma(s, k3, h));
-      s = s.map((v, i) => v + h / 6 * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i])); t += h;
-      xs.push(s[0]); ys.push(s[1]);
-      if (prox != null && Math.abs(s[0] - prox) < 1e-6) { grava(s, t); prox += cada.passo; if (prox > cada.ate + 1e-9) prox = null; }
-    }
-    const y0 = -(p.alturaMira || 0) / 100; let ymax = 0;
-    for (let i = 0; i < xs.length; i++) { const d = ys[i] - (y0 + (s[1] - y0) * xs[i] / (s[0] || 1)); if (d > ymax) ymax = d; }
-    return { fim: { x: s[0], y: s[1], z: s[2], v: Math.hypot(s[3], s[4], s[5]), t }, pts, ymax, ar: A };
-  }
-  // ângulos de saída que zeram o tiro na distância de zeragem (sem vento, sem inclinação)
-  function zerar(p) {
-    const q = { ...p, vento: { vel: 0, dir: 90 }, inclinacao: 0 };
-    let e = 0;
-    for (let i = 0; i < 12; i++) { const r = voo(q, e, 0, p.zero, 0.001).fim; e -= r.y / p.zero; }
-    return e;
-  }
-  const MOA = 3437.74677 / 1000; // 1 mrad em MOA
-  function correcoes(p, x, y, z) {
-    const mrad = -y / x * 1000, mradW = -z / x * 1000;
-    const un = (m) => ({ mrad: m, moa: m * MOA, smoa: m * MOA * 1.04719755, cm: m * x / 10, cliques: p.unidade === "MOA" ? m * MOA / (p.clique || 0.25) : m / (p.clique || 0.1) });
-    return { elev: un(mrad), vento: un(mradW) };
-  }
-  function calcular(p, dist) {
-    const e = zerar(p), r = voo(p, e, 0, dist, 0.0005), m = p.massa / 1000;
-    return { ...correcoes(p, dist, r.fim.y, r.fim.z), queda: r.fim.y * 100, deriva: r.fim.z * 100, v: r.fim.v, t: r.fim.t, e: 0.5 * m * r.fim.v ** 2, e0: 0.5 * m * p.v0 ** 2, som: r.ar.som, rho: r.ar.rho, mach: r.fim.v / r.ar.som, ymax: r.ymax * 100, valorClique: (p.unidade === "MOA" ? (p.clique || 0.25) / MOA : (p.clique || 0.1)) * dist / 10 };
-  }
-  function tabela(p, de, ate, passo) {
-    const e = zerar(p), m = p.massa / 1000, r = voo(p, e, 0, ate, 0.0005, { de, ate, passo });
-    return r.pts.map((q) => ({ dist: Math.round(q.x * 100) / 100, v: q.v, e: 0.5 * m * q.v ** 2, t: q.t, queda: q.y * 100, deriva: q.z * 100, ...correcoes(p, q.x, q.y, q.z) }));
-  }
-  return { calcular, tabela, ar, cd };
-})();
+// ---------- Calculadora balística (motor próprio: massa pontual, RK4, arrasto padrão G1/G7) ----------
+/* Catálogo Ática: dados de catálogo publicados pelos fabricantes (Arken, Nightforce, Vortex). Conferir sempre com o manual da sua luneta. */
+const CATALOGO = {"lunetas":[{"b":"Arken","m":"EP-5 GENII 5-25x56","p":"FFP","u":"MRAD","c":0.1,"v":10,"e":28,"r":["VPR MIL","TOR MIL"]},{"b":"Arken","m":"EP-5 GENII 5-25x56","p":"FFP","u":"MOA","c":0.25,"v":25,"e":100,"r":["VPR MOA"]},{"b":"Arken","m":"EP-5 GENII 7-35x56","p":"FFP","u":"MRAD","c":0.1,"v":10,"e":30,"r":["VPR MIL","TOR MIL"]},{"b":"Arken","m":"EP-5 GENII 7-35x56","p":"FFP","u":"MOA","c":0.25,"v":25,"e":103,"r":["VPR MOA"]},{"b":"Arken","m":"EP-5 5-25x56 (Gen I)","p":"FFP","u":"MRAD","c":0.1,"v":10,"e":30,"r":["VPR MIL"]},{"b":"Arken","m":"EP-5 5-25x56 (Gen I)","p":"FFP","u":"MOA","c":0.25,"v":25,"e":110,"r":["VPR MOA"]},{"b":"Arken","m":"SH-4J GENII 6-24x50","p":"FFP","u":"MRAD","c":0.1,"v":8,"e":28,"r":["VPR MIL","VHR MIL"]},{"b":"Arken","m":"SH-4J GENII 6-24x50","p":"FFP","u":"MOA","c":0.25,"v":20,"e":100,"r":["VPR MOA","VHR MOA"]},{"b":"Arken","m":"SH-4 GENII 4-16x50","p":"FFP","u":"MRAD","c":0.1,"v":8,"e":34,"r":["VPR MIL","VHR MIL"]},{"b":"Arken","m":"SH-4 GENII 4-16x50","p":"FFP","u":"MOA","c":0.25,"v":20,"e":120,"r":["VPR MOA","VHR MOA"]},{"b":"Arken","m":"EPL-4 6-24x50","p":"FFP","u":"MRAD","c":0.1,"v":8,"e":19,"r":["VPR MIL","VHR MIL"]},{"b":"Arken","m":"EPL-4 6-24x50","p":"FFP","u":"MOA","c":0.25,"v":20,"e":68,"r":["VPR MOA","VHR MOA"]},{"b":"Arken","m":"EPL-4 4-16x44","p":"FFP","u":"MRAD","c":0.1,"v":8,"e":21,"r":["VPR MIL","VHR MIL"]},{"b":"Arken","m":"EPL-4 4-16x44","p":"FFP","u":"MOA","c":0.25,"v":20,"e":72,"r":["VPR MOA","VHR MOA"]},{"b":"Arken","m":"LH-4 4-16x44","p":"FFP","u":"MRAD","c":0.1,"v":6,"e":16,"r":["VPR MIL"]},{"b":"Arken","m":"LH-4 4-16x44","p":"FFP","u":"MOA","c":0.25,"v":15,"e":58,"r":["VPR MOA"]},{"b":"Arken","m":"EP-8 1-8x28 LPVO","p":"FFP","u":"MRAD","c":0.1,"v":10,"e":30,"r":["KLGRID"]},{"b":"Arken","m":"EP-8 1-8x28 LPVO","p":"FFP","u":"MOA","c":0.25,"v":25,"e":110,"r":["KLBOX"]},{"b":"Arken","m":"OUTRIDER 3-18x50","p":"SFP","u":"MOA","c":0.25,"v":15,"e":56,"r":["FDR","DLR"]},{"b":"Arken","m":"OUTRIDER 2-12x42","p":"SFP","u":"MOA","c":0.25,"v":15,"e":90,"r":["FDR","DLR"]},{"b":"Arken","m":"LH-6 1-6x24 LPVO","p":"SFP","u":"MOA","c":0.25,"v":25,"e":180,"r":["KLBOX"]},{"b":"Nightforce","m":"ATACR 1-8x24 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":103,"r":["FC-DMx (MOA)"]},{"b":"Nightforce","m":"ATACR 1-8x24 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":30,"r":["FC-DMx"]},{"b":"Nightforce","m":"ATACR 4-16x42 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":89,"r":["MOAR F1","MOA-XT"]},{"b":"Nightforce","m":"ATACR 4-16x42 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":26,"r":["MIL-R F1","MIL-C F1","MIL-XT","Horus TREMOR3"]},{"b":"Nightforce","m":"ATACR 4-16x50 F2","p":"SFP","u":"MOA","c":0.25,"v":null,"e":110,"r":["MOAR - 30 MOA Illuminated"]},{"b":"Nightforce","m":"ATACR 4-16x50 F2","p":"SFP","u":"MRAD","c":0.1,"v":null,"e":32,"r":["MIL-R - 10 Mils"]},{"b":"Nightforce","m":"ATACR 4-20x50 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":130,"r":["MOAR F1","MOA-XT"]},{"b":"Nightforce","m":"ATACR 4-20x50 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":38,"r":["MIL-C F1","MIL-XT","Horus TREMOR3"]},{"b":"Nightforce","m":"ATACR 5-25x56 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":120,"r":["MOAR F1","MOA-XT"]},{"b":"Nightforce","m":"ATACR 5-25x56 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":35,"r":["MIL-R F1","MIL-C F1","MIL-XT","Horus TREMOR3"]},{"b":"Nightforce","m":"ATACR 5-25x56 F2","p":"SFP","u":"MOA","c":0.25,"v":null,"e":120,"r":["MOAR - 20 MOA Illuminated","MOAR-T"]},{"b":"Nightforce","m":"ATACR 5-25x56 F2","p":"SFP","u":"MRAD","c":0.1,"v":null,"e":35,"r":["MIL-R - 5 Mils"]},{"b":"Nightforce","m":"ATACR 7-35x56 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":100,"r":["MOAR F1","MOA-XT"]},{"b":"Nightforce","m":"ATACR 7-35x56 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":29,"r":["MIL-R F1","MIL-C F1","MIL-XT","Horus TREMOR3","Horus TREMOR5"]},{"b":"Nightforce","m":"ATACR 7-35x56 F2","p":"SFP","u":"MOA","c":0.25,"v":null,"e":100,"r":["MOAR-T Dualscale"]},{"b":"Nightforce","m":"ATACR 7-35x56 F2","p":"SFP","u":"MRAD","c":0.1,"v":null,"e":29,"r":["MIL-C F2 Dualscale"]},{"b":"Nightforce","m":"NX8 1-8x24 F1","p":"FFP","u":"MOA","c":0.5,"v":null,"e":100,"r":["FC-MOA"]},{"b":"Nightforce","m":"NX8 1-8x24 F1","p":"FFP","u":"MRAD","c":0.2,"v":null,"e":29,"r":["FC-MIL"]},{"b":"Nightforce","m":"NX8 1-8x24 F1 Capped","p":"FFP","u":"MOA","c":0.5,"v":null,"e":null,"r":["FC-DMx (MOA)","FC-MOA"]},{"b":"Nightforce","m":"NX8 1-8x24 F1 Capped","p":"FFP","u":"MRAD","c":0.2,"v":null,"e":null,"r":["FC-DMx"]},{"b":"Nightforce","m":"NX8 2.5-20x50 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":110,"r":["MOAR F1","MOA-XT"]},{"b":"Nightforce","m":"NX8 2.5-20x50 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":32,"r":["MIL-C F1","MIL-XT","Horus TREMOR3"]},{"b":"Nightforce","m":"NX8 2.5-20x50 F2","p":"SFP","u":"MOA","c":0.25,"v":null,"e":110,"r":["MOAR-CF2"]},{"b":"Nightforce","m":"NX8 2.5-20x50 F2","p":"SFP","u":"MRAD","c":0.1,"v":null,"e":32,"r":["Mil-CF2"]},{"b":"Nightforce","m":"NX8 4-32x50 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":90,"r":["MOAR F1","MOA-XT"]},{"b":"Nightforce","m":"NX8 4-32x50 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":26,"r":["MIL-C F1","MIL-XT","Horus TREMOR3","Horus TREMOR5"]},{"b":"Nightforce","m":"NX8 4-32x50 F2","p":"SFP","u":"MOA","c":0.25,"v":null,"e":90,"r":["MOAR-CF2D"]},{"b":"Nightforce","m":"NX8 4-32x50 F2","p":"SFP","u":"MRAD","c":0.1,"v":null,"e":26,"r":["Mil-CF2D"]},{"b":"Nightforce","m":"NX6 1-6x24 (F2)","p":"SFP","u":"MOA","c":0.5,"v":null,"e":120,"r":["FC-6c","4A-i"]},{"b":"Nightforce","m":"NX6 1-6x24 F1","p":"FFP","u":"MRAD","c":0.2,"v":null,"e":34.9,"r":["FC-DMx"]},{"b":"Nightforce","m":"NX6 2-12x42 (F2)","p":"SFP","u":"MOA","c":0.25,"v":null,"e":115,"r":["MOAR","4A-i"]},{"b":"Nightforce","m":"NX6 2-12x42 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":115,"r":["FC-MRx (MOA)"]},{"b":"Nightforce","m":"NX6 2-12x42 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":33.4,"r":["FC-MRx"]},{"b":"Nightforce","m":"NX6 3-18x50 (F2)","p":"SFP","u":"MOA","c":0.25,"v":null,"e":120,"r":["MOAR","4A-i"]},{"b":"Nightforce","m":"NX6 3-18x50 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":120,"r":["MOA-C","MOA-XT"]},{"b":"Nightforce","m":"NX6 3-18x50 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":34.9,"r":["MIL-C","MIL-XT"]},{"b":"Nightforce","m":"NX6 4-24x50 (F2)","p":"SFP","u":"MOA","c":0.25,"v":null,"e":115,"r":["MOAR","4A-i"]},{"b":"Nightforce","m":"NX6 5-30x56 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":120,"r":["MOA-C","MOA-XT"]},{"b":"Nightforce","m":"NX6 5-30x56 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":34.9,"r":["MIL-C","MIL-XT"]},{"b":"Nightforce","m":"NX6 6-36x56 (F2)","p":"SFP","u":"MOA","c":0.25,"v":null,"e":115,"r":["FVR-1"]},{"b":"Nightforce","m":"NX6 6-36x56 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":115,"r":["MOA-C","MOA-XT"]},{"b":"Nightforce","m":"NX6 6-36x56 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":33.4,"r":["MIL-C","MIL-XT"]},{"b":"Nightforce","m":"NXS 2.5-10x42","p":"SFP","u":"MOA","c":0.25,"v":null,"e":100,"r":["MOAR - 30 MOA Illuminated"]},{"b":"Nightforce","m":"NXS 2.5-10x42","p":"SFP","u":"MRAD","c":0.1,"v":null,"e":29,"r":["MIL-R - 10 Mils"]},{"b":"Nightforce","m":"NXS 3.5-15x50","p":"SFP","u":"MOA","c":0.25,"v":null,"e":110,"r":["MOAR - 30 MOA Illuminated"]},{"b":"Nightforce","m":"NXS 5.5-22x50","p":"SFP","u":"MOA","c":0.25,"v":null,"e":100,"r":["MOAR - 20 MOA Illuminated","MOAR-T"]},{"b":"Nightforce","m":"NXS 5.5-22x56","p":"SFP","u":"MOA","c":0.25,"v":null,"e":100,"r":["MOAR - 20 MOA Illuminated","MOAR-T"]},{"b":"Nightforce","m":"NXS 8-32x56","p":"SFP","u":"MOA","c":0.25,"v":null,"e":65,"r":["MOAR - 20 MOA Illuminated","MOAR-T"]},{"b":"Nightforce","m":"SHV 3-10x42","p":"SFP","u":"MOA","c":0.25,"v":null,"e":90,"r":["Forceplex Center Illuminated","MOAR - 30 MOA Center Illuminated"]},{"b":"Nightforce","m":"SHV 4-14x50 F1","p":"FFP","u":"MOA","c":0.25,"v":null,"e":90,"r":["MOAR F1 - 30 MOA"]},{"b":"Nightforce","m":"SHV 4-14x50 F1","p":"FFP","u":"MRAD","c":0.1,"v":null,"e":26,"r":["MIL-R F1 Center Illuminated","MIL-XT"]},{"b":"Nightforce","m":"SHV 4-14x56","p":"SFP","u":"MOA","c":0.25,"v":null,"e":90,"r":["MOAR - 30 MOA Non-Illuminated","MOAR - 30 MOA Center Illuminated"]},{"b":"Nightforce","m":"SHV 5-20x56","p":"SFP","u":"MOA","c":0.25,"v":null,"e":80,"r":["Forceplex Non-Illuminated","MOAR - 20 MOA Non-Illuminated","Forceplex Center Illuminated","MOAR - 20 MOA Center Illuminated"]},{"b":"Nightforce","m":"Competition 15-55x52","p":"SFP","u":"MOA","c":0.125,"v":null,"e":55,"r":["CTR-2","CTR-3","DDR-2","FCR-1"]},{"b":"Nightforce","m":"Competition Service Rifle 4.5x24","p":"SFP","u":"MOA","c":0.25,"v":null,"e":100,"r":["SR-2"]},{"b":"Nightforce","m":"NF (Precision Benchrest) 12-42x56","p":"SFP","u":"MOA","c":0.125,"v":null,"e":40,"r":["NP-R2","NP-2DD","MOAR-T"]},{"b":"Nightforce","m":"NF (Precision Benchrest) 8-32x56","p":"SFP","u":"MOA","c":0.125,"v":null,"e":50,"r":["NP-R2","MOAR-T"]},{"b":"Vortex","m":"Razor HD LHT 3-15x50","p":"SFP","u":"MRAD","c":0.1,"v":6,"e":23,"r":["G4i BDC MRAD"]},{"b":"Vortex","m":"Viper PST Gen II 3-15x44 FFP EBR-2C (MRAD)","p":"FFP","u":"MRAD","c":0.1,"v":10,"e":22,"r":["EBR-2C MRAD"]},{"b":"Vortex","m":"Viper PST Gen II 3-15x44 FFP EBR-2C (MOA)","p":"FFP","u":"MOA","c":0.25,"v":25,"e":75,"r":["EBR-2C MOA"]},{"b":"Vortex","m":"Viper PST Gen II 5-25x50 (SFP) EBR-4 (MOA)","p":"SFP","u":"MOA","c":0.25,"v":25,"e":70,"r":["EBR-4 MOA"]},{"b":"Vortex","m":"Viper PST Gen II 3-15x44 (SFP) EBR-4 (MOA)","p":"SFP","u":"MOA","c":0.25,"v":25,"e":75,"r":["EBR-4 MOA"]},{"b":"Vortex","m":"Strike Eagle 3-18x44 (SFP) EBR-4 (MOA)","p":"SFP","u":"MOA","c":0.25,"v":12,"e":120,"r":["EBR-4 MOA"]},{"b":"Vortex","m":"Diamondback Tactical 4-12x40","p":"SFP","u":"MOA","c":0.25,"v":12,"e":70,"r":["VMR-1 MOA"]}],"reticulos":{"VPR MIL":{"marca":"Arken","unidade":"MRAD","def":{"centro":{"tipo":"floating center dot with open center; 4 short illuminated dashes around it","pontoCentralDiametro":0.04,"aberturaAtePrimeiraMarca":1.0},"horizontal":{"extensao":{"esquerda":8,"direita":8},"numerados":[2,4,6,8],"hashPrincipal":1.0,"subHash":[{"de":1,"ate":6,"passo":0.5},{"de":6,"ate":8,"passo":0.2}],"marcaLongaEm":[5]},"verticalAcima":{"extensao":5,"numerados":[],"hashPrincipal":1.0,"subHash":[{"de":1,"ate":3,"passo":0.5},{"de":3,"ate":5,"passo":0.2}]},"verticalAbaixo":{"extensao":12,"numerados":[2,4,6,8,10,12],"hashPrincipal":1.0,"subHash":[{"de":1,"ate":10,"passo":0.5},{"de":10,"ate":12,"passo":0.2,"confianca":"moderate (clearly read on VHR MIL, same stadia)"}]},"arvore":{"presente":true,"espacamentoLinhas":1.0,"espacamentoPontos":0.25,"pontosComecamEm":0.5,"pontoPequenoDiametro":0.04,"pontoGrandeDiametro":0.08,"pontosGrandesACada":1.0,"meiaLarguraPorLinha":{"1":2,"2":2,"3":3,"4":3,"5":4,"6":4,"7":5,"8":5,"9":6,"10":6,"11":7,"12":7}},"rotulosNaFigura":{"1.0":"main hash spacing","0.25":"dot spacing","Φ0.04":"leader from center dot / small dots","Φ0.08":"large tree dot at whole-MIL positions"}}}}};
+/* Motor balístico Ática — massa pontual (3 graus de liberdade), RK4, tabelas de arrasto padrão G1/G7 (públicas). */
+const Balistica = (() => {
+  const G1 = [[0,.2629],[.05,.2558],[.1,.2487],[.15,.2413],[.2,.2344],[.25,.2278],[.3,.2214],[.35,.2155],[.4,.2104],[.45,.2061],[.5,.2032],[.55,.202],[.6,.2034],[.7,.2165],[.725,.223],[.75,.2313],[.775,.2417],[.8,.2546],[.825,.2706],[.85,.2901],[.875,.3136],[.9,.3415],[.925,.3734],[.95,.4084],[.975,.4448],[1,.4805],[1.025,.5136],[1.05,.5427],[1.075,.5677],[1.1,.5883],[1.125,.6053],[1.15,.6191],[1.2,.6393],[1.25,.6518],[1.3,.6589],[1.35,.6621],[1.4,.6625],[1.45,.6607],[1.5,.6573],[1.55,.6528],[1.6,.6474],[1.65,.6413],[1.7,.6347],[1.75,.628],[1.8,.621],[1.85,.6141],[1.9,.6072],[1.95,.6003],[2,.5934],[2.05,.5867],[2.1,.5804],[2.15,.5743],[2.2,.5685],[2.25,.563],[2.3,.5577],[2.35,.5527],[2.4,.5481],[2.45,.5438],[2.5,.5397],[2.6,.5325],[2.7,.5264],[2.8,.5211],[2.9,.5168],[3,.5133],[3.1,.5105],[3.2,.5084],[3.3,.5067],[3.4,.5054],[3.5,.504],[3.6,.503],[3.7,.5022],[3.8,.5016],[3.9,.501],[4,.5006],[4.2,.4998],[4.4,.4995],[4.6,.4992],[4.8,.499],[5,.4988]];
+  const G7 = [[0,.1198],[.05,.1197],[.1,.1196],[.15,.1194],[.2,.1193],[.25,.1194],[.3,.1194],[.35,.1194],[.4,.1193],[.45,.1193],[.5,.1194],[.55,.1193],[.6,.1194],[.65,.1197],[.7,.1202],[.725,.1207],[.75,.1215],[.775,.1226],[.8,.1242],[.825,.1266],[.85,.1306],[.875,.1368],[.9,.1464],[.925,.166],[.95,.2054],[.975,.2993],[1,.3803],[1.025,.4015],[1.05,.4043],[1.075,.4034],[1.1,.4014],[1.125,.3987],[1.15,.3955],[1.2,.3884],[1.25,.381],[1.3,.3732],[1.35,.3657],[1.4,.358],[1.5,.344],[1.55,.3376],[1.6,.3315],[1.65,.326],[1.7,.3209],[1.75,.316],[1.8,.3117],[1.85,.3078],[1.9,.3042],[1.95,.301],[2,.298],[2.05,.2951],[2.1,.2922],[2.15,.2892],[2.2,.2864],[2.25,.2835],[2.3,.2807],[2.35,.2779],[2.4,.2752],[2.45,.2725],[2.5,.2697],[2.55,.267],[2.6,.2643],[2.65,.2615],[2.7,.2588],[2.75,.2561],[2.8,.2533],[2.85,.2506],[2.9,.2479],[2.95,.2451],[3,.2424],[3.1,.2368],[3.2,.2313],[3.3,.2258],[3.4,.2205],[3.5,.2154],[3.6,.2106],[3.7,.206],[3.8,.2017],[3.9,.1975],[4,.1935],[4.2,.1861],[4.4,.1793],[4.6,.173],[4.8,.1672],[5,.1618]];
+  const TAB = { G1, G7 };
+  const g = 9.80665, RHO0 = 1.225, LB_IN2 = 703.0696; // 1 lb/in² em kg/m²
+  const MOA_POR_MRAD = 3.4377468, SMOA_POR_MRAD = 3.6; // SMOA: 1 pol a 100 jardas
 
-// ---------- tela Balística ----------
-const BAL_PADRAO = { nome: "Meu rifle", arrasto: "G7", bc: 0.224, massa: 10.886, v0: 755, zero: 100, alturaMira: 6.5, unidade: "MRAD", clique: 0.1 };
-const BAL_TIRO = { dist: 300, inclinacao: 0, ventoVel: 0, ventoDir: 90, modo: "da", temp: 25, altDens: 0, pressao: 1013, umidade: 50, de: 50, ate: 600, passo: 50 };
-function balLer() {
-  let e; try { e = JSON.parse(guardar.get("cac_bal") || "null"); } catch { e = null; }
-  if (!e || !Array.isArray(e.perfis) || !e.perfis.length) e = { perfis: [{ ...BAL_PADRAO }], ativo: 0, tiro: { ...BAL_TIRO } };
-  e.tiro = { ...BAL_TIRO, ...(e.tiro || {}) }; e.ativo = Math.min(e.ativo || 0, e.perfis.length - 1);
-  return e;
-}
-const balGravar = (e) => guardar.set("cac_bal", JSON.stringify(e));
-const nBR = (v, c = 1) => (Number.isFinite(v) ? v : 0).toLocaleString("pt-BR", { minimumFractionDigits: c, maximumFractionDigits: c });
-const balLado = (v, pos, neg, c = 1) => Math.abs(v) < 0.05 ? nBR(0, c) : `${v > 0 ? pos : neg} ${nBR(Math.abs(v), c)}`;
-function balParam(e) {
-  const f = e.perfis[e.ativo], t = e.tiro;
-  return { ...f, clima: { modo: t.modo, temp: +t.temp, altDens: +t.altDens, pressao: +t.pressao, umidade: +t.umidade }, vento: { vel: +t.ventoVel, dir: +t.ventoDir }, inclinacao: +t.inclinacao };
-}
-function balGrafico(linhas) {
-  if (linhas.length < 2) return "";
-  const W = 640, H = 240, m = { l: 46, r: 12, t: 12, b: 28 };
-  const xs = linhas.map((l) => l.dist), ys = linhas.map((l) => l.queda);
-  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys, 0), y1 = Math.max(...ys, 0);
-  const X = (v) => m.l + (v - x0) / (x1 - x0 || 1) * (W - m.l - m.r), Y = (v) => m.t + (y1 - v) / (y1 - y0 || 1) * (H - m.t - m.b);
-  const grade = [0, .25, .5, .75, 1].map((k) => { const v = y1 - k * (y1 - y0); return `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#26262c"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end" fill="#A9A9B2" font-size="11">${Math.round(v)}</text>`; }).join("");
-  const eixo = linhas.filter((_, i) => i % Math.ceil(linhas.length / 6) === 0).map((l) => `<text x="${X(l.dist)}" y="${H - 8}" text-anchor="middle" fill="#A9A9B2" font-size="11">${Math.round(l.dist)}</text>`).join("");
-  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">${grade}${eixo}<line x1="${m.l}" x2="${W - m.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="#A9A9B2" stroke-dasharray="4 4"/><polyline fill="none" stroke="#E2B657" stroke-width="2.5" points="${linhas.map((l) => `${X(l.dist).toFixed(1)},${Y(l.queda).toFixed(1)}`).join(" ")}"/></svg><div class="pequeno">Queda em cm em relação à linha de visada, por distância em metros.</div>`;
-}
+  function cd(tab, mach) {
+    if (mach <= tab[0][0]) return tab[0][1];
+    let lo = 0, hi = tab.length - 1;
+    if (mach >= tab[hi][0]) return tab[hi][1];
+    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (tab[m][0] <= mach) lo = m; else hi = m; }
+    const [m0, c0] = tab[lo], [m1, c1] = tab[hi];
+    return c0 + (c1 - c0) * (mach - m0) / (m1 - m0);
+  }
+
+  // Atmosfera: modo "pressao" (pressão no local), "altitude" (pressão padrão para a altitude) ou "da" (altitude de densidade).
+  function atmosfera(c) {
+    const T = c.temperatura, TK = T + 273.15;
+    const som = 331.3 * Math.sqrt(TK / 273.15);
+    let rho, pressao = null;
+    if (c.modo === "da") {
+      rho = RHO0 * Math.pow(1 - 2.25577e-5 * c.altitudeDensidade, 4.25588);
+    } else {
+      pressao = c.modo === "altitude" ? 1013.25 * Math.pow(1 - 2.25577e-5 * c.altitude, 5.25588) : c.pressao;
+      const pv = (c.umidade / 100) * 6.1078 * Math.pow(10, 7.5 * T / (T + 237.3));
+      rho = ((pressao - pv) * 100) / (287.058 * TK) + (pv * 100) / (461.495 * TK);
+    }
+    const altDens = (1 - Math.pow(rho / RHO0, 1 / 4.25588)) / 2.25577e-5;
+    return { rho, som, pressao, altDens };
+  }
+
+  // Integra a trajetória. Eixos: x ao longo da linha de visada, y perpendicular para cima, z para a direita.
+  function voar(p, alfa, xMax, passoReg) {
+    const tab = TAB[p.arrasto] || G7;
+    const k = Math.PI * p.rho / (8 * p.cb * LB_IN2);
+    const th = (p.inclinacao || 0) * Math.PI / 180;
+    const gx = -g * Math.sin(th), gy = -g * Math.cos(th);
+    const d = (p.ventoDir || 0) * Math.PI / 180, w = p.ventoVel || 0;
+    const wx = -w * Math.cos(d), wz = -w * Math.sin(d); // direção = de onde o vento vem (0° de frente, 90° da direita)
+    let s = [0, -p.alturaMira, 0, p.v0 * Math.cos(alfa), p.v0 * Math.sin(alfa), 0], t = 0;
+    const f = (q) => {
+      const rx = q[3] - wx, ry = q[4], rz = q[5] - wz, vr = Math.hypot(rx, ry, rz);
+      const a = k * vr * cd(tab, vr / p.som);
+      return [q[3], q[4], q[5], -a * rx + gx, -a * ry + gy, -a * rz];
+    };
+    const soma = (q, dq, h) => q.map((v, i) => v + dq[i] * h);
+    const pontos = []; let prox = 0, yMax = -Infinity, xyMax = 0;
+    const reg = (q, tt) => ({ x: q[0], y: q[1], z: q[2], v: Math.hypot(q[3], q[4], q[5]), t: tt });
+    const dt = 0.0004;
+    for (let n = 0; n < 200000; n++) {
+      const k1 = f(s), k2 = f(soma(s, k1, dt / 2)), k3 = f(soma(s, k2, dt / 2)), k4 = f(soma(s, k3, dt));
+      const s2 = s.map((v, i) => v + dt / 6 * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]));
+      while (prox <= xMax + 1e-9 && s2[0] >= prox) {
+        const fr = (prox - s[0]) / (s2[0] - s[0]);
+        pontos.push(reg(s.map((v, i) => v + (s2[i] - v) * fr), t + dt * fr));
+        prox += passoReg;
+      }
+      if (s2[1] > yMax && s2[0] <= xMax) { yMax = s2[1]; xyMax = s2[0]; }
+      s = s2; t += dt;
+      if (s[0] >= xMax || s[3] < 30 || s[1] < -5000) break;
+    }
+    return { pontos, yMax, xyMax };
+  }
+
+  function em(p, alfa, x) { // estado exatamente na distância x
+    const r = voar(p, alfa, x, x > 0 ? x : 1).pontos;
+    return r[r.length - 1].x >= x - 1e-6 ? r[r.length - 1] : null;
+  }
+
+  // Ângulo de saída que zera na distância de zeragem (terreno plano, sem vento).
+  function zerar(p) {
+    const pz = { ...p, inclinacao: 0, ventoVel: 0, rho: p.zeroRho ?? p.rho, som: p.zeroSom ?? p.som, v0: p.zeroV0 ?? p.v0 };
+    let alfa = p.alturaMira / p.zero;
+    for (let i = 0; i < 8; i++) {
+      const e = em(pz, alfa, p.zero);
+      if (!e) return null;
+      alfa -= e.y / p.zero;
+      if (Math.abs(e.y) < 1e-7) break;
+    }
+    return alfa;
+  }
+
+  function correcao(desvio, x, clique) { // desvio em metros (positivo = acima / direita do ponto visado)
+    const mrad = x > 0 ? -desvio / x * 1000 : 0;
+    return { mrad, moa: mrad * MOA_POR_MRAD, smoa: mrad * SMOA_POR_MRAD, cm: -desvio * 100, cliques: clique > 0 ? mrad / clique : null };
+  }
+
+  /* entrada: { massaKg, cb, arrasto, v0, alturaMira (m), zero (m), cliqueV, cliqueH (em mrad),
+                rho, som, inclinacao (graus), ventoVel (m/s), ventoDir (graus) } */
+  function calcular(p, distancia) {
+    const alfa = zerar(p);
+    if (alfa === null) return null;
+    const e = em(p, alfa, distancia);
+    if (!e) return null;
+    const en = (v) => 0.5 * p.massaKg * v * v;
+    const elev = correcao(e.y, distancia, p.cliqueV), vento = correcao(e.z, distancia, p.cliqueH);
+    const corr = voar(p, alfa + elev.mrad / 1000, distancia, distancia);
+    return {
+      alfa, elev, vento, velocidade: e.v, energia: en(e.v), energiaBoca: en(p.v0), tempo: e.t, mach: e.v / p.som,
+      quedaCm: e.y * 100, derivaCm: e.z * 100,
+      alturaMaxCm: Math.max(corr.yMax, 0) * 100, distAlturaMax: corr.yMax > 0 ? corr.xyMax : 0,
+      cliqueCmV: p.cliqueV * distancia / 10, cliqueCmH: p.cliqueH * distancia / 10,
+    };
+  }
+
+  function tabela(p, ini, fim, passo) {
+    const alfa = zerar(p);
+    if (alfa === null || !(passo > 0) || fim < ini) return [];
+    const linhas = [];
+    for (let x = ini; x <= fim + 1e-9; x += passo) {
+      const e = x === 0 ? { x: 0, y: -p.alturaMira, z: 0, v: p.v0, t: 0 } : em(p, alfa, x);
+      if (!e) break;
+      linhas.push({ x, v: e.v, energia: 0.5 * p.massaKg * e.v * e.v, t: e.t, quedaCm: e.y * 100, derivaCm: e.z * 100,
+        elev: correcao(e.y, x, p.cliqueV), vento: correcao(e.z, x, p.cliqueH) });
+    }
+    return linhas;
+  }
+
+  function curva(p, fim, n = 120) { // pontos para o gráfico (trajetória em relação à linha de visada)
+    const alfa = zerar(p);
+    if (alfa === null) return [];
+    return voar(p, alfa, fim, fim / n).pontos;
+  }
+
+  // Fator de estabilidade giroscópica (regra de Miller, com correção de velocidade e de densidade do ar).
+  function estabilidade(m) { // { massaKg, diametroMm, comprimentoMm, passoMm, v0, rho }
+    const d = m.diametroMm / 25.4, l = m.comprimentoMm / m.diametroMm, t = m.passoMm / m.diametroMm, gr = m.massaKg * 1000 / 0.06479891;
+    if (!(d > 0) || !(l > 0) || !(t > 0) || !(gr > 0)) return null;
+    return 30 * gr / (t * t * d * d * d * l * (1 + l * l)) * Math.cbrt(m.v0 / 0.3048 / 2800) * (RHO0 / m.rho);
+  }
+
+  return { estabilidade, atmosfera, calcular, tabela, curva, cd, TAB, MOA_POR_MRAD, SMOA_POR_MRAD };
+})();
+const BALX_HTML = "<div class=\"topo\"><div><h2>Balística <span class=\"etiqueta at\" style=\"vertical-align:4px;margin-left:6px\">Beta<\/span><\/h2><p>Correções de elevação e vento, tabela, gráfico e retículo para o seu rifle, mira e munição.<\/p><\/div><\/div><div id=\"balx\"><div class=\"abas\" id=\"abas\">\n    <button data-t=\"tiro\" class=\"ativo\">Tiro<\/button><button data-t=\"tabela\">Tabela<\/button><button data-t=\"grafico\">Gráfico<\/button><button data-t=\"reticulo\">Retículo<\/button><button data-t=\"cadastro\">Cadastro<\/button>\n  <\/div>\n  <div class=\"aviso\" style=\"margin-bottom:14px\"><b>Versão beta.<\/b> Novas funções estão a caminho. Confirme sempre os valores no estande.<\/div>\n  <!-- TIRO -->\n  <section class=\"tela ativa\" id=\"t-tiro\">\n    <div class=\"conjunto\">\n      <label>Rifle<select id=\"sel-rifle\"><\/select><\/label>\n      <label>Mira<select id=\"sel-mira\"><\/select><\/label>\n      <label>Munição<select id=\"sel-municao\"><\/select><\/label>\n    <\/div>\n    <div class=\"duas\">\n      <div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Alvo<\/div>\n          <div class=\"c2\" style=\"margin-top:10px\">\n            <label>Distância (m)<input id=\"distancia\" inputmode=\"decimal\"><\/label>\n            <label>Inclinação (graus)<input id=\"inclinacao\" inputmode=\"decimal\"><\/label>\n          <\/div>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Vento<\/div>\n          <div class=\"vento\" style=\"margin-top:10px\">\n            <svg class=\"rosa\" id=\"rosa\" viewBox=\"0 0 80 80\"><\/svg>\n            <div class=\"campos\">\n              <label>Velocidade<div class=\"junto\"><input id=\"ventoVel\" inputmode=\"decimal\"><select id=\"ventoUn\"><option value=\"ms\">m/s<\/option><option value=\"kmh\">km/h<\/option><\/select><\/div><\/label>\n              <label>Vem de<select id=\"ventoHora\"><\/select><\/label>\n            <\/div>\n          <\/div>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Clima<\/div>\n          <div class=\"chips\" id=\"clima-modo\" style=\"margin:10px 0\">\n            <button class=\"chip\" data-m=\"da\">Alt. de densidade<\/button><button class=\"chip\" data-m=\"pressao\">Pressão<\/button><button class=\"chip\" data-m=\"altitude\">Altitude<\/button>\n          <\/div>\n          <div class=\"campos\">\n            <label>Temperatura (°C)<input id=\"temperatura\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"da\">Alt. de densidade (m)<input id=\"altitudeDensidade\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"pressao\">Pressão no local (hPa)<input id=\"pressao\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"altitude\">Altitude (m)<input id=\"altitude\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"pressao altitude\">Umidade (%)<input id=\"umidade\" inputmode=\"decimal\"><\/label>\n          <\/div>\n        <\/div>\n      <\/div>\n      <div>\n        <div id=\"resultado\"><\/div>\n        <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Os valores são calculados a partir dos dados que você cadastrou e devem ser confirmados no estande antes de qualquer uso. Siga sempre as regras de segurança do clube e do seu instrutor.<\/div>\n      <\/div>\n    <\/div>\n  <\/section>\n\n  <!-- TABELA -->\n  <section class=\"tela\" id=\"t-tabela\">\n    <div class=\"card\">\n      <div class=\"rotulo\">Tabela balística<\/div>\n      <div class=\"campos\" style=\"margin-top:10px;grid-template-columns:repeat(3,minmax(0,1fr))\">\n        <label>Início (m)<input id=\"tabIni\" inputmode=\"decimal\"><\/label>\n        <label>Fim (m)<input id=\"tabFim\" inputmode=\"decimal\"><\/label>\n        <label>Passo (m)<input id=\"tabPasso\" inputmode=\"decimal\"><\/label>\n      <\/div>\n      <p class=\"pequeno\" id=\"tab-resumo\" style=\"margin:10px 0 0\"><\/p>\n    <\/div>\n    <div class=\"card\" style=\"padding-top:6px;padding-bottom:6px\"><div class=\"rolagem\" id=\"tabela\"><\/div><\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- GRÁFICO -->\n  <section class=\"tela\" id=\"t-grafico\">\n    <div class=\"card\">\n      <div class=\"rotulo\">Trajetória em relação à linha de visada<\/div>\n      <div class=\"leitura\" id=\"leitura\" style=\"margin:10px 0 6px\"><\/div>\n      <div id=\"grafico\"><\/div>\n      <p class=\"pequeno\" style=\"margin:10px 0 0\">Toque ou passe o dedo no gráfico para ler os valores em cada distância. O alcance do gráfico segue o fim da tabela.<\/p>\n    <\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- RETÍCULO -->\n  <section class=\"tela\" id=\"t-reticulo\">\n    <div class=\"card\">\n      <div class=\"rotulo\" id=\"ret-tit\">Retículo<\/div>\n      <div class=\"chips\" id=\"ret-zoom\" style=\"margin:10px 0\"><button class=\"chip ativo\" data-z=\"ponto\">Zoom no ponto<\/button><button class=\"chip\" data-z=\"inteiro\">Inteiro<\/button><\/div>\n      <div class=\"leitura\" id=\"ret-leitura\" style=\"margin:0 0 8px\"><\/div>\n      <div id=\"reticulo\"><\/div>\n      <p class=\"pequeno\" id=\"ret-nota\" style=\"margin:10px 0 0\"><\/p>\n    <\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- CADASTRO -->\n  <section class=\"tela\" id=\"t-cadastro\">\n    <p class=\"pequeno\" style=\"margin:0\">Os cadastros ficam salvos só neste aparelho. Cadastre os dados do seu próprio equipamento e da sua munição, medidos por você.<\/p>\n    <div class=\"card\" id=\"cad-rifle\"><\/div>\n    <div class=\"card\" id=\"cad-mira\"><\/div>\n    <div class=\"card\" id=\"cad-municao\"><\/div>\n  <\/section>\n\n<p class=\"pequeno\" style=\"margin:0\">Marcas, modelos de lunetas e nomes de retículos pertencem aos seus fabricantes e aparecem só para você identificar o seu equipamento. O Ática não tem vínculo com eles.<\/p><\/div>";
 function renderBalistica(c) {
-  const e = balLer(), f = e.perfis[e.ativo], t = e.tiro;
-  const campo = (rot, chave, onde, passo = "any", extra = "") => `<label>${rot}<input type="number" inputmode="decimal" step="${passo}" data-b="${onde}.${chave}" value="${onde === "f" ? f[chave] : t[chave]}" ${extra}></label>`;
-  const escolha = (rot, chave, onde, ops) => `<label>${rot}<select data-b="${onde}.${chave}">${ops.map(([v, n]) => `<option value="${v}" ${String(onde === "f" ? f[chave] : t[chave]) === String(v) ? "selected" : ""}>${n}</option>`).join("")}</select></label>`;
-  let r = null, linhas = [], erro = "";
-  try {
-    const p = balParam(e);
-    if (!(p.bc > 0 && p.v0 > 50 && p.massa > 0 && p.zero > 0 && t.dist > 0)) throw new Error("Preencha coeficiente balístico, velocidade, peso, zeragem e distância com valores maiores que zero.");
-    r = BAL.calcular(p, +t.dist);
-    const passo = Math.max(1, +t.passo || 50), ate = Math.min(Math.max(+t.ate || 600, +t.de || 50), 2000), de = Math.max(passo, +t.de || 50);
-    if ((ate - de) / passo <= 200) linhas = BAL.tabela(p, de, ate, passo);
-  } catch (x) { erro = x.message || "Não foi possível calcular com esses dados."; }
-  const lin = (rot, a, b) => `<tr><th>${rot}</th><td>${a}</td><td>${b}</td></tr>`;
-  c.innerHTML = `
-    <div class="topo"><div><h2>Balística</h2><p>Correções de elevação e vento para o seu rifle, mira e munição.</p></div></div>
-    <div class="alerta" style="border-color:rgba(226,182,87,.35);background:rgba(226,182,87,.06)"><span class="pequeno"><b style="color:var(--ouro)">Estimativa para tiro esportivo.</b> Os valores são calculados e podem diferir do resultado real. Confirme sempre no estande, respeitando as regras do clube.</span></div>
-    <div class="bal-grade">
-      <div class="card">
-        <div class="rotulo">Tiro</div>
-        <div class="bal-campos">
-          ${campo("Distância (m)", "dist", "t", "1")}
-          ${campo("Ângulo de inclinação (°)", "inclinacao", "t", "1")}
-          ${campo("Vento (m/s)", "ventoVel", "t", "0.5")}
-          ${escolha("Vento vem de", "ventoDir", "t", [[90, "Direita (3h)"], [270, "Esquerda (9h)"], [0, "Frente (12h)"], [180, "Trás (6h)"], [45, "Frente-direita"], [315, "Frente-esquerda"], [135, "Trás-direita"], [225, "Trás-esquerda"]])}
-        </div>
-        <div class="rotulo" style="margin-top:18px">Clima</div>
-        <div class="bal-campos">
-          ${escolha("Informar por", "modo", "t", [["da", "Altitude de densidade"], ["est", "Pressão e umidade"]])}
-          ${campo("Temperatura (°C)", "temp", "t", "1")}
-          ${t.modo === "da" ? campo("Altitude de densidade (m)", "altDens", "t", "10") : campo("Pressão na estação (hPa)", "pressao", "t", "1") + campo("Umidade (%)", "umidade", "t", "1")}
-        </div>
-      </div>
-      <div class="card">
-        <div class="rotulo">Correção em ${nBR(+t.dist, 0)} m</div>
-        ${erro ? `<p class="cr">${esc(erro)}</p>` : `
-        <table class="bal-res"><thead><tr><th></th><th>Elevação</th><th>Vento</th></tr></thead><tbody>
-          ${lin("Cliques", balLado(r.elev.cliques, "↑", "↓", 0), balLado(r.vento.cliques, "→", "←", 0))}
-          ${lin("MRAD", balLado(r.elev.mrad, "↑", "↓"), balLado(r.vento.mrad, "→", "←"))}
-          ${lin("MOA", balLado(r.elev.moa, "↑", "↓"), balLado(r.vento.moa, "→", "←"))}
-          ${lin("SMOA", balLado(r.elev.smoa, "↑", "↓"), balLado(r.vento.smoa, "→", "←"))}
-          ${lin("cm", balLado(r.elev.cm, "↑", "↓", 0), balLado(r.vento.cm, "→", "←", 0))}
-        </tbody></table>
-        <div class="pequeno">↑ subir a mira · ↓ descer · → para a direita · ← para a esquerda. Clique de ${nBR(f.clique, 2)} ${f.unidade}.</div>`}
-      </div>
-    </div>
-    ${erro ? "" : `
-    <div class="grade g4" style="margin-top:14px">
-      <div class="card"><div class="rotulo">Velocidade no alvo</div><div class="grande">${nBR(r.v, 0)} <span class="pequeno">m/s</span></div><div class="pequeno">Mach ${nBR(r.mach, 2)} · som a ${nBR(r.som, 0)} m/s</div></div>
-      <div class="card"><div class="rotulo">Energia no alvo</div><div class="grande">${nBR(r.e, 0)} <span class="pequeno">J</span></div><div class="pequeno">${nBR(r.e0, 0)} J na boca</div></div>
-      <div class="card"><div class="rotulo">Tempo de voo</div><div class="grande">${nBR(r.t, 2)} <span class="pequeno">s</span></div><div class="pequeno">Altura máxima da trajetória: ${nBR(r.ymax, 0)} cm</div></div>
-      <div class="card"><div class="rotulo">Valor do clique</div><div class="grande">${nBR(r.valorClique, 1)} <span class="pequeno">cm</span></div><div class="pequeno">por clique em ${nBR(+t.dist, 0)} m</div></div>
-    </div>`}
-    <div class="card" style="margin-top:14px">
-      <div class="rotulo">Equipamento</div>
-      <div class="bal-campos" style="margin-top:10px">
-        <label>Rifle<select data-b="ativo">${e.perfis.map((p, i) => `<option value="${i}" ${i === e.ativo ? "selected" : ""}>${esc(p.nome || "Rifle " + (i + 1))}</option>`).join("")}</select></label>
-        <label>Nome<input type="text" data-b="f.nome" value="${esc(f.nome || "")}" maxlength="40"></label>
-      </div>
-      <div class="bal-campos">
-        ${campo("Zeragem (m)", "zero", "f", "1")}
-        ${campo("Altura da mira (cm)", "alturaMira", "f", "0.1")}
-        ${escolha("Unidade do clique", "unidade", "f", [["MRAD", "MRAD (MIL)"], ["MOA", "MOA"]])}
-        ${campo("Valor do clique", "clique", "f", "0.01")}
-        ${campo("Velocidade na boca (m/s)", "v0", "f", "1")}
-        ${campo("Peso do projétil (g)", "massa", "f", "0.001")}
-        ${campo("Coeficiente balístico", "bc", "f", "0.001")}
-        ${escolha("Função de arrasto", "arrasto", "f", [["G7", "G7 (ponta fina, boat-tail)"], ["G1", "G1 (base plana)"]])}
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="btn sec" id="bal-novo">+ Novo rifle</button>${e.perfis.length > 1 ? '<button class="btn sec" id="bal-apagar">Apagar este rifle</button>' : ""}</div>
-      <div class="pequeno" style="margin-top:10px">Peso em grains? Multiplique por 0,0648 (168 gr = 10,886 g). Os dados ficam guardados só neste aparelho.</div>
-    </div>
-    <div class="card" style="margin-top:14px">
-      <div class="rotulo">Tabela balística</div>
-      <div class="bal-campos" style="margin-top:10px">${campo("De (m)", "de", "t", "10")}${campo("Até (m)", "ate", "t", "10")}${campo("Passo (m)", "passo", "t", "5")}</div>
-      ${linhas.length ? `<div class="bal-rolagem"><table class="bal-tab"><thead><tr><th>Dist. (m)</th><th>Elev. ${f.unidade}</th><th>Cliques</th><th>Vento ${f.unidade}</th><th>Queda (cm)</th><th>Vel. (m/s)</th><th>Energia (J)</th><th>Tempo (s)</th></tr></thead><tbody>${linhas.map((l) => { const k = f.unidade === "MOA" ? "moa" : "mrad"; return `<tr><td>${nBR(l.dist, 0)}</td><td>${balLado(l.elev[k], "↑", "↓")}</td><td>${balLado(l.elev.cliques, "↑", "↓", 0)}</td><td>${balLado(l.vento[k], "→", "←")}</td><td>${nBR(l.queda, 0)}</td><td>${nBR(l.v, 0)}</td><td>${nBR(l.e, 0)}</td><td>${nBR(l.t, 2)}</td></tr>`; }).join("")}</tbody></table></div>` : `<p class="pequeno">${erro ? "" : "Ajuste o intervalo: no máximo 200 linhas."}</p>`}
-    </div>
-    ${linhas.length ? `<div class="card" style="margin-top:14px"><div class="rotulo" style="margin-bottom:10px">Trajetória</div>${balGrafico(linhas)}</div>` : ""}`;
-  c.querySelectorAll("[data-b]").forEach((el) => el.onchange = () => {
-    const [onde, chave] = el.dataset.b.split("."), v = el.type === "number" ? (el.value === "" ? 0 : parseFloat(el.value.replace(",", "."))) : el.value;
-    if (onde === "ativo") e.ativo = +el.value; else if (onde === "f") { f[chave] = v; if (chave === "unidade") f.clique = v === "MOA" ? 0.25 : 0.1; } else t[chave] = chave === "modo" ? v : +v;
-    balGravar(e); renderBalistica(c);
-  });
-  const novo = c.querySelector("#bal-novo"); if (novo) novo.onclick = () => { e.perfis.push({ ...BAL_PADRAO, nome: "Rifle " + (e.perfis.length + 1) }); e.ativo = e.perfis.length - 1; balGravar(e); renderBalistica(c); };
-  const apagar = c.querySelector("#bal-apagar"); if (apagar) apagar.onclick = () => { if (!confirm("Apagar este rifle da calculadora?")) return; e.perfis.splice(e.ativo, 1); e.ativo = 0; balGravar(e); renderBalistica(c); };
+  c.innerHTML = BALX_HTML;
+  const raiz = c.querySelector("#balx");
+  const document = { querySelector: (s) => raiz.querySelector(s), querySelectorAll: (s) => raiz.querySelectorAll(s) };
+  const window = { scrollTo: (x, y) => globalThis.scrollTo(x, y) };
+const $ = (s) => document.querySelector(s);
+const CHAVE = "atica_balistica_v1";
+const guardar = { get(){ try{ return JSON.parse(localStorage.getItem(CHAVE)) }catch{ return null } }, set(v){ try{ localStorage.setItem(CHAVE, JSON.stringify(v)) }catch{} } };
+const num = (v) => { const n = parseFloat(String(v ?? "").replace(",", ".")); return isFinite(n) ? n : NaN; };
+const fmt = (n, d = 1) => isFinite(n) ? (Math.abs(n) < 0.5 / 10 ** d ? 0 : n).toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d }) : "—";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const id = () => Math.random().toString(36).slice(2, 9);
+
+const EXEMPLO = () => ({
+  rifles: [{ id: "r1", nome: "Meu rifle (exemplo)", passo: "254", direcao: "direita" }],
+  miras: [{ id: "m1", nome: "Minha mira (exemplo)", zero: "100", altura: "6,5", unidade: "MRAD", cliqueV: "0,1", cliqueH: "0,1", porVolta: "10", reticulo: "VPR MIL", zeroModo: "mesmo" }],
+  municoes: [{ id: "a1", nome: ".308 168 gr (exemplo)", diametro: "7,82", comprimento: "30,86", peso: "168", pesoUn: "gr", cb: "0,224", arrasto: "G7", v0: "755", tempMed: "25", sens: "0" }],
+  sel: { rifle: "r1", mira: "m1", municao: "a1" },
+  tiro: { distancia: "288", inclinacao: "0", ventoVel: "0", ventoUn: "ms", ventoHora: "3", modo: "da", temperatura: "25", pressao: "1013", umidade: "50", altitude: "0", altitudeDensidade: "1064" },
+  tab: { ini: "0", fim: "500", passo: "25" },
+});
+let E = guardar.get() || EXEMPLO();
+const salvar = () => guardar.set(E);
+const atual = (tipo) => { const lista = E[tipo === "rifle" ? "rifles" : tipo === "mira" ? "miras" : "municoes"]; return lista.find((x) => x.id === E.sel[tipo]) || lista[0]; };
+
+// ---------- montagem dos parâmetros ----------
+function parametros() {
+  const mira = atual("mira"), mun = atual("municao"), t = E.tiro;
+  if (!mira || !mun) return { erro: "Cadastre uma mira e uma munição na aba Cadastro." };
+  const fator = mira.unidade === "MOA" ? 1 / Balistica.MOA_POR_MRAD : 1;
+  const peso = num(mun.peso), massaKg = mun.pesoUn === "g" ? peso / 1000 : peso * 0.06479891 / 1000;
+  const temperatura = num(t.temperatura);
+  const clima = { modo: t.modo, temperatura, pressao: num(t.pressao), umidade: num(t.umidade), altitude: num(t.altitude), altitudeDensidade: num(t.altitudeDensidade) };
+  const falta = [];
+  if (!(massaKg > 0)) falta.push("peso do projétil");
+  if (!(num(mun.cb) > 0)) falta.push("coeficiente balístico");
+  if (!(num(mun.v0) > 30)) falta.push("velocidade na boca");
+  if (!(num(mira.zero) > 0)) falta.push("distância de zeragem");
+  if (!(num(mira.altura) >= 0)) falta.push("altura da mira");
+  if (!isFinite(temperatura)) falta.push("temperatura");
+  if (t.modo === "da" && !isFinite(clima.altitudeDensidade)) falta.push("altitude de densidade");
+  if (t.modo === "pressao" && !(clima.pressao > 300)) falta.push("pressão");
+  if (t.modo === "altitude" && !isFinite(clima.altitude)) falta.push("altitude");
+  if (falta.length) return { erro: "Confira: " + falta.join(", ") + "." };
+  if (!isFinite(clima.umidade)) clima.umidade = 50;
+  const atm = Balistica.atmosfera(clima);
+  const sens = num(mun.sens), tm = num(mun.tempMed);
+  const v0 = num(mun.v0) + (isFinite(sens) && isFinite(tm) ? sens * (temperatura - tm) : 0);
+  const vv = num(t.ventoVel) || 0;
+  let zero = {};
+  if (mira.zeroModo === "pressao" || mira.zeroModo === "da") {
+    const zt = num(mira.zeroTemp), zp = num(mira.zeroPressao) * (mira.zeroPressaoUn === "mmHg" ? 1.33322 : 1), zu = num(mira.zeroUmidade), zd = num(mira.zeroAltDens);
+    if (!isFinite(zt) || (mira.zeroModo === "pressao" ? !(zp > 300) : !isFinite(zd))) return { erro: "Confira o clima da zeragem no cadastro da mira." };
+    const za = Balistica.atmosfera({ modo: mira.zeroModo, temperatura: zt, pressao: zp, umidade: isFinite(zu) ? zu : 50, altitudeDensidade: zd });
+    zero = { zeroRho: za.rho, zeroSom: za.som, zeroV0: num(mun.v0) + (isFinite(sens) && isFinite(tm) ? sens * (zt - tm) : 0) };
+  }
+  const rifle = atual("rifle");
+  const sg = rifle ? Balistica.estabilidade({ massaKg, diametroMm: num(mun.diametro), comprimentoMm: num(mun.comprimento), passoMm: num(rifle.passo), v0, rho: atm.rho }) : null;
+  return {
+    mira, mun, atm, unidade: mira.unidade, fator, sg: isFinite(sg) ? sg : null, porVolta: num(mira.porVolta),
+    p: { massaKg, cb: num(mun.cb), arrasto: mun.arrasto, v0, alturaMira: num(mira.altura) / 100, zero: num(mira.zero),
+      cliqueV: (num(mira.cliqueV) || 0) * fator, cliqueH: (num(mira.cliqueH) || 0) * fator, rho: atm.rho, som: atm.som,
+      inclinacao: num(t.inclinacao) || 0, ventoVel: t.ventoUn === "kmh" ? vv / 3.6 : vv, ventoDir: (num(t.ventoHora) % 12) * 30, ...zero },
+  };
+}
+const naUnidade = (c, un) => un === "MOA" ? c.moa : c.mrad;
+const cliques = (c) => c.cliques === null ? "—" : fmt(Math.abs(Math.round(c.cliques)), 0);
+
+// Leitura da torre: volta e marca, a partir do zero (só para correção de subir).
+function torre(c, q) {
+  if (!(q.porVolta > 0) || c.cliques === null) return "";
+  const passo = q.p.cliqueV / q.fator, v = Math.round(c.cliques) * passo;
+  if (v < 0) return "";
+  const volta = Math.floor(v / q.porVolta + 1e-9), marca = v - volta * q.porVolta;
+  return `${volta + 1}ª volta · ${fmt(marca, q.unidade === "MOA" ? 2 : 1)}`;
+}
+
+// ---------- TIRO ----------
+function renderTiro() {
+  const q = parametros(), d = num(E.tiro.distancia), el = $("#resultado");
+  desenharRosa();
+  if (q.erro) { el.innerHTML = `<div class="erro">${q.erro}</div>`; return; }
+  if (!(d > 0) || d > 3000) { el.innerHTML = `<div class="erro">Informe a distância do alvo (até 3.000 m).</div>`; return; }
+  const r = Balistica.calcular(q.p, d);
+  if (!r) { el.innerHTML = `<div class="erro">O projétil não chega a essa distância com os dados cadastrados.</div>`; return; }
+  const un = q.unidade, dec = un === "MOA" ? 2 : 1;
+  const heroi = (tit, c, pos, neg) => {
+    const v = naUnidade(c, un), nulo = Math.abs(v) < 0.005, n = c.cliques === null ? null : Math.round(c.cliques);
+    return `<div class="heroi"><div class="rotulo">${tit}</div>
+      <div class="n">${fmt(Math.abs(v), dec)}<small>${un}</small></div>
+      <div class="s"><span class="sentido ${nulo ? "neutro" : ""}">${nulo ? "Sem correção" : v > 0 ? pos : neg}</span>${n === null ? "Informe o clique" : nulo ? "" : Math.abs(n) + (Math.abs(n) === 1 ? " clique" : " cliques")}</div></div>`;
+  };
+  const linha = (tit, c) => `<tr><td>${tit}</td><td>${fmt(c.mrad, 2)}</td><td>${fmt(c.moa, 2)}</td><td>${fmt(c.smoa, 2)}</td><td>${fmt(c.cm, 1)}</td><td>${c.cliques === null ? "—" : fmt(c.cliques, 1)}</td></tr>`;
+  const sub = r.mach < 1.2 ? `<div class="aviso" style="border-left-color:var(--azul)">A ${fmt(d, 0)} m o projétil está em Mach ${fmt(r.mach, 2)}, perto ou abaixo da velocidade do som. Nessa faixa a previsão perde precisão.</div>` : "";
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="herois">${heroi("Elevação", r.elev, "Subir", "Descer")}${heroi("Vento", r.vento, "Direita", "Esquerda")}</div>
+    <div class="card" style="padding-top:8px;padding-bottom:8px"><div class="rolagem"><table>
+      <tr><th>Correção a ${fmt(d, 0)} m</th><th>MRAD</th><th>MOA</th><th>SMOA</th><th>cm</th><th>Cliques</th></tr>
+      ${linha("Elevação", r.elev)}${linha("Vento", r.vento)}</table></div></div>
+    <div class="dados">
+      <div><span>Velocidade retida</span><b>${fmt(r.velocidade, 0)}</b><em>m/s</em></div>
+      <div><span>Energia retida</span><b>${fmt(r.energia, 0)}</b><em>J</em></div>
+      <div><span>Energia na boca</span><b>${fmt(r.energiaBoca, 0)}</b><em>J</em></div>
+      <div><span>Tempo de voo</span><b>${fmt(r.tempo, 2)}</b><em>s</em></div>
+      <div><span>Velocidade do som</span><b>${fmt(q.atm.som, 0)}</b><em>m/s</em></div>
+      <div><span>Mach no alvo</span><b>${fmt(r.mach, 2)}</b></div>
+      <div><span>1 clique vale</span><b>${fmt(r.cliqueCmV, 1)}</b><em>cm a ${fmt(d, 0)} m</em></div>
+      <div><span>Altura máxima</span><b>${fmt(r.alturaMaxCm, 1)}</b><em>cm a ${fmt(r.distAlturaMax, 0)} m</em></div>
+      <div><span>Queda no alvo</span><b>${fmt(r.quedaCm, 1)}</b><em>cm</em></div>
+      <div><span>Alt. de densidade</span><b>${fmt(q.atm.altDens, 0)}</b><em>m</em></div>
+      ${torre(r.elev, q) ? `<div><span>Torre de elevação</span><b>${torre(r.elev, q)}</b></div>` : ""}
+      ${q.sg ? `<div><span>Estabilidade (Sg)</span><b class="${q.sg < 1.1 ? "cr" : q.sg < 1.5 ? "at" : ""}">${fmt(q.sg, 2)}</b><em>${q.sg < 1.1 ? "instável" : q.sg < 1.5 ? "marginal" : "estável"}</em></div>` : ""}
+    </div>${sub}</div>`;
+}
+function desenharRosa() {
+  const h = num(E.tiro.ventoHora) % 12, a = h * 30 * Math.PI / 180, v = num(E.tiro.ventoVel) || 0;
+  const x = 40 + 30 * Math.sin(a), y = 40 - 30 * Math.cos(a), x2 = 40 + 9 * Math.sin(a), y2 = 40 - 9 * Math.cos(a);
+  const px = Math.cos(a) * 5, py = Math.sin(a) * 5, bx = 40 + 17 * Math.sin(a), by = 40 - 17 * Math.cos(a);
+  $("#rosa").innerHTML = `<circle cx="40" cy="40" r="34" fill="none" stroke="rgba(255,255,255,.14)"/>
+    ${[0, 3, 6, 9].map((k) => { const b = k * 30 * Math.PI / 180; return `<text x="${40 + 27 * Math.sin(b)}" y="${40 - 27 * Math.cos(b) + 3}" fill="#A9A9B2" font-size="8" font-family="Chakra Petch" text-anchor="middle" opacity=".55">${k || 12}</text>`; }).join("")}
+    <path d="M40 34v12M34 40h12" stroke="#ECECEF" stroke-width="1.2"/>
+    ${v > 0 ? `<line x1="${x}" y1="${y}" x2="${bx}" y2="${by}" stroke="#E2B657" stroke-width="2"/><path d="M${x2} ${y2}L${bx + px} ${by + py}L${bx - px} ${by - py}Z" fill="#E2B657"/>` : ""}`;
+}
+
+// ---------- TABELA ----------
+function renderTabela() {
+  const q = parametros(), el = $("#tabela"), res = $("#tab-resumo");
+  if (q.erro) { el.innerHTML = `<div class="erro" style="margin:10px 16px">${q.erro}</div>`; res.textContent = ""; return; }
+  let ini = num(E.tab.ini), fim = num(E.tab.fim), passo = num(E.tab.passo);
+  if (!(ini >= 0) || !(fim > ini) || !(passo > 0) || fim > 3000) { el.innerHTML = `<div class="erro" style="margin:10px 16px">Informe início, fim (até 3.000 m) e passo válidos.</div>`; res.textContent = ""; return; }
+  if ((fim - ini) / passo > 200) passo = (fim - ini) / 200;
+  const L = Balistica.tabela(q.p, ini, fim, passo), un = q.unidade, dec = un === "MOA" ? 2 : 1, alvo = num(E.tiro.distancia);
+  res.textContent = `${atual("municao").nome} · zeragem ${fmt(q.p.zero, 0)} m · vento ${fmt(q.p.ventoVel, 1)} m/s às ${E.tiro.ventoHora} h · inclinação ${fmt(q.p.inclinacao, 0)}°`;
+  el.innerHTML = `<table><tr><th>Dist. m</th><th>Vel. m/s</th><th>Energia J</th><th>Tempo s</th><th>Queda cm</th><th>Elev. ${un}</th><th>Cliques</th><th>Deriva cm</th><th>Vento ${un}</th><th>Cliques</th></tr>` +
+    L.map((l) => `<tr class="${Math.abs(l.x - alvo) < 1e-6 ? "alvo" : Math.abs(l.x - q.p.zero) < 1e-6 ? "zero" : ""}"><td>${fmt(l.x, 0)}</td><td>${fmt(l.v, 0)}</td><td>${fmt(l.energia, 0)}</td><td>${fmt(l.t, 3)}</td><td>${fmt(l.quedaCm, 1)}</td><td>${fmt(naUnidade(l.elev, un), dec)}</td><td>${l.elev.cliques === null ? "—" : fmt(Math.round(l.elev.cliques), 0)}</td><td>${fmt(l.derivaCm, 1)}</td><td>${fmt(naUnidade(l.vento, un), dec)}</td><td>${l.vento.cliques === null ? "—" : fmt(Math.round(l.vento.cliques), 0)}</td></tr>`).join("") + "</table>" +
+    (L.length ? "" : `<div class="erro" style="margin:10px 16px">Sem resultados para esse intervalo.</div>`);
+}
+
+// ---------- GRÁFICO ----------
+let curvaAtual = null;
+function renderGrafico() {
+  const q = parametros(), el = $("#grafico");
+  if (q.erro) { el.innerHTML = `<div class="erro">${q.erro}</div>`; return; }
+  const alvo = num(E.tiro.distancia), fim = Math.min(3000, Math.max(num(E.tab.fim) || 0, alvo || 0, q.p.zero * 1.5, 50));
+  const P = Balistica.curva(q.p, fim, 160);
+  if (P.length < 3) { el.innerHTML = `<div class="erro">Sem dados para o gráfico.</div>`; return; }
+  const W = 360, H = 250, mE = 40, mD = 10, mT = 12, mB = 28;
+  const xMax = P[P.length - 1].x, ys = P.map((p) => p.y * 100);
+  let yMin = Math.min(...ys, 0), yMaxV = Math.max(...ys, 0);
+  const folga = (yMaxV - yMin) * 0.08 || 1; yMin -= folga; yMaxV += folga;
+  const X = (x) => mE + (x / xMax) * (W - mE - mD), Y = (y) => mT + (yMaxV - y) / (yMaxV - yMin) * (H - mT - mB);
+  const passoBom = (faixa, n) => { const bruto = faixa / n, pot = Math.pow(10, Math.floor(Math.log10(bruto))), f = bruto / pot; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * pot; };
+  const px = passoBom(xMax, 5), py = passoBom(yMaxV - yMin, 5);
+  let g = "";
+  for (let x = 0; x <= xMax + 1e-6; x += px) g += `<line x1="${X(x)}" y1="${mT}" x2="${X(x)}" y2="${H - mB}" stroke="rgba(255,255,255,.06)"/><text x="${X(x)}" y="${H - mB + 14}" text-anchor="middle">${fmt(x, 0)}</text>`;
+  for (let y = Math.ceil(yMin / py) * py; y <= yMaxV; y += py) g += `<line x1="${mE}" y1="${Y(y)}" x2="${W - mD}" y2="${Y(y)}" stroke="rgba(255,255,255,.06)"/><text x="${mE - 5}" y="${Y(y) + 3}" text-anchor="end">${fmt(y, 0)}</text>`;
+  const caminho = P.map((p, i) => (i ? "L" : "M") + X(p.x).toFixed(1) + " " + Y(p.y * 100).toFixed(1)).join("");
+  const marca = (x, cor, txt) => x > 0 && x <= xMax ? `<line x1="${X(x)}" y1="${mT}" x2="${X(x)}" y2="${H - mB}" stroke="${cor}" stroke-dasharray="3 3" opacity=".7"/><text x="${X(x) + (x > xMax * .85 ? -4 : 4)}" y="${mT + 9}" fill="${cor}" text-anchor="${x > xMax * .85 ? "end" : "start"}">${txt}</text>` : "";
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" font-family="Inter" font-size="9" fill="#A9A9B2" role="img" aria-label="Gráfico da trajetória">
+    ${g}<line x1="${mE}" y1="${Y(0)}" x2="${W - mD}" y2="${Y(0)}" stroke="#ECECEF" stroke-width="1" opacity=".55"/>
+    ${marca(q.p.zero, "#3FCB7E", "zero")}${marca(alvo, "#E2B657", "alvo")}
+    <path d="${caminho}" fill="none" stroke="#E2B657" stroke-width="2" stroke-linejoin="round"/>
+    <text x="${W - mD}" y="${H - 3}" text-anchor="end">distância (m)</text><text x="4" y="${mT + 2}" >cm</text>
+    <g id="cursor" style="display:none"><line id="cl" y1="${mT}" y2="${H - mB}" stroke="#ECECEF" opacity=".5"/><circle id="cp" r="4" fill="#0A0A0C" stroke="#E2B657" stroke-width="2"/></g></svg>`;
+  curvaAtual = { P, X, Y, xMax, mE, mD, W, q };
+  const svg = el.querySelector("svg");
+  const mover = (ev) => {
+    const b = svg.getBoundingClientRect(), cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - b.left;
+    const x = Math.max(0, Math.min(xMax, (cx / b.width * W - mE) / (W - mE - mD) * xMax));
+    lerPonto(x);
+  };
+  svg.addEventListener("pointermove", mover); svg.addEventListener("pointerdown", mover);
+  lerPonto(alvo > 0 && alvo <= xMax ? alvo : q.p.zero);
+}
+function lerPonto(x) {
+  const c = curvaAtual; if (!c) return;
+  let i = c.P.findIndex((p) => p.x >= x); if (i < 0) i = c.P.length - 1; if (i > 0 && x - c.P[i - 1].x < c.P[i].x - x) i--;
+  const p = c.P[i], un = c.q.unidade, mrad = p.x > 0 ? -p.y / p.x * 1000 : 0, corr = un === "MOA" ? mrad * Balistica.MOA_POR_MRAD : mrad;
+  $("#cursor").style.display = ""; $("#cl").setAttribute("x1", c.X(p.x)); $("#cl").setAttribute("x2", c.X(p.x));
+  $("#cp").setAttribute("cx", c.X(p.x)); $("#cp").setAttribute("cy", c.Y(p.y * 100));
+  $("#leitura").innerHTML = `<div><span>Dist.</span> ${fmt(p.x, 0)} m</div><div><span>Trajetória</span> ${fmt(p.y * 100, 1)} cm</div><div><span>Elev.</span> ${fmt(corr, un === "MOA" ? 2 : 1)} ${un}</div><div><span>Vel.</span> ${fmt(p.v, 0)} m/s</div><div><span>Tempo</span> ${fmt(p.t, 2)} s</div>`;
+}
+
+// ---------- RETÍCULO ----------
+let retZoom = "ponto";
+function renderReticulo() {
+  const q = parametros(), el = $("#reticulo"), nota = $("#ret-nota"), lei = $("#ret-leitura"), d = num(E.tiro.distancia);
+  const nome = q.mira && q.mira.reticulo, R = nome && CATALOGO.reticulos[nome];
+  $("#ret-tit").textContent = R ? `Retículo ${nome} · ${R.marca}` : "Retículo";
+  lei.innerHTML = ""; nota.textContent = "";
+  if (q.erro) { el.innerHTML = `<div class="erro">${q.erro}</div>`; return; }
+  if (!R) { el.innerHTML = `<div class="erro" style="color:var(--sub);border-color:var(--line)">Esta mira está sem desenho de retículo. Escolha um em Cadastro › Mira › Retículo. Por enquanto só o VPR MIL está disponível; os próximos entram conforme as medidas forem conferidas.</div>`; return; }
+  const r = d > 0 ? Balistica.calcular(q.p, d) : null, k = R.unidade === "MOA" ? Balistica.MOA_POR_MRAD : 1, D = R.def;
+  const hx = r ? -r.vento.mrad * k : 0, hy = r ? r.elev.mrad * k : 0; // ponto de visada: +y para baixo do centro
+  const cor = "#ECECEF", o = [];
+  const lin = (x1, y1, x2, y2, w = 0.035) => o.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${cor}" stroke-width="${w}"/>`);
+  const txt = (x, y, t, a = "middle") => o.push(`<text x="${x}" y="${y}" font-size="0.42" text-anchor="${a}" fill="#A9A9B2" font-family="Inter" stroke="#0E0E11" stroke-width="0.22" paint-order="stroke">${t}</text>`);
+  const marcas = (eixo, sinal, def) => { // eixo "x" ou "y"; sinal ±1
+    const ab = D.centro.aberturaAtePrimeiraMarca || 0, ext = def.extensao;
+    if (eixo === "x") lin(sinal * ab, 0, sinal * ext, 0); else lin(0, sinal * ab, 0, sinal * ext);
+    const pos = new Map();
+    for (let v = def.hashPrincipal; v <= ext + 1e-9; v += def.hashPrincipal) pos.set(Math.round(v * 100), (def.marcaLongaEm || []).includes(Math.round(v)) ? 0.5 : 0.3);
+    for (const s of def.subHash || []) for (let v = s.de; v <= s.ate + 1e-9; v += s.passo) { const c = Math.round(v * 100); if (!pos.has(c)) pos.set(c, Math.abs(s.passo - 0.5) < 1e-9 ? 0.18 : 0.1); }
+    for (const [c, h] of pos) { const v = sinal * c / 100; if (eixo === "x") lin(v, -h, v, h); else lin(-h, v, h, v); }
+    for (const n of def.numerados || []) { if (eixo === "x") txt(sinal * n, -0.75, n); else txt(sinal > 0 ? -0.75 : 0.75, sinal * n + 0.15, n, sinal > 0 ? "end" : "start"); }
+  };
+  marcas("x", 1, { ...D.horizontal, extensao: D.horizontal.extensao.direita }); marcas("x", -1, { ...D.horizontal, extensao: D.horizontal.extensao.esquerda });
+  marcas("y", -1, D.verticalAcima); marcas("y", 1, D.verticalAbaixo);
+  if (D.arvore && D.arvore.presente) for (const [linha, meia] of Object.entries(D.arvore.meiaLarguraPorLinha)) {
+    const y = linha * D.arvore.espacamentoLinhas;
+    for (let x = D.arvore.pontosComecamEm; x <= meia + 1e-9; x += D.arvore.espacamentoPontos) {
+      const inteiro = Math.abs(x - Math.round(x)) < 1e-9, raio = (inteiro ? D.arvore.pontoGrandeDiametro : D.arvore.pontoPequenoDiametro) / 2 * 1.6;
+      for (const sx of [-1, 1]) o.push(`<circle cx="${sx * x}" cy="${y}" r="${raio}" fill="${cor}"/>`);
+    }
+  }
+  o.push(`<circle cx="0" cy="0" r="${Math.max(D.centro.pontoCentralDiametro / 2, 0.03)}" fill="${cor}"/>`);
+  const eh = D.horizontal.extensao, x0 = -eh.esquerda - 1, x1 = eh.direita + 1, y0 = -D.verticalAcima.extensao - 1, y1 = D.verticalAbaixo.extensao + 1;
+  const dentro = r && hx >= x0 && hx <= x1 && hy >= y0 && hy <= y1;
+  let vb = [x0, y0, x1 - x0, y1 - y0];
+  if (retZoom === "ponto" && dentro) { const m = Math.max(3, Math.abs(hx) + 1.5, Math.abs(hy) + 1.5); vb = [-m, -m + Math.max(0, hy) / 2, 2 * m, 2 * m]; }
+  if (dentro) o.push(`<circle cx="${hx}" cy="${hy}" r="0.16" fill="none" stroke="#E2B657" stroke-width="0.05"/><circle cx="${hx}" cy="${hy}" r="0.04" fill="#E2B657"/><line x1="${hx + 0.22}" y1="${hy}" x2="${hx + 0.9}" y2="${hy}" stroke="#E2B657" stroke-width="0.03"/><text x="${hx + 1}" y="${hy + 0.14}" font-size="0.42" fill="#E2B657" font-family="Inter">${fmt(d, 0)} m</text>`);
+  el.innerHTML = `<svg viewBox="${vb.join(" ")}" role="img" aria-label="Desenho do retículo com o ponto de visada">${o.join("")}</svg>`;
+  if (r) lei.innerHTML = `<div><span>Segurar</span> ${fmt(Math.abs(hy), 1)} ${R.unidade} ${hy >= 0 ? "abaixo" : "acima"} do centro</div>` + (Math.abs(hx) >= 0.05 ? `<div><span>e</span> ${fmt(Math.abs(hx), 1)} ${R.unidade} à ${hx < 0 ? "esquerda" : "direita"}</div>` : "") + (dentro ? "" : `<div class="cr">fora do retículo: use a torre</div>`);
+  nota.textContent = `Coloque o ponto dourado sobre o alvo, sem girar a torre. Vale para plano focal primeiro (FFP); em luneta SFP, só no aumento de referência. Desenho próprio feito com as medidas publicadas pela ${R.marca}; espessuras e tamanhos de traço são ilustrativos.`;
+}
+document.querySelectorAll("#ret-zoom .chip").forEach((b) => b.onclick = () => { retZoom = b.dataset.z; document.querySelectorAll("#ret-zoom .chip").forEach((x) => x.classList.toggle("ativo", x === b)); renderReticulo(); });
+
+// ---------- CADASTRO ----------
+const CAD = {
+  rifle: { lista: "rifles", titulo: "Rifle", novo: () => ({ nome: "Novo rifle", passo: "", direcao: "direita" }),
+    campos: [["nome", "Nome do rifle", "texto"], ["passo", "Passo do estriamento (mm por volta)"], ["direcao", "Direção do estriamento", [["direita", "À direita"], ["esquerda", "À esquerda"]]]] },
+  mira: { lista: "miras", titulo: "Mira", novo: () => ({ nome: "Nova mira", zero: "100", altura: "5", unidade: "MRAD", cliqueV: "0,1", cliqueH: "0,1", porVolta: "", reticulo: "", zeroModo: "mesmo", zeroPressaoUn: "hPa" }),
+    campos: [["nome", "Nome da mira", "texto"], ["zero", "Distância de zeragem (m)"], ["altura", "Altura da mira (cm)"], ["unidade", "Unidade do clique", [["MRAD", "MRAD"], ["MOA", "MOA"]]], ["cliqueV", "Clique vertical"], ["cliqueH", "Clique horizontal"], ["porVolta", "Valor por volta da torre"],
+      ["reticulo", "Retículo (desenho)", () => [["", "Sem desenho"], ...Object.entries(CATALOGO.reticulos).map(([k, r]) => [k, `${k} · ${r.marca}`])]],
+      ["zeroModo", "Clima da zeragem", [["mesmo", "Mesmo do tiro"], ["pressao", "Informar pressão"], ["da", "Informar alt. de densidade"]]],
+      ["zeroTemp", "Zeragem: temperatura (°C)", null, "pressao da"], ["zeroPressao", "Zeragem: pressão", null, "pressao"], ["zeroPressaoUn", "Unidade da pressão", [["hPa", "hPa"], ["mmHg", "mmHg"]], "pressao"],
+      ["zeroUmidade", "Zeragem: umidade (%)", null, "pressao"], ["zeroAltDens", "Zeragem: alt. de densidade (m)", null, "da"]] },
+  municao: { lista: "municoes", titulo: "Munição", novo: () => ({ nome: "Nova munição", diametro: "", comprimento: "", peso: "", pesoUn: "gr", cb: "", arrasto: "G7", v0: "", tempMed: "20", sens: "0" }),
+    campos: [["nome", "Nome da munição", "texto"], ["diametro", "Diâmetro do projétil (mm)"], ["comprimento", "Comprimento do projétil (mm)"], ["peso", "Peso do projétil"], ["pesoUn", "Unidade do peso", [["gr", "grains (gr)"], ["g", "gramas (g)"]]], ["cb", "Coeficiente balístico"], ["arrasto", "Função de arrasto", [["G1", "G1"], ["G7", "G7"]]], ["v0", "Velocidade na boca (m/s)"], ["tempMed", "Temperatura da medição (°C)"], ["sens", "Variação da velocidade (m/s por °C)"]] },
+};
+function renderCadastro() {
+  for (const tipo of Object.keys(CAD)) {
+    const c = CAD[tipo], lista = E[c.lista], it = atual(tipo), el = $("#cad-" + tipo);
+    el.innerHTML = `<div class="item-cab"><label><span class="rotulo">${c.titulo}</span><select data-sel>${lista.map((x) => `<option value="${x.id}" ${it && x.id === it.id ? "selected" : ""}>${esc(x.nome)}</option>`).join("")}</select></label>
+      <button class="btn sec" data-novo>Novo</button><button class="btn perigo" data-del ${lista.length < 2 ? "disabled style='opacity:.4'" : ""}>Excluir</button></div>` +
+      (it && tipo === "mira" ? `<label style="margin-bottom:10px">Preencher pelo catálogo de lunetas<select data-cat><option value="">Escolher marca e modelo…</option>${["Arken", "Nightforce", "Vortex"].map((b) => `<optgroup label="${b}">${CATALOGO.lunetas.map((x, i) => x.b === b ? `<option value="${i}">${esc(x.m)} · ${x.u}${x.r.length ? " · " + esc(x.r.join(", ")) : ""}</option>` : "").join("")}</optgroup>`).join("")}</select></label>` : "") +
+      (it ? `<div class="campos">${c.campos.filter(([, , , so]) => !so || so.split(" ").includes(it.zeroModo)).map(([k, rot, tp]) => { if (typeof tp === "function") tp = tp(); return `<label ${k === "nome" ? 'style="grid-column:1/-1"' : ""}>${rot}${Array.isArray(tp)
+        ? `<select data-k="${k}">${tp.map(([v, t]) => `<option value="${v}" ${(it[k] ?? tp[0][0]) === v ? "selected" : ""}>${t}</option>`).join("")}</select>`
+        : `<input data-k="${k}" value="${esc(it[k])}" ${tp === "texto" ? 'maxlength="60"' : 'inputmode="decimal"'}>`}</label>`; }).join("")}</div>` : "") +
+      (tipo === "mira" ? `<p class="pequeno" style="margin:10px 0 0">Os dados do catálogo vêm das páginas dos fabricantes. Confira clique e valor por volta com o manual da sua luneta. A altura da mira e a zeragem são do seu rifle.</p>` : "") +
+      (tipo === "rifle" ? `<p class="pequeno" style="margin:10px 0 0">O estriamento fica guardado para o cálculo de desvio giroscópico, que entra em uma próxima versão.</p>` : "") +
+      (tipo === "municao" ? `<p class="pequeno" style="margin:10px 0 0">Use o coeficiente balístico e a velocidade medidos para a sua munição. Se não souber a variação por temperatura, deixe 0.</p>` : "");
+    el.querySelector("[data-sel]").onchange = (e) => { E.sel[tipo] = e.target.value; salvar(); renderTudo(); };
+    const cat = el.querySelector("[data-cat]");
+    if (cat) cat.onchange = () => {
+      const x = CATALOGO.lunetas[cat.value]; if (!x) return;
+      const br = (n) => String(n).replace(".", ",");
+      Object.assign(it, { nome: `${x.b} ${x.m}`.slice(0, 60), unidade: x.u, cliqueV: br(x.c), cliqueH: br(x.c), porVolta: x.v ? br(x.v) : "", reticulo: x.r.find((n) => CATALOGO.reticulos[n]) || "" });
+      salvar(); renderTudo();
+    };
+    el.querySelector("[data-novo]").onclick = () => { const n = { id: id(), ...c.novo() }; lista.push(n); E.sel[tipo] = n.id; salvar(); renderTudo(); el.querySelector('[data-k="nome"]').select(); };
+    el.querySelector("[data-del]").onclick = (e) => {
+      if (lista.length < 2) return;
+      const b = e.currentTarget;
+      if (b.dataset.conf !== "1") { b.dataset.conf = "1"; b.textContent = "Confirmar"; setTimeout(() => { b.dataset.conf = ""; b.textContent = "Excluir"; }, 3000); return; }
+      E[c.lista] = lista.filter((x) => x.id !== it.id); E.sel[tipo] = E[c.lista][0].id; salvar(); renderTudo();
+    };
+    el.querySelectorAll("[data-k]").forEach((inp) => {
+      const grava = () => { it[inp.dataset.k] = inp.value; salvar(); };
+      inp.oninput = grava;
+      inp.onchange = () => { grava(); renderTudo(inp.tagName === "SELECT" || inp.dataset.k === "nome" ? null : tipo); };
+      if (inp.tagName === "SELECT") inp.oninput = null;
+    });
+  }
+}
+
+// ---------- geral ----------
+function seletores() {
+  for (const [tipo, lista] of [["rifle", E.rifles], ["mira", E.miras], ["municao", E.municoes]]) {
+    const s = $("#sel-" + tipo), it = atual(tipo);
+    s.innerHTML = lista.map((x) => `<option value="${x.id}" ${it && x.id === it.id ? "selected" : ""}>${esc(x.nome)}</option>`).join("");
+    s.onchange = () => { E.sel[tipo] = s.value; salvar(); renderTudo(); };
+  }
+}
+function climaModo() {
+  document.querySelectorAll("#clima-modo .chip").forEach((b) => b.classList.toggle("ativo", b.dataset.m === E.tiro.modo));
+  document.querySelectorAll("[data-modo]").forEach((l) => l.style.display = l.dataset.modo.split(" ").includes(E.tiro.modo) ? "" : "none");
+}
+function renderTudo(pularCadastro) {
+  seletores(); climaModo(); renderTiro(); renderTabela(); renderGrafico(); renderReticulo();
+  if (!pularCadastro) renderCadastro();
+}
+$("#ventoHora").innerHTML = [[12, "12 h · de frente"], [1, "1 h"], [2, "2 h"], [3, "3 h · da direita"], [4, "4 h"], [5, "5 h"], [6, "6 h · de trás"], [7, "7 h"], [8, "8 h"], [9, "9 h · da esquerda"], [10, "10 h"], [11, "11 h"]].map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
+for (const k of ["distancia", "inclinacao", "ventoVel", "ventoUn", "ventoHora", "temperatura", "pressao", "umidade", "altitude", "altitudeDensidade"]) {
+  const inp = $("#" + k); inp.value = E.tiro[k] ?? "";
+  inp.oninput = inp.onchange = () => { E.tiro[k] = inp.value; salvar(); renderTiro(); renderTabela(); renderGrafico(); renderReticulo(); };
+}
+for (const [k, i] of [["ini", "tabIni"], ["fim", "tabFim"], ["passo", "tabPasso"]]) {
+  const inp = $("#" + i); inp.value = E.tab[k] ?? "";
+  inp.oninput = () => { E.tab[k] = inp.value; salvar(); renderTabela(); renderGrafico(); };
+}
+document.querySelectorAll("#clima-modo .chip").forEach((b) => b.onclick = () => { E.tiro.modo = b.dataset.m; salvar(); renderTudo(true); });
+document.querySelectorAll("#abas button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll("#abas button").forEach((x) => x.classList.toggle("ativo", x === b));
+  document.querySelectorAll(".tela").forEach((t) => t.classList.toggle("ativa", t.id === "t-" + b.dataset.t));
+  window.scrollTo(0, 0);
+});
+renderTudo();
 }
 
 function render() {
@@ -466,7 +787,7 @@ function renderTela(c, a, primeiro, docs) {
       <div class="topo"><div><h2>Olá, ${primeiro}</h2><p>Situação em ${br(D.hoje)} · Atirador nível ${D.nivel.declarado}${a.clube ? " · " + esc(a.clube) : ""}</p></div></div>
       ${crit ? `<div class="alerta"><b class="cr tit" style="font-size:18px">${crit} ${crit > 1 ? "pontos exigem" : "ponto exige"} ação</b><span class="pequeno">Resolva antes que afete seu CR ou seu direito de transportar.</span></div>`
              : `<div class="alerta verde"><b class="ok tit" style="font-size:18px">Tudo sob controle</b><span class="pequeno">Nenhum ponto crítico hoje. A gente avisa no WhatsApp quando algo se aproximar.</span></div>`}
-      <button class="bal-atalho" id="ir-balistica"><span><b>Calculadora balística</b><span class="pequeno">Correção de elevação e vento, tabela e trajetória para o seu rifle.</span></span><span style="color:var(--ouro);font-size:22px">→</span></button>
+      <button class="bal-atalho" id="ir-balistica"><span><b>Calculadora balística</b><span class="pequeno">Correção de elevação e vento, tabela, gráfico e retículo para o seu rifle.</span></span><span style="color:var(--ouro);font-size:22px">→</span></button>
       <div class="grade g4">
         <div class="card"><div class="rotulo">Certificado de Registro</div><div class="grande ${cr && cr.validade ? cor(cr.dias) : "at"}">${cr && cr.validade ? br(cr.validade) : "a informar"}</div><div class="pequeno">${cr && cr.validade ? prazo(cr.dias) : "mande o CR pelo WhatsApp"}</div></div>
         <div class="card"><div class="rotulo">Acervo</div><div class="grande">${D.resumo.armas}</div><div class="pequeno">armas com CRAF${D.resumo.autorizacoes ? ` · ${D.resumo.autorizacoes} autorização(ões) em andamento` : ""}</div></div>
