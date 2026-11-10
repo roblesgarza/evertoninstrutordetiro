@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Painel do Atirador · Acompanhamento CAC · Everton Barbosa</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,6 +52,7 @@ main{margin-left:230px;padding:32px 36px 90px;max-width:1180px}
 .aviso.critico{border-left-color:var(--vermelho)}.aviso.atencao{border-left-color:var(--amarelo)}.aviso.info{border-left-color:#6E9BF5}
 .etiqueta{display:inline-block;font:700 10px 'Chakra Petch';letter-spacing:.14em;padding:3px 7px;border:1px solid currentColor;text-transform:uppercase}
 .anel{width:110px;height:110px}
+nav .nc{display:none}
 .lista{display:flex;flex-direction:column;gap:10px}
 .linha{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;background:var(--card);border:1px solid var(--line)}
 .linha .t{font-weight:600}
@@ -64,14 +65,33 @@ main{margin-left:230px;padding:32px 36px 90px;max-width:1180px}
 select.troca-acervo{background:#0E0E11;color:var(--txt);border:1px solid var(--line);padding:6px 8px;font:13px Inter}
 .destino{cursor:pointer;transition:border-color .15s}.destino:hover,.destino.aberto{border-color:rgba(226,182,87,.45)}
 .wpp{display:inline-flex;align-items:center;gap:8px;background:#1F8B4C;color:#fff;text-decoration:none;padding:12px 16px;font-weight:600}
+/* envio de documento, conta, trava, offline */
+.acoes{display:flex;gap:10px;flex-wrap:wrap}
+.btn svg{width:18px;height:18px;vertical-align:-3px;margin-right:6px}
+#envio{margin-bottom:16px}
+.carregando{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--ouro);border-radius:50%;animation:gira 1s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes gira{to{transform:rotate(360deg)}}
+.offline{background:rgba(240,180,41,.08);border:1px solid rgba(240,180,41,.35);color:var(--amarelo);padding:10px 14px;font-size:13px;margin-bottom:16px}
+.opcao{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px;background:var(--card);border:1px solid var(--line)}
+.opcao .t{font-weight:600}
+.chave{position:relative;width:48px;height:28px;flex:none;appearance:none;-webkit-appearance:none;background:#2A2A31;border-radius:14px;cursor:pointer;transition:background .15s;border:0;padding:0}
+.chave::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#ECECEF;transition:left .15s}
+.chave:checked{background:var(--ouro)}.chave:checked::after{left:23px}
+.perigo{border-color:rgba(240,82,79,.35)}
+.btn.vermelho{background:var(--vermelho);color:#fff}
+#trava{position:fixed;inset:0;z-index:50;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;text-align:center;background-image:linear-gradient(rgba(226,182,87,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(226,182,87,.05) 1px,transparent 1px);background-size:48px 48px}
+#trava .icone{width:84px;height:84px;border:1px solid rgba(226,182,87,.4);display:grid;place-items:center}
 /* mobile */
 @media (max-width:860px){
   aside{inset:auto 0 0 0;width:auto;height:64px;flex-direction:row;padding:0;border-right:0;border-top:1px solid var(--line);z-index:5}
-  aside .marca,aside .rodape{display:none}
+  aside .marca,aside .rodape{display:none!important}
   nav{flex-direction:row;width:100%;overflow-x:auto}
   nav button{flex:1;flex-direction:column;gap:3px;font-size:9px;letter-spacing:.06em;padding:9px 4px;border-left:0;border-top:2px solid transparent;justify-content:center;min-width:64px}
   nav button.ativo{border-top-color:var(--ouro)}
-  main{margin-left:0;padding:20px 16px 90px}
+  nav .nl{display:none}nav .nc{display:inline}
+  nav button{min-width:54px;font-size:10px}
+  aside{height:calc(64px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom)}
+  main{margin-left:0;padding:calc(20px + env(safe-area-inset-top)) 16px calc(90px + env(safe-area-inset-bottom))}
   .topo h2{font-size:22px}
 }
 </style>
@@ -103,6 +123,14 @@ select.troca-acervo{background:#0E0E11;color:var(--txt);border:1px solid var(--l
   </div>
 </section>
 
+<div id="trava">
+  <div class="icone"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#E2B657" stroke-width="1.6"><rect x="4" y="10" width="16" height="11"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.4"/></svg></div>
+  <div><h2 style="font-size:22px;text-transform:uppercase">App bloqueado</h2><p class="pequeno" style="margin:6px 0 0">Use a digital ou o reconhecimento facial para abrir seus documentos.</p></div>
+  <button class="btn" id="bt-desbloquear" style="min-width:220px">Desbloquear</button>
+</div>
+<input type="file" id="arq" accept="image/*,application/pdf" hidden>
+<input type="file" id="arq-camera" accept="image/*" capture="environment" hidden>
+
 <div id="app">
   <aside>
     <div class="marca"><svg width="28" height="28" viewBox="0 0 34 34" fill="none" stroke="#E2B657" stroke-width="2"><circle cx="17" cy="17" r="13"/><circle cx="17" cy="17" r="5"/><path d="M17 1v8M17 25v8M1 17h8M25 17h8"/></svg><div>EVERTON<small>ACOMPANHAMENTO CAC</small></div></div>
@@ -121,9 +149,13 @@ const $ = (s) => document.querySelector(s);
 const guardar = { get(k){ try{return localStorage.getItem(k)}catch{return null} }, set(k,v){ try{localStorage.setItem(k,v)}catch{} }, del(k){ try{localStorage.removeItem(k)}catch{} } };
 let D = null, tela = "painel", destinoAberto = -1, acervoFiltro = "todos";
 
+const NATIVO = window.Nativo || null; // presente só no app instalado (Android/iOS)
+const SITE = "https://evertoninstrutordetiro.com.br";
 async function api(acao, extra = {}) {
   const token = guardar.get("cac_token");
-  const r = await fetch(API, { method: "POST", headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) }, body: JSON.stringify({ acao, ...extra }) });
+  let r;
+  try { r = await fetch(API, { method: "POST", headers: { "content-type": "application/json", ...(token ? { authorization: "Bearer " + token } : {}) }, body: JSON.stringify({ acao, ...extra }) }); }
+  catch { return { ok: false, offline: true, erro: "Sem conexão com a internet." }; }
   const j = await r.json().catch(() => ({ ok: false, erro: "Falha de conexão." }));
   if (r.status === 401) { guardar.del("cac_token"); mostrarLogin(); }
   return j;
@@ -154,7 +186,8 @@ $("#bt-entrar").onclick = async () => {
 $("#bt-voltar").onclick = () => { $("#passo2").style.display = "none"; $("#passo1").style.display = "flex"; msg(""); };
 $("#codigo").addEventListener("keydown", (e) => e.key === "Enter" && $("#bt-entrar").click());
 $("#fone").addEventListener("keydown", (e) => e.key === "Enter" && $("#bt-codigo").click());
-$("#bt-sair").onclick = async () => { await api("sair").catch(() => {}); guardar.del("cac_token"); location.href = "/"; };
+async function sair() { await api("sair").catch(() => {}); guardar.del("cac_token"); guardar.del("cac_cache"); if (NATIVO) { NATIVO.cancelarLembretes(); D = null; mostrarLogin(); } else location.href = "/"; }
+$("#bt-sair").onclick = sair;
 function msg(t, erro) { $("#msg").textContent = t; $("#msg").className = "msg" + (erro ? " erro" : ""); }
 
 // ---------- app ----------
@@ -165,10 +198,11 @@ const ICON = {
   guias: '<path d="M3 17h13l3-5H6zM7 17v3M16 17v3M6 12l2-5h8"/>',
   calendario: '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   documentos: '<path d="M6 3h9l4 4v14H6zM15 3v4h4"/>',
+  conta: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
 };
-const MENU = [["painel", "Painel"], ["acervo", "Acervo"], ["habitualidade", "Habitualidade"], ["guias", "Guias"], ["calendario", "Calendário"], ["documentos", "Documentos"]];
+const MENU = [["painel", "Painel", "Painel"], ["acervo", "Acervo", "Acervo"], ["habitualidade", "Habitualidade", "Treinos"], ["guias", "Guias", "Guias"], ["calendario", "Calendário", "Prazos"], ["documentos", "Documentos", "Docs"], ["conta", "Conta", "Conta"]];
 function montarMenu() {
-  $("#menu").innerHTML = MENU.map(([k, t]) => `<button data-t="${k}" class="${k === tela ? "ativo" : ""}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON[k]}</svg>${t}</button>`).join("");
+  $("#menu").innerHTML = MENU.map(([k, t, curto]) => `<button data-t="${k}" class="${k === tela ? "ativo" : ""}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON[k]}</svg><span class="nl">${t}</span><span class="nc">${curto}</span></button>`).join("");
   $("#menu").querySelectorAll("button").forEach((b) => b.onclick = () => { tela = b.dataset.t; montarMenu(); render(); window.scrollTo(0, 0); });
 }
 
@@ -176,8 +210,14 @@ async function carregar() {
   $("#login").style.display = "none"; $("#app").style.display = "block";
   $("#conteudo").innerHTML = '<p class="pequeno">Carregando sua ficha…</p>';
   const r = await api("dados");
-  if (!r.ok) { if (r.erro) $("#conteudo").innerHTML = `<p class="cr">${esc(r.erro)}</p>`; return; }
+  if (!r.ok) {
+    const cache = (() => { try { return JSON.parse(guardar.get("cac_cache") || "null"); } catch { return null; } })();
+    if (r.offline && cache && cache.D) { D = cache.D; D._offline = cache.em; montarMenu(); render(); return; }
+    if (r.erro) $("#conteudo").innerHTML = `<p class="cr">${esc(r.erro)}</p>`; return;
+  }
   D = r; montarMenu(); render();
+  guardar.set("cac_cache", JSON.stringify({ em: Date.now(), D: r }));
+  if (NATIVO && guardar.get("cac_lembretes") !== "0") NATIVO.agendarLembretes(r.calendario).catch(() => {});
 }
 
 function anel(pct, cor) {
@@ -198,6 +238,10 @@ function grupos() {
 function render() {
   const c = $("#conteudo"), a = D.assinante, primeiro = esc((a.nome || "").split(" ")[0]);
   const docs = D.documentos;
+  renderTela(c, a, primeiro, docs);
+  if (D._offline) c.insertAdjacentHTML("afterbegin", `<div class="offline">Sem internet: mostrando seus dados salvos em ${new Date(D._offline).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}.</div>`);
+}
+function renderTela(c, a, primeiro, docs) {
   if (tela === "painel") {
     const crit = D.avisos.filter((x) => x.nivel === "critico").length;
     const cr = D.resumo.cr;
@@ -300,9 +344,50 @@ function render() {
     const ordem = ["CR", "EXAME_PSICOLOGICO", "EXAME_TECNICO", "CRAF", "AUTORIZACAO", "GT", "OUTRO"];
     const nomes = { CR: "Certificado de Registro", EXAME_PSICOLOGICO: "Laudo psicológico", EXAME_TECNICO: "Capacidade técnica", CRAF: "CRAFs", AUTORIZACAO: "Autorizações de aquisição", GT: "Guias de tráfego", OUTRO: "Outros" };
     const temLaudo = (t) => docs.some((d) => d.tipo === t);
-    c.innerHTML = `<div class="topo"><div><h2>Documentos</h2><p>Para atualizar, é só mandar a foto ou o PDF no WhatsApp: a gente lê, guarda e o Everton confere.</p></div><a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">Enviar documento</a></div>
+    c.innerHTML = `<div class="topo"><div><h2>Documentos</h2><p>Fotografe ou envie o documento: a gente lê, guarda e o Everton confere. Se preferir, mande pelo WhatsApp.</p></div>
+        <div class="acoes"><button class="btn" id="bt-foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></svg>Fotografar documento</button><button class="btn sec" id="bt-arquivo">Enviar arquivo ou PDF</button></div></div>
+      <div id="envio"></div>
       ${!temLaudo("EXAME_TECNICO") || !temLaudo("EXAME_PSICOLOGICO") ? `<div class="aviso atencao" style="margin-bottom:12px"><b>Laudos para o CR</b><span class="pequeno">Exigidos na revalidação do CR (pedir até 30 dias antes do vencimento). ${!temLaudo("EXAME_PSICOLOGICO") ? "Falta o laudo psicológico. " : ""}${!temLaudo("EXAME_TECNICO") ? "Falta o comprovante de capacidade técnica." : ""}</span></div>` : ""}
-      ${ordem.filter((t) => docs.some((d) => d.tipo === t)).map((t) => `<h3 class="sec-tit">${nomes[t]}</h3><div class="lista">${docs.filter((d) => d.tipo === t).map((d) => `<div class="linha"><div><div class="t">${esc(d.arma || d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`).join("")}</div>`).join("") || '<div class="vazio">Nenhum documento ainda.</div>'}`;
+      ${ordem.filter((t) => docs.some((d) => d.tipo === t)).map((t) => `<h3 class="sec-tit">${nomes[t]}</h3><div class="lista">${docs.filter((d) => d.tipo === t).map((d) => `<div class="linha"><div><div class="t">${esc(d.arma || d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`).join("")}</div>`).join("") || '<div class="vazio">Nenhum documento ainda. Toque em "Fotografar documento" para começar.</div>'}`;
+    $("#bt-foto").onclick = fotografar;
+    $("#bt-arquivo").onclick = () => $("#arq").click();
+  }
+  if (tela === "conta") {
+    c.innerHTML = `<div class="topo"><div><h2>Conta</h2><p>${esc(a.nome || "")}</p></div></div>
+      <div class="lista">
+        ${NATIVO ? `<div class="opcao" id="op-trava" style="display:none"><div><div class="t">Trava com digital ou Face ID</div><div class="pequeno">Pede sua biometria ao abrir o app.</div></div><input type="checkbox" class="chave" id="ck-trava" ${guardar.get("cac_trava") === "1" ? "checked" : ""}></div>
+        <div class="opcao"><div><div class="t">Lembretes no celular</div><div class="pequeno">Aviso 30 dias, 7 dias e no dia de cada vencimento, às 9h.</div></div><input type="checkbox" class="chave" id="ck-lembretes" ${guardar.get("cac_lembretes") !== "0" ? "checked" : ""}></div>` : ""}
+        <div class="opcao"><div><div class="t">Falar com o Everton</div><div class="pequeno">Dúvidas, documentos e atendimento pelo WhatsApp.</div></div><a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">WhatsApp</a></div>
+        <div class="opcao"><div><div class="t">Política de privacidade</div><div class="pequeno">Como seus dados e documentos são guardados.</div></div><a href="${SITE}/privacidade/" target="_blank" rel="noopener">Abrir</a></div>
+        <div class="opcao"><div><div class="t">Sair desta conta</div><div class="pequeno">Para entrar de novo, basta pedir um novo código.</div></div><button class="btn sec" id="bt-sair2">Sair</button></div>
+      </div>
+      <h3 class="sec-tit">Excluir conta</h3>
+      <div class="card perigo">
+        <p style="margin:0 0 12px">Ao excluir sua conta, o acesso é encerrado na hora e seus dados e documentos são apagados em até 15 dias, conforme a política de privacidade. Isso não pode ser desfeito.</p>
+        <div class="acoes" style="align-items:end"><label style="flex:1;min-width:200px">Para confirmar, digite EXCLUIR<input id="ex-conf" autocomplete="off" placeholder="EXCLUIR"></label><button class="btn vermelho" id="bt-excluir">Excluir minha conta</button></div>
+        <div class="msg" id="ex-msg"></div>
+      </div>`;
+    $("#bt-sair2").onclick = sair;
+    $("#bt-excluir").onclick = async () => {
+      if ($("#ex-conf").value.trim().toUpperCase() !== "EXCLUIR") { $("#ex-msg").textContent = "Digite EXCLUIR para confirmar."; $("#ex-msg").className = "msg erro"; return; }
+      $("#bt-excluir").disabled = true; $("#ex-msg").textContent = "Excluindo…"; $("#ex-msg").className = "msg";
+      const r = await api("excluir_conta", { confirmacao: "EXCLUIR" });
+      if (!r.ok) { $("#bt-excluir").disabled = false; $("#ex-msg").textContent = r.erro || "Não foi possível excluir agora."; $("#ex-msg").className = "msg erro"; return; }
+      guardar.del("cac_token"); guardar.del("cac_cache"); if (NATIVO) NATIVO.cancelarLembretes();
+      $("#conteudo").innerHTML = '<div class="card"><h2 style="font-size:20px">Conta excluída</h2><p class="pequeno">Seu acesso foi encerrado. Seus dados serão apagados em até 15 dias. Obrigado por usar o Acompanhamento CAC.</p></div>';
+      setTimeout(() => (NATIVO ? mostrarLogin() : (location.href = "/")), 4000);
+    };
+    if (NATIVO) {
+      NATIVO.biometriaDisponivel().then((ok) => { if (ok) $("#op-trava").style.display = "flex"; });
+      $("#ck-trava").onchange = async (e) => {
+        if (e.target.checked) { const ok = await NATIVO.desbloquear(); if (!ok) { e.target.checked = false; return; } guardar.set("cac_trava", "1"); }
+        else guardar.del("cac_trava");
+      };
+      $("#ck-lembretes").onchange = async (e) => {
+        if (e.target.checked) { guardar.del("cac_lembretes"); const r = await NATIVO.agendarLembretes(D.calendario); if (!r.ok) { e.target.checked = false; guardar.set("cac_lembretes", "0"); alert("Permita as notificações do Everton CAC nas configurações do celular."); } }
+        else { guardar.set("cac_lembretes", "0"); NATIVO.cancelarLembretes(); }
+      };
+    }
   }
 }
 function cardDoc(d, rotuloValidade, comAcervo) {
@@ -312,7 +397,60 @@ function cardDoc(d, rotuloValidade, comAcervo) {
     ${seletor}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno" style="display:inline-block;margin-top:10px">ver documento</a>` : ""}</div>`;
 }
 
-if (guardar.get("cac_token")) carregar(); else mostrarLogin();
+// ---------- envio de documento (câmera, galeria ou PDF) ----------
+function reduzirFoto(arquivo) {
+  return new Promise((ok, falha) => {
+    const img = new Image(), url = URL.createObjectURL(arquivo);
+    img.onload = () => {
+      const max = 2200, k = Math.min(1, max / Math.max(img.width, img.height));
+      const cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url);
+      ok(cv.toDataURL("image/jpeg", 0.85).split(",")[1]);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); falha(new Error("imagem")); };
+    img.src = url;
+  });
+}
+const lerBase64 = (arquivo) => new Promise((ok, falha) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1]); fr.onerror = falha; fr.readAsDataURL(arquivo); });
+function statusEnvio(html) { const el = $("#envio"); if (el) el.innerHTML = html; }
+async function enviarDocumento(base64, mime) {
+  statusEnvio('<div class="card"><span class="carregando"></span>Lendo o documento… isso leva alguns segundos.</div>');
+  const r = await api("enviar_documento", { arquivo: base64, mime });
+  if (!r.ok) { statusEnvio(`<div class="aviso critico"><b>Não deu certo</b><span class="pequeno">${esc(r.erro || "Tente de novo.")}</span></div>`); return; }
+  await carregar();
+  tela = "documentos"; montarMenu(); render();
+  statusEnvio(`<div class="aviso ${r.vencido ? "atencao" : "info"}"><b>${esc(r.nome_tipo[0].toUpperCase() + r.nome_tipo.slice(1))} recebido ✓</b><span class="pequeno">${r.arma ? esc(r.arma) + " · " : ""}${r.validade ? (r.vencido ? "venceu em " : "válido até ") + br(r.validade) : "sem validade lida"} · o Everton vai conferir.</span></div>`);
+}
+async function fotografar() {
+  if (!NATIVO) return $("#arq-camera").click();
+  try { const f = await NATIVO.fotografarDocumento(); if (f && f.base64) await enviarDocumento(f.base64, f.mime); } catch (e) { /* cancelado */ }
+}
+async function arquivoEscolhido(e) {
+  const f = e.target.files && e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  try {
+    if (f.type === "application/pdf") { if (f.size > 12e6) return statusEnvio('<div class="aviso critico"><b>PDF muito grande</b><span class="pequeno">O limite é 12 MB.</span></div>'); await enviarDocumento(await lerBase64(f), "application/pdf"); }
+    else if (f.type.startsWith("image/")) await enviarDocumento(await reduzirFoto(f), "image/jpeg");
+    else statusEnvio('<div class="aviso critico"><b>Formato não aceito</b><span class="pequeno">Envie uma foto ou um PDF.</span></div>');
+  } catch { statusEnvio('<div class="aviso critico"><b>Não consegui abrir o arquivo</b><span class="pequeno">Tente outra foto ou PDF.</span></div>'); }
+}
+$("#arq").onchange = arquivoEscolhido; $("#arq-camera").onchange = arquivoEscolhido;
+
+// ---------- trava com biometria (só no app) ----------
+let saiuEm = 0;
+async function travar() {
+  if (!NATIVO || guardar.get("cac_trava") !== "1" || !guardar.get("cac_token")) return;
+  $("#trava").style.display = "flex";
+  if (await NATIVO.desbloquear()) $("#trava").style.display = "none";
+}
+$("#bt-desbloquear").onclick = async () => { if (await NATIVO.desbloquear()) $("#trava").style.display = "none"; };
+if (NATIVO) {
+  NATIVO.aoSair(() => { saiuEm = Date.now(); });
+  NATIVO.aoVoltar(() => { if (saiuEm && Date.now() - saiuEm > 60000) travar(); if (D && guardar.get("cac_token")) carregar(); });
+  NATIVO.botaoVoltar(() => { if ($("#app").style.display !== "none" && tela !== "painel") { tela = "painel"; montarMenu(); render(); window.scrollTo(0, 0); } else NATIVO.sairDoApp(); });
+}
+
+if (guardar.get("cac_token")) { carregar(); travar(); } else mostrarLogin();
 </script>
 <script>if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});</script>
 </body>
