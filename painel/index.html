@@ -19,7 +19,12 @@ button{font:inherit;cursor:pointer}
 /* login */
 #login{min-height:100vh;display:grid;place-items:center;padding:24px;background-image:linear-gradient(rgba(226,182,87,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(226,182,87,.05) 1px,transparent 1px);background-size:48px 48px}
 .caixa{width:100%;max-width:400px;background:var(--card);border:1px solid rgba(226,182,87,.25);padding:32px;display:flex;flex-direction:column;gap:18px}
-.caixa h1{font-size:26px;text-transform:uppercase}
+.caixa h1{font-size:clamp(20px,7vw,26px);text-transform:uppercase}
+html,body{overflow-x:hidden}
+#login{grid-template-columns:minmax(0,1fr);justify-items:center}
+.caixa,main,.cartao,label{min-width:0;overflow-wrap:break-word}
+input,select,textarea{max-width:100%;min-width:0}
+@media (max-width:480px){#login{padding:calc(16px + env(safe-area-inset-top)) 14px 16px}.caixa{padding:22px 18px}.marca{font-size:15px;letter-spacing:.05em}.marca small{letter-spacing:.12em}}
 label{font-size:13px;color:var(--sub);display:flex;flex-direction:column;gap:6px}
 input{background:#0E0E11;border:1px solid var(--line);color:var(--txt);padding:14px;font-size:17px;outline:none}
 input:focus{border-color:var(--ouro)}
