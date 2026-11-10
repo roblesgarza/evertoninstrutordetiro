@@ -90,7 +90,7 @@ select.troca-acervo{background:#0E0E11;color:var(--txt);border:1px solid var(--l
 @media (max-width:860px){
   aside{inset:auto 0 0 0;width:auto;height:64px;flex-direction:row;padding:0;border-right:0;border-top:1px solid var(--line);z-index:5}
   aside .marca,aside .rodape{display:none!important}
-  nav{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));width:100%;overflow:hidden}
+  nav{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));width:100%;overflow:hidden}
   nav button{flex-direction:column;align-items:center;gap:3px;font-size:9px;letter-spacing:0;padding:9px 1px;border-left:0;border-top:2px solid transparent;justify-content:center;min-width:0;overflow:hidden}
   nav button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   nav button.ativo{border-top-color:var(--ouro)}
@@ -100,6 +100,22 @@ select.troca-acervo{background:#0E0E11;color:var(--txt);border:1px solid var(--l
   main{margin-left:0;padding:calc(20px + env(safe-area-inset-top)) 16px calc(90px + env(safe-area-inset-bottom))}
   .topo h2{font-size:22px}
 }
+
+/* balística */
+nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow(0 0 6px rgba(226,182,87,.45))}
+.bal-grade{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.bal-campos{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:10px}
+.bal-campos input,.bal-campos select{width:100%;background:#0E0E11;border:1px solid var(--line);color:var(--txt);padding:12px;font-size:16px;outline:none}
+.bal-campos select:focus{border-color:var(--ouro)}
+.bal-res{width:100%;border-collapse:collapse;margin:10px 0}.bal-res th,.bal-res td{padding:9px 6px;border-bottom:1px solid var(--line);text-align:right}
+.bal-res thead th{font:600 11px 'Chakra Petch';letter-spacing:.14em;text-transform:uppercase;color:var(--sub)}
+.bal-res tbody th{text-align:left;font:600 12px 'Chakra Petch';letter-spacing:.1em;color:var(--sub);text-transform:uppercase}
+.bal-res td{font:700 20px 'Chakra Petch'}.bal-res tbody tr:first-child td{font-size:28px;color:var(--ouro)}
+.bal-rolagem{overflow-x:auto;margin-top:12px}.bal-tab{border-collapse:collapse;min-width:100%;font-size:14px;white-space:nowrap}
+.bal-tab th,.bal-tab td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right}.bal-tab th{font:600 11px 'Chakra Petch';letter-spacing:.08em;text-transform:uppercase;color:var(--sub)}
+.bal-tab td:first-child,.bal-tab th:first-child{text-align:left;position:sticky;left:0;background:var(--card)}
+.bal-atalho{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid rgba(226,182,87,.4);background:rgba(226,182,87,.07);padding:16px 18px;margin-bottom:18px;width:100%;color:var(--txt);text-align:left}
+.bal-atalho b{font:700 16px 'Chakra Petch';letter-spacing:.06em;text-transform:uppercase;color:var(--ouro);display:block}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -204,11 +220,12 @@ const ICON = {
   guias: '<path d="M3 17h13l3-5H6zM7 17v3M16 17v3M6 12l2-5h8"/>',
   calendario: '<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   documentos: '<path d="M6 3h9l4 4v14H6zM15 3v4h4"/>',
+  balistica: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.6"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>',
   conta: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
 };
-const MENU = [["painel", "Painel", "Painel"], ["acervo", "Acervo", "Acervo"], ["habitualidade", "Habitualidade", "Treinos"], ["guias", "Guias", "Guias"], ["calendario", "Calendário", "Prazos"], ["documentos", "Documentos", "Docs"], ["conta", "Conta", "Conta"]];
+const MENU = [["painel", "Painel", "Painel"], ["acervo", "Acervo", "Acervo"], ["habitualidade", "Habitualidade", "Treinos"], ["balistica", "Balística", "Balística"], ["guias", "Guias", "Guias"], ["calendario", "Calendário", "Prazos"], ["documentos", "Documentos", "Docs"], ["conta", "Conta", "Conta"]];
 function montarMenu() {
-  $("#menu").innerHTML = MENU.map(([k, t, curto]) => `<button data-t="${k}" class="${k === tela ? "ativo" : ""}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON[k]}</svg><span class="nl">${t}</span><span class="nc">${curto}</span></button>`).join("");
+  $("#menu").innerHTML = MENU.map(([k, t, curto]) => `<button data-t="${k}" class="${k === tela ? "ativo" : ""}${k === "balistica" ? " destaque" : ""}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON[k]}</svg><span class="nl">${t}</span><span class="nc">${curto}</span></button>`).join("");
   $("#menu").querySelectorAll("button").forEach((b) => b.onclick = () => { tela = b.dataset.t; montarMenu(); render(); window.scrollTo(0, 0); });
 }
 
@@ -241,13 +258,207 @@ function grupos() {
   }).join("")}</div>`;
 }
 
+// ---------- balística externa (massa pontual, arrasto padrão G1/G7) ----------
+const BAL = (() => {
+  const T = {
+    G7: [[0,.1198],[.05,.1197],[.1,.1196],[.15,.1194],[.2,.1193],[.25,.1194],[.3,.1194],[.35,.1194],[.4,.1193],[.45,.1193],[.5,.1194],[.55,.1193],[.6,.1194],[.65,.1197],[.7,.1202],[.725,.1207],[.75,.1215],[.775,.1226],[.8,.1242],[.825,.1266],[.85,.1306],[.875,.1368],[.9,.1464],[.925,.166],[.95,.2054],[.975,.2993],[1,.3803],[1.025,.4015],[1.05,.4043],[1.075,.4034],[1.1,.4014],[1.125,.3987],[1.15,.3955],[1.2,.3884],[1.25,.381],[1.3,.3732],[1.35,.3657],[1.4,.358],[1.5,.344],[1.55,.3376],[1.6,.3315],[1.65,.326],[1.7,.3209],[1.75,.316],[1.8,.3117],[1.85,.3078],[1.9,.3042],[1.95,.301],[2,.298],[2.05,.2951],[2.1,.2922],[2.15,.2892],[2.2,.2864],[2.25,.2835],[2.3,.2807],[2.35,.2779],[2.4,.2752],[2.45,.2725],[2.5,.2697],[2.55,.267],[2.6,.2643],[2.65,.2615],[2.7,.2588],[2.75,.2561],[2.8,.2533],[2.85,.2506],[2.9,.2479],[2.95,.2451],[3,.2424],[3.1,.2368],[3.2,.2313],[3.3,.2258],[3.4,.2205],[3.5,.2154],[3.6,.2106],[3.7,.206],[3.8,.2017],[3.9,.1975],[4,.1935],[4.2,.1861],[4.4,.1793],[4.6,.173],[4.8,.1672],[5,.1618]],
+    G1: [[0,.2629],[.05,.2558],[.1,.2487],[.15,.2413],[.2,.2344],[.25,.2278],[.3,.2214],[.35,.2155],[.4,.2104],[.45,.2061],[.5,.2032],[.55,.202],[.6,.2034],[.7,.2165],[.725,.223],[.75,.2313],[.775,.2417],[.8,.2546],[.825,.2706],[.85,.2901],[.875,.3136],[.9,.3415],[.925,.3734],[.95,.4084],[.975,.4448],[1,.4805],[1.025,.5136],[1.05,.5427],[1.075,.5677],[1.1,.5883],[1.125,.6053],[1.15,.6191],[1.2,.6393],[1.25,.6518],[1.3,.6589],[1.35,.6621],[1.4,.6625],[1.45,.6607],[1.5,.6573],[1.55,.6528],[1.6,.6474],[1.65,.6413],[1.7,.6347],[1.75,.628],[1.8,.621],[1.85,.6141],[1.9,.6072],[1.95,.6003],[2,.5934],[2.05,.5867],[2.1,.5804],[2.15,.5743],[2.2,.5685],[2.25,.563],[2.3,.5577],[2.35,.5527],[2.4,.5481],[2.45,.5438],[2.5,.5397],[2.6,.5325],[2.7,.5264],[2.8,.5211],[2.9,.5168],[3,.5133],[3.1,.5105],[3.2,.5084],[3.3,.5067],[3.4,.5054],[3.5,.504],[3.6,.503],[3.7,.5022],[3.8,.5016],[3.9,.501],[4,.5006],[4.2,.4998],[4.4,.4995],[4.6,.4992],[4.8,.499],[5,.4988]],
+  };
+  const cd = (tab, m) => {
+    const t = T[tab] || T.G1;
+    if (m <= 0) return t[0][1];
+    if (m >= 5) return t[t.length - 1][1];
+    let a = 0, b = t.length - 1;
+    while (b - a > 1) { const c = (a + b) >> 1; if (t[c][0] <= m) a = c; else b = c; }
+    return t[a][1] + (t[b][1] - t[a][1]) * (m - t[a][0]) / (t[b][0] - t[a][0]);
+  };
+  // ar: densidade (kg/m³) e velocidade do som (m/s)
+  function ar(c) {
+    const Tk = (c.temp ?? 15) + 273.15;
+    let rho;
+    if (c.modo === "da") rho = 1.225 * Math.pow(Math.max(0.05, 1 - 2.25577e-5 * (c.altDens || 0)), 4.25588);
+    else {
+      const P = (c.pressao || 1013.25) * 100;                       // hPa -> Pa (pressão na estação)
+      const es = 610.94 * Math.exp(17.625 * (c.temp ?? 15) / ((c.temp ?? 15) + 243.04));
+      const pv = Math.max(0, Math.min(1, (c.umidade ?? 50) / 100)) * es;
+      rho = (P - pv) / (287.058 * Tk) + pv / (461.495 * Tk);
+    }
+    return { rho, som: Math.sqrt(1.4 * 287.058 * Tk) * (1 + 0.0016 * ((c.umidade ?? 50) / 100)) };
+  }
+  // integra a trajetória; x ao longo da linha de visada, y perpendicular para cima, z para a direita
+  function voo(p, elev, deriva, xmax, passo, cada) {
+    const A = ar(p.clima), g = 9.80665, inc = (p.inclinacao || 0) * Math.PI / 180;
+    const k = A.rho * Math.PI / (8 * p.bc * 703.0696);
+    const wv = (p.vento?.vel || 0), wd = ((p.vento?.dir ?? 90)) * Math.PI / 180; // dir: de onde vem, 0 = de frente, 90 = da direita
+    const W = [-wv * Math.cos(wd), 0, -wv * Math.sin(wd)];
+    let s = [0, -(p.alturaMira || 0) / 100, 0, p.v0 * Math.cos(elev) * Math.cos(deriva), p.v0 * Math.sin(elev), p.v0 * Math.cos(elev) * Math.sin(deriva)], t = 0;
+    const f = (q) => {
+      const rx = q[3] - W[0], ry = q[4] - W[1], rz = q[5] - W[2], vr = Math.hypot(rx, ry, rz);
+      const d = k * vr * cd(p.arrasto, vr / A.som);
+      return [q[3], q[4], q[5], -d * rx - g * Math.sin(inc), -d * ry - g * Math.cos(inc), -d * rz];
+    };
+    const soma = (a, b, h) => a.map((v, i) => v + b[i] * h);
+    const pts = [], xs = [], ys = []; let prox = cada ? cada.de : null;
+    const grava = (q, tt) => pts.push({ x: q[0], y: q[1], z: q[2], v: Math.hypot(q[3], q[4], q[5]), t: tt });
+    const h0 = passo || 0.0005;
+    for (let n = 0; n < 400000; n++) {
+      if (s[0] >= xmax - 1e-9 || s[3] <= 20) break;
+      let h = h0; if (s[0] + s[3] * h > xmax) h = (xmax - s[0]) / s[3];
+      if (prox != null && s[0] < prox && s[0] + s[3] * h > prox) h = (prox - s[0]) / s[3];
+      const k1 = f(s), k2 = f(soma(s, k1, h / 2)), k3 = f(soma(s, k2, h / 2)), k4 = f(soma(s, k3, h));
+      s = s.map((v, i) => v + h / 6 * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i])); t += h;
+      xs.push(s[0]); ys.push(s[1]);
+      if (prox != null && Math.abs(s[0] - prox) < 1e-6) { grava(s, t); prox += cada.passo; if (prox > cada.ate + 1e-9) prox = null; }
+    }
+    const y0 = -(p.alturaMira || 0) / 100; let ymax = 0;
+    for (let i = 0; i < xs.length; i++) { const d = ys[i] - (y0 + (s[1] - y0) * xs[i] / (s[0] || 1)); if (d > ymax) ymax = d; }
+    return { fim: { x: s[0], y: s[1], z: s[2], v: Math.hypot(s[3], s[4], s[5]), t }, pts, ymax, ar: A };
+  }
+  // ângulos de saída que zeram o tiro na distância de zeragem (sem vento, sem inclinação)
+  function zerar(p) {
+    const q = { ...p, vento: { vel: 0, dir: 90 }, inclinacao: 0 };
+    let e = 0;
+    for (let i = 0; i < 12; i++) { const r = voo(q, e, 0, p.zero, 0.001).fim; e -= r.y / p.zero; }
+    return e;
+  }
+  const MOA = 3437.74677 / 1000; // 1 mrad em MOA
+  function correcoes(p, x, y, z) {
+    const mrad = -y / x * 1000, mradW = -z / x * 1000;
+    const un = (m) => ({ mrad: m, moa: m * MOA, smoa: m * MOA * 1.04719755, cm: m * x / 10, cliques: p.unidade === "MOA" ? m * MOA / (p.clique || 0.25) : m / (p.clique || 0.1) });
+    return { elev: un(mrad), vento: un(mradW) };
+  }
+  function calcular(p, dist) {
+    const e = zerar(p), r = voo(p, e, 0, dist, 0.0005), m = p.massa / 1000;
+    return { ...correcoes(p, dist, r.fim.y, r.fim.z), queda: r.fim.y * 100, deriva: r.fim.z * 100, v: r.fim.v, t: r.fim.t, e: 0.5 * m * r.fim.v ** 2, e0: 0.5 * m * p.v0 ** 2, som: r.ar.som, rho: r.ar.rho, mach: r.fim.v / r.ar.som, ymax: r.ymax * 100, valorClique: (p.unidade === "MOA" ? (p.clique || 0.25) / MOA : (p.clique || 0.1)) * dist / 10 };
+  }
+  function tabela(p, de, ate, passo) {
+    const e = zerar(p), m = p.massa / 1000, r = voo(p, e, 0, ate, 0.0005, { de, ate, passo });
+    return r.pts.map((q) => ({ dist: Math.round(q.x * 100) / 100, v: q.v, e: 0.5 * m * q.v ** 2, t: q.t, queda: q.y * 100, deriva: q.z * 100, ...correcoes(p, q.x, q.y, q.z) }));
+  }
+  return { calcular, tabela, ar, cd };
+})();
+
+// ---------- tela Balística ----------
+const BAL_PADRAO = { nome: "Meu rifle", arrasto: "G7", bc: 0.224, massa: 10.886, v0: 755, zero: 100, alturaMira: 6.5, unidade: "MRAD", clique: 0.1 };
+const BAL_TIRO = { dist: 300, inclinacao: 0, ventoVel: 0, ventoDir: 90, modo: "da", temp: 25, altDens: 0, pressao: 1013, umidade: 50, de: 50, ate: 600, passo: 50 };
+function balLer() {
+  let e; try { e = JSON.parse(guardar.get("cac_bal") || "null"); } catch { e = null; }
+  if (!e || !Array.isArray(e.perfis) || !e.perfis.length) e = { perfis: [{ ...BAL_PADRAO }], ativo: 0, tiro: { ...BAL_TIRO } };
+  e.tiro = { ...BAL_TIRO, ...(e.tiro || {}) }; e.ativo = Math.min(e.ativo || 0, e.perfis.length - 1);
+  return e;
+}
+const balGravar = (e) => guardar.set("cac_bal", JSON.stringify(e));
+const nBR = (v, c = 1) => (Number.isFinite(v) ? v : 0).toLocaleString("pt-BR", { minimumFractionDigits: c, maximumFractionDigits: c });
+const balLado = (v, pos, neg, c = 1) => Math.abs(v) < 0.05 ? nBR(0, c) : `${v > 0 ? pos : neg} ${nBR(Math.abs(v), c)}`;
+function balParam(e) {
+  const f = e.perfis[e.ativo], t = e.tiro;
+  return { ...f, clima: { modo: t.modo, temp: +t.temp, altDens: +t.altDens, pressao: +t.pressao, umidade: +t.umidade }, vento: { vel: +t.ventoVel, dir: +t.ventoDir }, inclinacao: +t.inclinacao };
+}
+function balGrafico(linhas) {
+  if (linhas.length < 2) return "";
+  const W = 640, H = 240, m = { l: 46, r: 12, t: 12, b: 28 };
+  const xs = linhas.map((l) => l.dist), ys = linhas.map((l) => l.queda);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys, 0), y1 = Math.max(...ys, 0);
+  const X = (v) => m.l + (v - x0) / (x1 - x0 || 1) * (W - m.l - m.r), Y = (v) => m.t + (y1 - v) / (y1 - y0 || 1) * (H - m.t - m.b);
+  const grade = [0, .25, .5, .75, 1].map((k) => { const v = y1 - k * (y1 - y0); return `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#26262c"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end" fill="#A9A9B2" font-size="11">${Math.round(v)}</text>`; }).join("");
+  const eixo = linhas.filter((_, i) => i % Math.ceil(linhas.length / 6) === 0).map((l) => `<text x="${X(l.dist)}" y="${H - 8}" text-anchor="middle" fill="#A9A9B2" font-size="11">${Math.round(l.dist)}</text>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">${grade}${eixo}<line x1="${m.l}" x2="${W - m.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="#A9A9B2" stroke-dasharray="4 4"/><polyline fill="none" stroke="#E2B657" stroke-width="2.5" points="${linhas.map((l) => `${X(l.dist).toFixed(1)},${Y(l.queda).toFixed(1)}`).join(" ")}"/></svg><div class="pequeno">Queda em cm em relação à linha de visada, por distância em metros.</div>`;
+}
+function renderBalistica(c) {
+  const e = balLer(), f = e.perfis[e.ativo], t = e.tiro;
+  const campo = (rot, chave, onde, passo = "any", extra = "") => `<label>${rot}<input type="number" inputmode="decimal" step="${passo}" data-b="${onde}.${chave}" value="${onde === "f" ? f[chave] : t[chave]}" ${extra}></label>`;
+  const escolha = (rot, chave, onde, ops) => `<label>${rot}<select data-b="${onde}.${chave}">${ops.map(([v, n]) => `<option value="${v}" ${String(onde === "f" ? f[chave] : t[chave]) === String(v) ? "selected" : ""}>${n}</option>`).join("")}</select></label>`;
+  let r = null, linhas = [], erro = "";
+  try {
+    const p = balParam(e);
+    if (!(p.bc > 0 && p.v0 > 50 && p.massa > 0 && p.zero > 0 && t.dist > 0)) throw new Error("Preencha coeficiente balístico, velocidade, peso, zeragem e distância com valores maiores que zero.");
+    r = BAL.calcular(p, +t.dist);
+    const passo = Math.max(1, +t.passo || 50), ate = Math.min(Math.max(+t.ate || 600, +t.de || 50), 2000), de = Math.max(passo, +t.de || 50);
+    if ((ate - de) / passo <= 200) linhas = BAL.tabela(p, de, ate, passo);
+  } catch (x) { erro = x.message || "Não foi possível calcular com esses dados."; }
+  const lin = (rot, a, b) => `<tr><th>${rot}</th><td>${a}</td><td>${b}</td></tr>`;
+  c.innerHTML = `
+    <div class="topo"><div><h2>Balística</h2><p>Correções de elevação e vento para o seu rifle, mira e munição.</p></div></div>
+    <div class="alerta" style="border-color:rgba(226,182,87,.35);background:rgba(226,182,87,.06)"><span class="pequeno"><b style="color:var(--ouro)">Estimativa para tiro esportivo.</b> Os valores são calculados e podem diferir do resultado real. Confirme sempre no estande, respeitando as regras do clube.</span></div>
+    <div class="bal-grade">
+      <div class="card">
+        <div class="rotulo">Tiro</div>
+        <div class="bal-campos">
+          ${campo("Distância (m)", "dist", "t", "1")}
+          ${campo("Ângulo de inclinação (°)", "inclinacao", "t", "1")}
+          ${campo("Vento (m/s)", "ventoVel", "t", "0.5")}
+          ${escolha("Vento vem de", "ventoDir", "t", [[90, "Direita (3h)"], [270, "Esquerda (9h)"], [0, "Frente (12h)"], [180, "Trás (6h)"], [45, "Frente-direita"], [315, "Frente-esquerda"], [135, "Trás-direita"], [225, "Trás-esquerda"]])}
+        </div>
+        <div class="rotulo" style="margin-top:18px">Clima</div>
+        <div class="bal-campos">
+          ${escolha("Informar por", "modo", "t", [["da", "Altitude de densidade"], ["est", "Pressão e umidade"]])}
+          ${campo("Temperatura (°C)", "temp", "t", "1")}
+          ${t.modo === "da" ? campo("Altitude de densidade (m)", "altDens", "t", "10") : campo("Pressão na estação (hPa)", "pressao", "t", "1") + campo("Umidade (%)", "umidade", "t", "1")}
+        </div>
+      </div>
+      <div class="card">
+        <div class="rotulo">Correção em ${nBR(+t.dist, 0)} m</div>
+        ${erro ? `<p class="cr">${esc(erro)}</p>` : `
+        <table class="bal-res"><thead><tr><th></th><th>Elevação</th><th>Vento</th></tr></thead><tbody>
+          ${lin("Cliques", balLado(r.elev.cliques, "↑", "↓", 0), balLado(r.vento.cliques, "→", "←", 0))}
+          ${lin("MRAD", balLado(r.elev.mrad, "↑", "↓"), balLado(r.vento.mrad, "→", "←"))}
+          ${lin("MOA", balLado(r.elev.moa, "↑", "↓"), balLado(r.vento.moa, "→", "←"))}
+          ${lin("SMOA", balLado(r.elev.smoa, "↑", "↓"), balLado(r.vento.smoa, "→", "←"))}
+          ${lin("cm", balLado(r.elev.cm, "↑", "↓", 0), balLado(r.vento.cm, "→", "←", 0))}
+        </tbody></table>
+        <div class="pequeno">↑ subir a mira · ↓ descer · → para a direita · ← para a esquerda. Clique de ${nBR(f.clique, 2)} ${f.unidade}.</div>`}
+      </div>
+    </div>
+    ${erro ? "" : `
+    <div class="grade g4" style="margin-top:14px">
+      <div class="card"><div class="rotulo">Velocidade no alvo</div><div class="grande">${nBR(r.v, 0)} <span class="pequeno">m/s</span></div><div class="pequeno">Mach ${nBR(r.mach, 2)} · som a ${nBR(r.som, 0)} m/s</div></div>
+      <div class="card"><div class="rotulo">Energia no alvo</div><div class="grande">${nBR(r.e, 0)} <span class="pequeno">J</span></div><div class="pequeno">${nBR(r.e0, 0)} J na boca</div></div>
+      <div class="card"><div class="rotulo">Tempo de voo</div><div class="grande">${nBR(r.t, 2)} <span class="pequeno">s</span></div><div class="pequeno">Altura máxima da trajetória: ${nBR(r.ymax, 0)} cm</div></div>
+      <div class="card"><div class="rotulo">Valor do clique</div><div class="grande">${nBR(r.valorClique, 1)} <span class="pequeno">cm</span></div><div class="pequeno">por clique em ${nBR(+t.dist, 0)} m</div></div>
+    </div>`}
+    <div class="card" style="margin-top:14px">
+      <div class="rotulo">Equipamento</div>
+      <div class="bal-campos" style="margin-top:10px">
+        <label>Rifle<select data-b="ativo">${e.perfis.map((p, i) => `<option value="${i}" ${i === e.ativo ? "selected" : ""}>${esc(p.nome || "Rifle " + (i + 1))}</option>`).join("")}</select></label>
+        <label>Nome<input type="text" data-b="f.nome" value="${esc(f.nome || "")}" maxlength="40"></label>
+      </div>
+      <div class="bal-campos">
+        ${campo("Zeragem (m)", "zero", "f", "1")}
+        ${campo("Altura da mira (cm)", "alturaMira", "f", "0.1")}
+        ${escolha("Unidade do clique", "unidade", "f", [["MRAD", "MRAD (MIL)"], ["MOA", "MOA"]])}
+        ${campo("Valor do clique", "clique", "f", "0.01")}
+        ${campo("Velocidade na boca (m/s)", "v0", "f", "1")}
+        ${campo("Peso do projétil (g)", "massa", "f", "0.001")}
+        ${campo("Coeficiente balístico", "bc", "f", "0.001")}
+        ${escolha("Função de arrasto", "arrasto", "f", [["G7", "G7 (ponta fina, boat-tail)"], ["G1", "G1 (base plana)"]])}
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"><button class="btn sec" id="bal-novo">+ Novo rifle</button>${e.perfis.length > 1 ? '<button class="btn sec" id="bal-apagar">Apagar este rifle</button>' : ""}</div>
+      <div class="pequeno" style="margin-top:10px">Peso em grains? Multiplique por 0,0648 (168 gr = 10,886 g). Os dados ficam guardados só neste aparelho.</div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div class="rotulo">Tabela balística</div>
+      <div class="bal-campos" style="margin-top:10px">${campo("De (m)", "de", "t", "10")}${campo("Até (m)", "ate", "t", "10")}${campo("Passo (m)", "passo", "t", "5")}</div>
+      ${linhas.length ? `<div class="bal-rolagem"><table class="bal-tab"><thead><tr><th>Dist. (m)</th><th>Elev. ${f.unidade}</th><th>Cliques</th><th>Vento ${f.unidade}</th><th>Queda (cm)</th><th>Vel. (m/s)</th><th>Energia (J)</th><th>Tempo (s)</th></tr></thead><tbody>${linhas.map((l) => { const k = f.unidade === "MOA" ? "moa" : "mrad"; return `<tr><td>${nBR(l.dist, 0)}</td><td>${balLado(l.elev[k], "↑", "↓")}</td><td>${balLado(l.elev.cliques, "↑", "↓", 0)}</td><td>${balLado(l.vento[k], "→", "←")}</td><td>${nBR(l.queda, 0)}</td><td>${nBR(l.v, 0)}</td><td>${nBR(l.e, 0)}</td><td>${nBR(l.t, 2)}</td></tr>`; }).join("")}</tbody></table></div>` : `<p class="pequeno">${erro ? "" : "Ajuste o intervalo: no máximo 200 linhas."}</p>`}
+    </div>
+    ${linhas.length ? `<div class="card" style="margin-top:14px"><div class="rotulo" style="margin-bottom:10px">Trajetória</div>${balGrafico(linhas)}</div>` : ""}`;
+  c.querySelectorAll("[data-b]").forEach((el) => el.onchange = () => {
+    const [onde, chave] = el.dataset.b.split("."), v = el.type === "number" ? (el.value === "" ? 0 : parseFloat(el.value.replace(",", "."))) : el.value;
+    if (onde === "ativo") e.ativo = +el.value; else if (onde === "f") { f[chave] = v; if (chave === "unidade") f.clique = v === "MOA" ? 0.25 : 0.1; } else t[chave] = chave === "modo" ? v : +v;
+    balGravar(e); renderBalistica(c);
+  });
+  const novo = c.querySelector("#bal-novo"); if (novo) novo.onclick = () => { e.perfis.push({ ...BAL_PADRAO, nome: "Rifle " + (e.perfis.length + 1) }); e.ativo = e.perfis.length - 1; balGravar(e); renderBalistica(c); };
+  const apagar = c.querySelector("#bal-apagar"); if (apagar) apagar.onclick = () => { if (!confirm("Apagar este rifle da calculadora?")) return; e.perfis.splice(e.ativo, 1); e.ativo = 0; balGravar(e); renderBalistica(c); };
+}
+
 function render() {
   const c = $("#conteudo"), a = D.assinante, primeiro = esc((a.nome || "").split(" ")[0]);
   const docs = D.documentos;
   renderTela(c, a, primeiro, docs);
+  const atalho = c.querySelector("#ir-balistica"); if (atalho) atalho.onclick = () => { tela = "balistica"; montarMenu(); render(); window.scrollTo(0, 0); };
   if (D._offline) c.insertAdjacentHTML("afterbegin", `<div class="offline">Sem internet: mostrando seus dados salvos em ${new Date(D._offline).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}.</div>`);
 }
 function renderTela(c, a, primeiro, docs) {
+  if (tela === "balistica") { renderBalistica(c); return; }
   if (tela === "painel") {
     const crit = D.avisos.filter((x) => x.nivel === "critico").length;
     const cr = D.resumo.cr;
@@ -255,13 +466,13 @@ function renderTela(c, a, primeiro, docs) {
       <div class="topo"><div><h2>Olá, ${primeiro}</h2><p>Situação em ${br(D.hoje)} · Atirador nível ${D.nivel.declarado}${a.clube ? " · " + esc(a.clube) : ""}</p></div></div>
       ${crit ? `<div class="alerta"><b class="cr tit" style="font-size:18px">${crit} ${crit > 1 ? "pontos exigem" : "ponto exige"} ação</b><span class="pequeno">Resolva antes que afete seu CR ou seu direito de transportar.</span></div>`
              : `<div class="alerta verde"><b class="ok tit" style="font-size:18px">Tudo sob controle</b><span class="pequeno">Nenhum ponto crítico hoje. A gente avisa no WhatsApp quando algo se aproximar.</span></div>`}
+      <button class="bal-atalho" id="ir-balistica"><span><b>Calculadora balística</b><span class="pequeno">Correção de elevação e vento, tabela e trajetória para o seu rifle.</span></span><span style="color:var(--ouro);font-size:22px">→</span></button>
       <div class="grade g4">
         <div class="card"><div class="rotulo">Certificado de Registro</div><div class="grande ${cr && cr.validade ? cor(cr.dias) : "at"}">${cr && cr.validade ? br(cr.validade) : "a informar"}</div><div class="pequeno">${cr && cr.validade ? prazo(cr.dias) : "mande o CR pelo WhatsApp"}</div></div>
         <div class="card"><div class="rotulo">Acervo</div><div class="grande">${D.resumo.armas}</div><div class="pequeno">armas com CRAF${D.resumo.autorizacoes ? ` · ${D.resumo.autorizacoes} autorização(ões) em andamento` : ""}</div></div>
         <div class="card"><div class="rotulo">Transporte hoje</div><div class="grande ${D.resumo.transporte.semGuia ? "at" : "ok"}">${D.resumo.transporte.podeLevar} com guia</div><div class="pequeno">${D.resumo.transporte.semGuia} arma(s) com CRAF sem guia vigente</div></div>
         <div class="card"><div class="rotulo">Nível</div><div class="grande">${D.nivel.declarado} <span class="pequeno">declarado</span></div><div class="pequeno ${D.nivel.comprovado >= D.nivel.declarado ? "ok" : "at"}">${D.nivel.comprovado ? "nível " + D.nivel.comprovado + " comprovado" : "nenhum nível comprovado ainda"}</div></div>
       </div>
-      <a class="linha destino" href="/painel/balistica/" style="margin-top:14px;text-decoration:none;color:inherit"><div><div class="t">Calculadora balística <span class="etiqueta at" style="margin-left:6px">Beta</span></div><div class="pequeno">Correção de elevação e vento, tabela e gráfico de trajetória. Em desenvolvimento.</div></div><b style="color:var(--ouro);font-size:20px">›</b></a>
       <h3 class="sec-tit">Precisa de atenção</h3>
       <div class="lista">${D.avisos.length ? D.avisos.map((x) => `<div class="aviso ${x.nivel}"><span class="etiqueta ${x.nivel === "critico" ? "cr" : x.nivel === "atencao" ? "at" : ""}" style="width:max-content">${x.nivel === "critico" ? "Crítico" : x.nivel === "atencao" ? "Atenção" : "Info"}</span><b>${esc(x.titulo)}</b><span class="pequeno">${esc(x.texto)}</span></div>`).join("") : '<div class="vazio">Nada pendente.</div>'}</div>
       <h3 class="sec-tit">Habitualidade por grupo de arma · últimos 12 meses</h3>
