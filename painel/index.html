@@ -194,6 +194,8 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 .hub .pequeno{display:block;margin-top:3px;line-height:1.35}
 .hub .seta{margin-left:auto;color:var(--ouro);font-size:22px;flex:none}
 .hub .conta{font:700 12px 'Chakra Petch';color:var(--ouro);border:1px solid rgba(226,182,87,.4);padding:2px 7px;margin-left:8px;vertical-align:2px}
+.envio-doc{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}.envio-doc .btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 10px}.envio-doc svg{width:20px;height:20px;flex:none}
+@media (max-width:480px){.envio-doc{grid-template-columns:1fr}}
 .voltar-hub{display:inline-flex;align-items:center;gap:8px;background:none;border:1px solid var(--line);color:var(--sub);padding:9px 14px;margin-bottom:16px;font:600 12px 'Chakra Petch';letter-spacing:.12em;text-transform:uppercase;min-height:40px}
 .voltar-hub:hover{color:var(--ouro);border-color:rgba(226,182,87,.5)}
 #balx[data-cad]>.aviso,#balx[data-cad]>p.pequeno{display:none}
@@ -1138,6 +1140,7 @@ function render() {
   const c = $("#conteudo"), a = D.assinante, primeiro = esc((a.nome || "").split(" ")[0]);
   const docs = D.documentos;
   renderTela(c, a, primeiro, docs);
+  c.querySelectorAll("[data-doc]").forEach((b) => b.onclick = () => (b.dataset.doc === "foto" ? fotografar() : $("#arq").click()));
   const atalho = c.querySelector("#ir-balistica"); if (atalho) atalho.onclick = () => irPara("balistica", "tiro");
   if (D._offline) c.insertAdjacentHTML("afterbegin", `<div class="offline">Sem internet: mostrando seus dados salvos em ${new Date(D._offline).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}.</div>`);
 }
@@ -1152,6 +1155,7 @@ ICON.novo = '<rect x="3" y="6" width="18" height="14"/><path d="M8 6l1.5-3h5L16 
 ICON.alvos = '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>';
 ICON.evolucao = '<path d="M3 20h18M4 8l5 6 4-3 7 6M20 13v4h-4"/>';
 ICON.quadro = '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/>';
+const ENVIO_DOC = `<div class="envio-doc"><button class="btn" data-doc="foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></svg>Fotografar documento</button><button class="btn sec" data-doc="arq">Enviar arquivo ou PDF</button></div>`;
 const HUBS = {
   documentos: { titulo: "Documentos", sub: "Seu CR, armas, guias e prazos em um só lugar.", itens: [
     ["acervo", "Acervo e CRAFs", "Suas armas, registros e validades.", "acervo"],
@@ -1186,6 +1190,7 @@ function renderTela(c, a, primeiro, docs) {
   if (subTela && !hub.itens.some((i) => i[0] === subTela)) subTela = "";
   if (!subTela) {
     c.innerHTML = `<div class="topo"><div><h2>${hub.titulo}</h2><p>${hub.sub}</p></div></div>
+      ${tela === "documentos" ? ENVIO_DOC + '<div id="envio"></div>' : ""}
       <div class="hub">${hub.itens.map(([k, t, d, ic]) => { const n = hubConta(k); return `<button data-s="${k}"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON[ic]}</svg></span><span><b>${t}${n ? `<span class="conta">${n}</span>` : ""}</b><span class="pequeno">${d}</span></span><span class="seta">›</span></button>`; }).join("")}</div>`;
     c.querySelectorAll(".hub button").forEach((b) => b.onclick = () => irPara(tela, b.dataset.s));
     return;
@@ -1213,6 +1218,7 @@ function renderTela0(c, a, primeiro, docs) {
       ${crit ? `<div class="alerta"><b class="cr tit" style="font-size:18px">${crit} ${crit > 1 ? "pontos exigem" : "ponto exige"} ação</b><span class="pequeno">Resolva antes que afete seu CR ou seu direito de transportar.</span></div>`
              : `<div class="alerta verde"><b class="ok tit" style="font-size:18px">Tudo sob controle</b><span class="pequeno">Nenhum ponto crítico hoje. A gente avisa no WhatsApp quando algo se aproximar.</span></div>`}
       
+      ${ENVIO_DOC}<div id="envio"></div>
       <div class="grade g4">
         <div class="card"><div class="rotulo">Certificado de Registro</div><div class="grande ${cr && cr.validade ? cor(cr.dias) : "at"}">${cr && cr.validade ? br(cr.validade) : "a informar"}</div><div class="pequeno">${cr && cr.validade ? prazo(cr.dias) : "mande o CR pelo WhatsApp"}</div></div>
         <div class="card"><div class="rotulo">Acervo</div><div class="grande">${D.resumo.armas}</div><div class="pequeno">armas com CRAF${D.resumo.autorizacoes ? ` · ${D.resumo.autorizacoes} autorização(ões) em andamento` : ""}</div></div>
