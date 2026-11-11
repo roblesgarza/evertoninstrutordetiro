@@ -1170,7 +1170,7 @@ function renderTela0(c, a, primeiro, docs) {
       <div class="topo"><div><h2>Olá, ${primeiro}</h2><p>Situação em ${br(D.hoje)} · Atirador nível ${D.nivel.declarado}${a.clube ? " · " + esc(a.clube) : ""}</p></div></div>
       ${crit ? `<div class="alerta"><b class="cr tit" style="font-size:18px">${crit} ${crit > 1 ? "pontos exigem" : "ponto exige"} ação</b><span class="pequeno">Resolva antes que afete seu CR ou seu direito de transportar.</span></div>`
              : `<div class="alerta verde"><b class="ok tit" style="font-size:18px">Tudo sob controle</b><span class="pequeno">Nenhum ponto crítico hoje. A gente avisa no WhatsApp quando algo se aproximar.</span></div>`}
-      <button class="bal-atalho" id="ir-balistica"><span><b>Calculadora balística</b><span class="pequeno">Correção de elevação e vento, tabela, gráfico e retículo para o seu rifle.</span></span><span style="color:var(--ouro);font-size:22px">→</span></button>
+      
       <div class="grade g4">
         <div class="card"><div class="rotulo">Certificado de Registro</div><div class="grande ${cr && cr.validade ? cor(cr.dias) : "at"}">${cr && cr.validade ? br(cr.validade) : "a informar"}</div><div class="pequeno">${cr && cr.validade ? prazo(cr.dias) : "mande o CR pelo WhatsApp"}</div></div>
         <div class="card"><div class="rotulo">Acervo</div><div class="grande">${D.resumo.armas}</div><div class="pequeno">armas com CRAF${D.resumo.autorizacoes ? ` · ${D.resumo.autorizacoes} autorização(ões) em andamento` : ""}</div></div>
@@ -1181,7 +1181,8 @@ function renderTela0(c, a, primeiro, docs) {
       <div class="lista">${D.avisos.length ? D.avisos.map((x) => `<div class="aviso ${x.nivel}"><span class="etiqueta ${x.nivel === "critico" ? "cr" : x.nivel === "atencao" ? "at" : ""}" style="width:max-content">${x.nivel === "critico" ? "Crítico" : x.nivel === "atencao" ? "Atenção" : "Info"}</span><b>${esc(x.titulo)}</b><span class="pequeno">${esc(x.texto)}</span></div>`).join("") : '<div class="vazio">Nada pendente.</div>'}</div>
       <h3 class="sec-tit">Habitualidade por grupo de arma · últimos 12 meses</h3>
       ${grupos()}
-      <p class="pequeno" style="margin-top:16px">Treinou ou competiu? Conte no WhatsApp que a gente registra.</p>`;
+      <p class="pequeno" style="margin-top:16px">Treinou ou competiu? Conte no WhatsApp que a gente registra.</p>
+      <button class="bal-atalho" style="margin:22px 0 0" id="ir-balistica"><span><b>Calculadora balística</b><span class="pequeno">Correção de elevação e vento, tabela, gráfico e retículo para o seu rifle.</span></span><span style="color:var(--ouro);font-size:22px">→</span></button>`;
   }
   if (tela === "acervo") {
     const TIPOS_AC = [["atirador", "Atirador desportivo"], ["cacador", "Caçador"], ["colecionador", "Colecionador"]];
