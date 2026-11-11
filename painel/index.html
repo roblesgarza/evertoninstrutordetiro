@@ -225,6 +225,10 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 .ds-card{margin-bottom:14px}.ds-placar em a{color:var(--ouro)}.ds-placar div{background:var(--card2)}.ds-abas{margin-top:14px}.ds-rank{margin-top:10px}.ds-rank .linha{align-items:center;gap:12px}.ds-rank b{font:700 16px 'Chakra Petch';white-space:nowrap}
 .ds-pos{font:700 16px 'Chakra Petch';color:var(--ouro);min-width:34px}.ds-eu{border-color:var(--ouro)!important}
 .ds-foto{display:block;width:100%;max-width:320px;margin-top:8px;border:1px solid var(--line)}
+
+.ad-barras{margin-top:10px;display:grid;gap:10px}.ad-linha{display:flex;justify-content:space-between;gap:10px;font-size:14px}.ad-linha b{font:600 12px 'Chakra Petch';color:var(--sub);white-space:nowrap}
+.ad-barra{height:6px;background:var(--card2);margin-top:4px}.ad-barra i{display:block;height:100%;background:var(--ouro)}
+.ad-filtros{margin-top:10px;flex-wrap:wrap}.ad-filtros button{flex:1;white-space:nowrap}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -1284,7 +1288,7 @@ function cacaRastrear() {
     C.ativa.pos = p; C.ativa.precisao = Math.round(pos.coords.accuracy);
     if (pos.coords.accuracy <= 50 && t.length < 4000 && (!t.length || cacaDist(t[t.length - 1], p) >= 10)) t.push(p);
     cacaGravar(C); const el = document.querySelector("#cm-trilha"); if (el) el.innerHTML = cacaTrilhaAoVivo(C.ativa);
-  }, (e) => aviso(e.code === 1 ? "Localização não permitida. Libere o acesso à localização para gravar a trilha." : "Sem sinal de GPS no momento. Continue: a trilha volta quando o sinal voltar."), { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+  }, (e) => (usoReg("erro", "gps", "código " + e.code), aviso)(e.code === 1 ? "Localização não permitida. Libere o acesso à localização para gravar a trilha." : "Sem sinal de GPS no momento. Continue: a trilha volta quando o sinal voltar."), { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
 }
 function cacaMapa(trilha, marcas) {
   const pts = [...(trilha || []), ...(marcas || []).map((m) => [m.lat, m.lon])];
@@ -1372,7 +1376,7 @@ async function ipscIniciar() {
   try {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("sem");
     eu.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-  } catch (e) { if (ipsc === eu) { ipsc = { fase: "idle", erro: e && e.message === "sem" ? "Este aparelho não libera o microfone para o cronômetro." : "Microfone não permitido. Libere o acesso ao microfone para o cronômetro ouvir os tiros." }; render(); } return; }
+  } catch (e) { usoReg("erro", "microfone", (e && (e.name || e.message)) || "negado"); if (ipsc === eu) { ipsc = { fase: "idle", erro: e && e.message === "sem" ? "Este aparelho não libera o microfone para o cronômetro." : "Microfone não permitido. Libere o acesso ao microfone para o cronômetro ouvir os tiros." }; render(); } return; }
   if (ipsc !== eu) { eu.stream.getTracks().forEach((t) => t.stop()); return; }
   const AC = window.AudioContext || window.webkitAudioContext, ctx = eu.ctx = new AC();
   try { await ctx.resume(); } catch (e) {}
@@ -1643,6 +1647,55 @@ function renderDesafios(c) {
   c.querySelectorAll("[data-val]").forEach((b) => b.onclick = () => adm({ op: "validar", id: b.dataset.id, status: b.dataset.val }));
   c.querySelectorAll("[data-st]").forEach((b) => b.onclick = () => adm({ op: "status", id: b.dataset.id, status: b.dataset.st }));
 }
+// ---------- registro de uso e de erros ----------
+const USO = { fila: [], ult: "", enviando: false };
+function usoReg(tipo, nome, detalhe) { try { if (!guardar.get("cac_token")) return; USO.fila.push({ tipo, nome: String(nome).slice(0, 60), detalhe: detalhe ? String(detalhe).slice(0, 300) : undefined, plataforma: NATIVO ? "app" : "web" }); if (USO.fila.length > 60) USO.fila.shift(); } catch (e) {} }
+function usoTela() { const n = tela + (subTela ? "/" + subTela : ""); if (n !== USO.ult && tela !== "admin") { USO.ult = n; usoReg("tela", n); } }
+async function usoEnviar() {
+  if (!USO.fila.length || USO.enviando || !guardar.get("cac_token")) return;
+  const itens = USO.fila.splice(0, 20); USO.enviando = true;
+  try { await fetch(API, { method: "POST", keepalive: true, headers: { "content-type": "application/json", authorization: "Bearer " + guardar.get("cac_token") }, body: JSON.stringify({ acao: "evento", itens }) }); } catch (e) {}
+  USO.enviando = false;
+}
+setInterval(usoEnviar, 12000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") usoEnviar(); });
+window.addEventListener("error", (e) => usoReg("erro", "tela", (e.message || "erro") + " · " + (tela + (subTela ? "/" + subTela : "")) + (e.lineno ? " · linha " + e.lineno : "")));
+window.addEventListener("unhandledrejection", (e) => usoReg("erro", "tela", "promessa: " + String((e.reason && e.reason.message) || e.reason || "").slice(0, 200) + " · " + tela + (subTela ? "/" + subTela : "")));
+document.addEventListener("click", (e) => { if (e.target && e.target.closest && e.target.closest("#bt-admin")) irPara("admin", ""); });
+
+// ---------- painel do administrador ----------
+let ADM = { dados: null, erro: "", carregando: false, filtro: "ativos" };
+async function admCarregar() { ADM.carregando = true; let r = null; try { r = await api("admin_painel"); } catch (e) {} ADM.carregando = false; if (r && r.ok && r.resumo) { ADM.dados = r; ADM.erro = ""; } else ADM.erro = (r && r.erro) || "Não foi possível carregar agora."; if (tela === "admin") render(); }
+function admNome(n) { const [t, s] = String(n).split("/"), base = { painel: "Início", documentos: "Documentos", balistica: "Balística", caderneta: "Caderneta", caca: "Manejo", conta: "Conta", acervo: "Acervo", guias: "Guias", calendario: "Prazos", habitualidade: "Habitualidade" }[t] || t; if (!s) return base + (HUBS[t] ? " (menu)" : ""); const it = HUBS[t] && HUBS[t].itens.find((i) => i[0] === s); return base + " › " + (it ? it[1] : s); }
+const admQuando = (iso) => { if (!iso) return "nunca entrou"; const d = new Date(iso), h = (Date.now() - d) / 36e5; return h < 1 ? "agora há pouco" : h < 24 ? "há " + Math.round(h) + " h" : h < 48 ? "ontem" : "há " + Math.round(h / 24) + " dias"; };
+function renderAdmin(c) {
+  const topo = `<button class="voltar-hub" id="ad-volta">‹ Conta</button><div class="topo"><div><h2>Administração</h2><p>Quem assina, quem usa, o que usa e o que deu erro.</p></div></div>`;
+  const volta = () => { const b = c.querySelector("#ad-volta"); if (b) b.onclick = () => irPara("conta", ""); };
+  if (!ADM.dados && !ADM.erro) { if (!ADM.carregando) admCarregar(); c.innerHTML = topo + '<div class="card"><span class="carregando"></span>Carregando…</div>'; return volta(); }
+  if (ADM.erro && !ADM.dados) { c.innerHTML = topo + `<div class="aviso critico"><b>Não carregou</b><span class="pequeno">${esc(ADM.erro)}</span></div><button class="btn sec" id="ad-de-novo">Tentar de novo</button>`; c.querySelector("#ad-de-novo").onclick = () => { ADM.erro = ""; render(); }; return volta(); }
+  const R = ADM.dados, S = R.resumo, maxP = Math.max(1, ...R.funcoes.map((f) => f.pessoas));
+  const filtros = { ativos: ["Mais ativos", (p) => p.eventos30 > 0 || p.ultimo], nunca: ["Nunca entraram", (p) => !p.ultimo], pagantes: ["Pagantes", (p) => p.status === "ativo" && p.plano && p.plano !== "teste"], todos: ["Todos", () => true] };
+  const lista = R.pessoas.filter(filtros[ADM.filtro][1]);
+  const cart = (r, v, e) => `<div><span>${r}</span><b>${v}</b>${e ? `<em>${e}</em>` : ""}</div>`;
+  c.innerHTML = topo + `
+    <div class="card"><div class="caca-topo"><div class="rotulo">Visão geral</div><button class="btn sec" id="ad-atualizar" style="min-height:36px;padding:6px 12px">Atualizar</button></div>
+      <div class="dados-caca">${cart("Assinantes", S.assinantes, S.ativos + " ativos")}${cart("Pagantes", S.pagantes, S.teste + " em teste")}${cart("Usaram em 7 dias", S.usaram7, S.usaram30 + " em 30 dias")}${cart("Nunca entraram", S.nunca, S.entraram + " já entraram")}${cart("Documentos", S.docs, S.pendentes + " a conferir")}${cart("Erros em 24 h", S.erros24h, S.erros7d + " em 7 dias")}</div>
+      <div class="pequeno" style="margin-top:8px">${S.sem_email} assinante(s) sem e-mail cadastrado. Atualizado às ${new Date(R.gerado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.</div></div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">O que mais usam · 30 dias</div>
+      ${R.funcoes.length ? `<div class="ad-barras">${R.funcoes.slice(0, 20).map((f) => `<div><div class="ad-linha"><span>${esc(admNome(f.nome))}</span><b>${f.pessoas} pessoa(s) · ${f.aberturas} abertura(s)</b></div><div class="ad-barra"><i style="width:${Math.round(100 * f.pessoas / maxP)}%"></i></div></div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Ainda sem registros de uso. Eles começam a aparecer conforme as pessoas abrem as telas.</div>'}
+      <p class="pequeno" style="margin:10px 0 0">Conta quantas pessoas diferentes abriram cada tela e quantas vezes. O registro começou em ${new Date(R.inicio_registro || R.gerado_em).toLocaleDateString("pt-BR")}; antes disso não há histórico de telas.</p></div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Pessoas</div>
+      <div class="ip-fator ad-filtros">${Object.entries(filtros).map(([k, f]) => `<button data-fil="${k}" class="${ADM.filtro === k ? "on" : ""}">${f[0]} (${R.pessoas.filter(f[1]).length})</button>`).join("")}</div>
+      ${lista.length ? `<div class="lista" style="margin-top:10px">${lista.slice(0, 200).map((p) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(p.nome)}</div><div class="pequeno">${esc(p.plano || "sem plano")} · ${esc(p.status || "")}${p.clube ? " · " + esc(p.clube) : ""}${p.plataforma ? " · " + (p.plataforma === "app" ? "app" : "navegador") : ""}</div></div><span class="etiqueta ${!p.ultimo ? "cr" : p.eventos7 ? "ok" : ""}" style="white-space:nowrap">${admQuando(p.ultimo)}</span></div>
+        <div class="pequeno" style="margin-top:6px">${p.eventos30} tela(s) em 30 dias · ${p.docs} documento(s)${p.pendentes ? " (" + p.pendentes + " a conferir)" : ""} · ${p.habs} habitualidade(s)${p.erros ? ' · <span class="cr">' + p.erros + " erro(s)</span>" : ""}</div>
+        ${p.telas.length ? `<div class="pequeno" style="margin-top:4px">Mais usa: ${p.telas.map((t) => esc(admNome(t))).join(", ")}</div>` : ""}</div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Ninguém nesta lista.</div>'}</div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Erros recentes</div>
+      ${R.erros.length ? `<div class="lista" style="margin-top:10px">${R.erros.slice(0, 40).map((e) => `<div class="linha caca-doc"><div class="caca-topo"><div class="t">${esc({ tela: "Erro de tela", documento: "Envio de documento", microfone: "Microfone", gps: "Localização" }[e.nome] || e.nome)}</div><span class="pequeno" style="white-space:nowrap">${new Date(e.quando).toLocaleDateString("pt-BR")} ${new Date(e.quando).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span></div><div class="pequeno" style="margin-top:4px">${esc(e.pessoa)} · ${e.plataforma === "app" ? "app" : "navegador"}${e.detalhe ? " · " + esc(e.detalhe) : ""}</div></div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nenhum erro registrado nos últimos 30 dias.</div>'}</div>
+    <p class="pequeno" style="margin-top:14px">O registro guarda só o nome da tela aberta e o tipo de erro. Não guarda conteúdo de documentos, localização nem o que a pessoa digitou.</p>`;
+  volta();
+  c.querySelector("#ad-atualizar").onclick = () => { ADM.dados = null; render(); };
+  c.querySelectorAll("[data-fil]").forEach((b) => b.onclick = () => { ADM.filtro = b.dataset.fil; render(); });
+}
 function renderCaca(c, sub) {
   const C = cacaLer(), topo = (t, s) => `<div class="topo"><div><h2>${t}</h2><p>${s}</p></div></div>`;
   const nomeProp = (id) => (C.props.find((p) => p.id === id) || {}).nome || "Propriedade removida";
@@ -1779,6 +1832,8 @@ function renderCaca(c, sub) {
 }
 function primeiroNome() { return esc(((D.assinante || {}).nome || "O caçador").split(" ")[0]); }
 function renderTela(c, a, primeiro, docs) {
+  usoTela();
+  if (tela === "admin") return renderAdmin(c);
   const hub = HUBS[tela];
   if (!hub) { subTela = ""; return renderTela0(c, a, primeiro, docs); }
   if (subTela && !hub.itens.some((i) => i[0] === subTela)) subTela = "";
@@ -1965,6 +2020,7 @@ function renderTela0(c, a, primeiro, docs) {
       <div class="lista">
         ${NATIVO ? `<div class="opcao" id="op-trava" style="display:none"><div><div class="t">Trava com digital ou Face ID</div><div class="pequeno">Pede sua biometria ao abrir o app.</div></div><input type="checkbox" class="chave" id="ck-trava" ${guardar.get("cac_trava") === "1" ? "checked" : ""}></div>
         <div class="opcao"><div><div class="t">Lembretes no celular</div><div class="pequeno">Aviso 30 dias, 7 dias e no dia de cada vencimento, às 9h.</div></div><input type="checkbox" class="chave" id="ck-lembretes" ${guardar.get("cac_lembretes") !== "0" ? "checked" : ""}></div>` : ""}
+        ${D.assinante && D.assinante.admin ? '<div class="opcao"><div><div class="t">Administração</div><div class="pequeno">Assinantes, acessos, uso por função e erros.</div></div><button class="btn sec" id="bt-admin">Abrir</button></div>' : ""}
         <div class="opcao"><div><div class="t">Falar com o Ática</div><div class="pequeno">Dúvidas, documentos e atendimento pelo WhatsApp.</div></div><a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">WhatsApp</a></div>
         <div class="opcao"><div><div class="t">Política de privacidade</div><div class="pequeno">Como seus dados e documentos são guardados.</div></div><a href="${SITE}/privacidade/" target="_blank" rel="noopener">Abrir</a></div>
         <div class="opcao" style="flex-wrap:wrap"><div><div class="t">Senha de acesso</div><div class="pequeno">Crie ou troque a senha usada para entrar.</div></div><button class="btn sec" id="bt-senha">Alterar</button>
@@ -2035,7 +2091,7 @@ function statusEnvio(html) { const el = $("#envio"); if (el) el.innerHTML = html
 async function enviarDocumento(base64, mime) {
   statusEnvio('<div class="card"><span class="carregando"></span>Lendo o documento… isso leva alguns segundos.</div>');
   const r = await api("enviar_documento", { arquivo: base64, mime });
-  if (!r.ok) { statusEnvio(`<div class="aviso critico"><b>Não deu certo</b><span class="pequeno">${esc(r.erro || "Tente de novo.")}</span></div>`); return; }
+  if (!r.ok) { usoReg("erro", "documento", r.erro || "falha no envio"); statusEnvio(`<div class="aviso critico"><b>Não deu certo</b><span class="pequeno">${esc(r.erro || "Tente de novo.")}</span></div>`); return; }
   await carregar();
   if (tela === "caca" && cacaDocAlvo && cacaDocAlvo.lista) { cacaDocAlvo = null; subTela = "autorizacoes"; montarMenu(); render(); }
   else if (tela === "caca" && cacaDocAlvo) { const C = cacaLer(), al = cacaDocAlvo, ch = CACA_GERAL.includes(al.k) ? "_" : al.prop; C.docs = C.docs || {}; C.docs[ch] = C.docs[ch] || {}; (C.docs[ch][al.k] = C.docs[ch][al.k] || []).push({ em: new Date().toISOString(), tipo: r.nome_tipo || "" }); if (al.ctf && r.validade && (!C.ctf || r.validade > C.ctf)) C.ctf = r.validade; cacaGravar(C); cacaDocAlvo = null; if (al.ctf) subTela = "ctf"; else { cacaPasta = al.prop; subTela = "propriedades"; } montarMenu(); render(); window.scrollTo(0, 0); }
