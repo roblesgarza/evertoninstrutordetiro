@@ -201,7 +201,7 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 #balx[data-cad]>.aviso,#balx[data-cad]>p.pequeno{display:none}
 @media (max-width:860px){nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}nav button{font-size:10px!important}}
 .nivel-card .chip.ativo{color:var(--ouro);border-color:var(--ouro);background:rgba(226,182,87,.08)}.nivel-card .chip{min-height:44px;padding:10px 18px}
-
+.caca-ctf-card{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;text-align:left;background:var(--card);border:1px solid var(--line);border-left:4px solid currentColor;padding:16px 18px;margin-bottom:14px;cursor:pointer;font:inherit}.caca-ctf-card b{display:block;font:700 26px "Chakra Petch";text-transform:uppercase;letter-spacing:.04em;margin:4px 0}.caca-ctf-card .rotulo,.caca-ctf-card .pequeno{display:block;color:var(--sub)}.caca-ctf-card .seta{font-size:24px;color:var(--sub)}.hub button[data-s="ctf"]{display:none}
 /* manejo de javali */
 .caca-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:10px}
 .caca-check{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:14px;color:var(--txt)}.caca-check input{width:20px;height:20px;flex:none;margin-top:1px}
@@ -1217,6 +1217,7 @@ ICON.saidas = '<path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h3"/>';
 HUBS.caca = { titulo: "Manejo de javali", sub: "Propriedades, autorizações do SIMAF e registro das saídas.", itens: [
   ["propriedades", "Propriedades e autorizações", "Prazo de cada autorização do SIMAF, declaração do dono e relatório.", "propriedades"],
   ["autorizacoes", "Autorizações e documentos", "Autorizações de manejo, declarações de proprietário, SIMAF, CTF e CAR que você enviou.", "documentos"],
+  ["ctf", "CTF do Ibama", "Certificado de Regularidade do Cadastro Técnico Federal: validade e arquivo.", "calendario"],
   ["manejo", "Manejo em andamento", "Inicie e encerre a saída; o proprietário pode ser avisado.", "manejo"],
   ["saidas", "Registro de saídas", "Histórico por propriedade, pronto para o relatório do SIMAF.", "saidas"],
   ["acervo", "Acervo de caça", "Armas do acervo de caçador, separadas do tiro esportivo e da coleção.", "acervo"]] };
@@ -1250,6 +1251,11 @@ function cacaForm(p) {
 }
 const CACA_GERAL = ["id", "cr", "craf", "ctf"];
 let cacaDocAlvo = null;
+function cacaCtfCartao() {
+  const C = cacaLer(), dc = cacaDias(C.ctf);
+  const s = !C.ctf ? ["at", "A informar", "Informe a validade do seu certificado para o app acompanhar."] : dc < 0 ? ["cr", "Vencido", "Venceu em " + br(C.ctf) + ". Renove no site do Ibama antes de sair para o manejo."] : dc <= 15 ? ["at", "Atenção", "Vence em " + dc + " dia(s), em " + br(C.ctf) + ". Já dá para renovar."] : ["ok", "Em dia", "Válido até " + br(C.ctf) + " (" + prazo(dc) + ")."];
+  return `<button class="caca-ctf-card ${s[0]}" id="caca-ctf-card"><span><span class="rotulo">CTF do Ibama · vale 3 meses</span><b>${s[1]}</b><span class="pequeno">${s[2]}</span></span><span class="seta">›</span></button>`;
+}
 const CACA_RX = /manejo|javali|simaf|ibama|cadastro t[ée]cnico federal|\bctf\b|cadastro ambiental rural|\bcar\b|ca[çc]ador|ca[çc]a\b|abate|fauna|arrendat|propriet[áa]rio (rural|da (terra|fazenda|propriedade|área))|propriedade rural/i;
 const cacaDocsConta = () => { try { return D.documentos.filter((d) => d.status !== "substituido" && (d.tipo === "OUTRO" || d.tipo === "GT") && CACA_RX.test((d.descricao || "") + " " + (d.destino || ""))); } catch (e) { return []; } };
 const cacaDocLinha = (d) => `<div class="linha"><div><div class="t">${esc(d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.tipo === "GT" ? "Guia de tráfego · " : ""}${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`;
@@ -1562,6 +1568,22 @@ function renderCaca(c, sub) {
     c.querySelector("#cm-ini").onclick = () => { const h = Number(c.querySelector("#cm-h").value); C.ativa = { prop: c.querySelector("#cm-prop").value, inicio: new Date().toISOString(), previsto: new Date(Date.now() + h * 36e5).toISOString(), gps: c.querySelector("#cm-gpsck").checked, trilha: [], marcas: [] }; cacaGravar(C); render(); };
     return;
   }
+  if (sub === "ctf") {
+    const dc = cacaDias(C.ctf), env = ((C.docs || {})._ || {}).ctf || [], daConta = cacaDocsConta().filter((d) => /\bctf\b|cadastro t[ée]cnico federal|certificado de regularidade/i.test(d.descricao || ""));
+    const sit = !C.ctf ? ["at", "A informar"] : dc < 0 ? ["cr", "Vencido"] : dc <= 15 ? ["at", "Vence em " + dc + " dia(s)"] : ["ok", "Em dia"];
+    c.innerHTML = topo("CTF do Ibama", "Certificado de Regularidade do Cadastro Técnico Federal. Vale 3 meses e precisa estar em dia para o manejo.") +
+      `<div class="card"><div class="caca-topo"><div class="rotulo">Certificado de Regularidade</div><span class="etiqueta ${sit[0]}">${sit[1]}</span></div>
+        <div class="caca-campos" style="margin-top:8px;grid-template-columns:1fr"><label>Validade do certificado<input id="ctf-val" type="date" value="${esc(C.ctf)}"></label></div>
+        <div class="pequeno" style="margin-top:8px">${C.ctf ? "Válido até " + br(C.ctf) + " (" + prazo(dc) + ")." : "Informe a data de validade que aparece no certificado."}</div>
+        ${env.length ? `<div class="pequeno caca-env">✓ ${env.length > 1 ? env.length + " arquivos enviados, o último em " : "Arquivo enviado em "}${new Date(env[env.length - 1].em).toLocaleDateString("pt-BR")}</div>` : ""}
+        <div class="envio-doc" style="margin-top:12px"><button class="btn" data-cdoc="foto">Fotografar o certificado</button><button class="btn sec" data-cdoc="arq">Enviar arquivo ou PDF</button></div><div id="envio"></div>
+        <div class="msg" id="ctf-msg"></div></div>
+      ${daConta.length ? `<h3 class="sec-tit">Certificados na sua conta</h3><div class="lista">${daConta.map(cacaDocLinha).join("")}</div>` : ""}
+      <p class="pequeno" style="margin-top:12px">O certificado é emitido de graça no site do Ibama (Serviços › Cadastro Técnico Federal). Como vale só 3 meses, renove antes de vencer: sem ele em dia, o app não libera o início do manejo.</p>`;
+    c.querySelector("#ctf-val").onchange = (e) => { C.ctf = e.target.value; cacaGravar(C); render(); };
+    c.querySelectorAll("[data-cdoc]").forEach((b) => b.onclick = () => { cacaDocAlvo = { ctf: true, k: "ctf" }; b.dataset.cdoc === "foto" ? fotografar() : $("#arq").click(); });
+    return;
+  }
   if (sub === "autorizacoes") {
     const docs = cacaDocsConta();
     c.innerHTML = topo("Autorizações e documentos", "Tudo o que você enviou sobre manejo: autorização do dono ou arrendatário, SIMAF, CTF, CAR e guias para o manejo.") +
@@ -1603,9 +1625,10 @@ function renderTela(c, a, primeiro, docs) {
   if (subTela && !hub.itens.some((i) => i[0] === subTela)) subTela = "";
   if (!subTela) {
     c.innerHTML = `<div class="topo"><div><h2>${hub.titulo}</h2><p>${hub.sub}</p></div></div>
-      ${tela === "documentos" ? ENVIO_DOC + '<div id="envio"></div>' : ""}
+      ${tela === "documentos" ? ENVIO_DOC + '<div id="envio"></div>' : ""}${tela === "caca" ? cacaCtfCartao() : ""}
       <div class="hub">${hub.itens.map(([k, t, d, ic]) => { const n = hubConta(k); return `<button data-s="${k}"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON[ic]}</svg></span><span><b>${t}${n ? `<span class="conta">${n}</span>` : ""}</b><span class="pequeno">${d}</span></span><span class="seta">›</span></button>`; }).join("")}</div>`;
     c.querySelectorAll(".hub button").forEach((b) => b.onclick = () => irPara(tela, b.dataset.s));
+    if (c.querySelector("#caca-ctf-card")) c.querySelector("#caca-ctf-card").onclick = () => irPara("caca", "ctf");
     return;
   }
   const item = hub.itens.find((i) => i[0] === subTela);
@@ -1855,7 +1878,7 @@ async function enviarDocumento(base64, mime) {
   if (!r.ok) { statusEnvio(`<div class="aviso critico"><b>Não deu certo</b><span class="pequeno">${esc(r.erro || "Tente de novo.")}</span></div>`); return; }
   await carregar();
   if (tela === "caca" && cacaDocAlvo && cacaDocAlvo.lista) { cacaDocAlvo = null; subTela = "autorizacoes"; montarMenu(); render(); }
-  else if (tela === "caca" && cacaDocAlvo) { const C = cacaLer(), al = cacaDocAlvo, ch = CACA_GERAL.includes(al.k) ? "_" : al.prop; C.docs = C.docs || {}; C.docs[ch] = C.docs[ch] || {}; (C.docs[ch][al.k] = C.docs[ch][al.k] || []).push({ em: new Date().toISOString(), tipo: r.nome_tipo || "" }); cacaGravar(C); cacaPasta = al.prop; cacaDocAlvo = null; subTela = "propriedades"; montarMenu(); render(); window.scrollTo(0, 0); }
+  else if (tela === "caca" && cacaDocAlvo) { const C = cacaLer(), al = cacaDocAlvo, ch = CACA_GERAL.includes(al.k) ? "_" : al.prop; C.docs = C.docs || {}; C.docs[ch] = C.docs[ch] || {}; (C.docs[ch][al.k] = C.docs[ch][al.k] || []).push({ em: new Date().toISOString(), tipo: r.nome_tipo || "" }); if (al.ctf && r.validade && (!C.ctf || r.validade > C.ctf)) C.ctf = r.validade; cacaGravar(C); cacaDocAlvo = null; if (al.ctf) subTela = "ctf"; else { cacaPasta = al.prop; subTela = "propriedades"; } montarMenu(); render(); window.scrollTo(0, 0); }
   else { tela = "documentos"; montarMenu(); render(); }
   statusEnvio(`<div class="aviso ${r.vencido ? "atencao" : "info"}"><b>${esc(r.nome_tipo[0].toUpperCase() + r.nome_tipo.slice(1))} recebido ✓</b><span class="pequeno">${r.arma ? esc(r.arma) + " · " : ""}${r.validade ? (r.vencido ? "venceu em " : "válido até ") + br(r.validade) : "sem validade lida"} · a nossa equipe vai conferir.</span></div>`);
 }
