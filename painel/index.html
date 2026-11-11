@@ -1675,7 +1675,7 @@ document.addEventListener("click", (e) => { if (e.target && e.target.closest && 
 // ---------- painel do administrador ----------
 let ADM = { dados: null, erro: "", carregando: false, filtro: "ativos" };
 async function admCarregar() { ADM.carregando = true; let r = null; try { r = await api("admin_painel"); } catch (e) {} ADM.carregando = false; if (r && r.ok && r.resumo) { ADM.dados = r; ADM.erro = ""; } else ADM.erro = (r && r.erro) || "Não foi possível carregar agora."; if (tela === "admin") render(); }
-function admNome(n) { const [t, s] = String(n).split("/"), base = { painel: "Início", documentos: "Documentos", balistica: "Balística", caderneta: "Caderneta", caca: "Manejo", conta: "Conta", acervo: "Acervo", guias: "Guias", calendario: "Prazos", habitualidade: "Habitualidade" }[t] || t; if (!s) return base + (HUBS[t] ? " (menu)" : ""); const it = HUBS[t] && HUBS[t].itens.find((i) => i[0] === s); return base + " › " + (it ? it[1] : s); }
+function admNome(n) { const [t, s] = String(n).split("/"), base = { painel: "Início", documentos: "Documentos", balistica: "Balística", caderneta: "Caderneta", caca: "Manejo", conta: "Conta", acervo: "Acervo", guias: "Guias", calendario: "Prazos", habitualidade: "Habitualidade" }[t] || t; if (t === "nivel") return "Mudou o nível para " + String(s || "").replace("definido-", ""); if (!s) return base + (HUBS[t] ? " (menu)" : ""); const it = HUBS[t] && HUBS[t].itens.find((i) => i[0] === s); return base + " › " + (it ? it[1] : s); }
 const admQuando = (iso) => { if (!iso) return "nunca entrou"; const d = new Date(iso), h = (Date.now() - d) / 36e5; return h < 1 ? "agora há pouco" : h < 24 ? "há " + Math.round(h) + " h" : h < 48 ? "ontem" : "há " + Math.round(h / 24) + " dias"; };
 function renderAdmin(c) {
   const topo = `<button class="voltar-hub" id="ad-volta">‹ Conta</button><div class="topo"><div><h2>Administração</h2><p>Quem assina, quem usa, o que usa e o que deu erro.</p></div></div>`;
@@ -2097,7 +2097,9 @@ function nivelLigar(c) {
     const m = c.querySelector("#nivel-msg"); m.textContent = "Salvando…"; m.className = "msg";
     const r = await api("definir_nivel", { nivel: String(nv) });
     if (!r.ok) { m.textContent = r.erro || "Não foi possível salvar o nível."; m.className = "msg erro"; return; }
+    try { usoReg("tela", "nivel/definido-" + nv); usoEnviar(); } catch (e) {}
     await carregar(); irPara("documentos", "habitualidade");
+    const m2 = document.querySelector("#nivel-msg"); if (m2) { m2.textContent = D.nivel.declarado === nv ? "Nível " + nv + " salvo na sua conta." : "O nível não foi salvo. Tente de novo com internet."; m2.className = D.nivel.declarado === nv ? "msg" : "msg erro"; }
   });
   const ir = c.querySelector("#ir-nivel"); if (ir) ir.onclick = () => irPara("documentos", "habitualidade");
 }
@@ -2116,7 +2118,7 @@ function renderTela0(c, a, primeiro, docs) {
         <div class="card"><div class="rotulo">Certificado de Registro</div><div class="grande ${cr && cr.validade ? cor(cr.dias) : "at"}">${cr && cr.validade ? br(cr.validade) : "a informar"}</div><div class="pequeno">${cr && cr.validade ? prazo(cr.dias) : "mande o CR pelo WhatsApp"}</div></div>
         <div class="card"><div class="rotulo">Acervo</div><div class="grande">${D.resumo.armas}</div><div class="pequeno">armas com CRAF${D.resumo.autorizacoes ? ` · ${D.resumo.autorizacoes} autorização(ões) em andamento` : ""}</div></div>
         <div class="card"><div class="rotulo">Transporte hoje</div><div class="grande ${D.resumo.transporte.semGuia ? "at" : "ok"}">${D.resumo.transporte.podeLevar} com guia</div><div class="pequeno">${D.resumo.transporte.semGuia} arma(s) com CRAF sem guia vigente</div></div>
-        <div class="card" id="ir-nivel" style="cursor:pointer"><div class="rotulo">Nível ›</div><div class="grande">${D.nivel.declarado} <span class="pequeno">declarado</span></div><div class="pequeno ${D.nivel.comprovado >= D.nivel.declarado ? "ok" : "at"}">${D.nivel.comprovado ? "nível " + D.nivel.comprovado + " comprovado" : "nenhum nível comprovado ainda"}</div></div>
+        <div class="card" id="ir-nivel" style="cursor:pointer"><div class="rotulo">Nível ›</div><div class="grande">${D.nivel.declarado} <span class="pequeno">salvo na sua conta</span></div><div class="pequeno ${D.nivel.comprovado >= D.nivel.declarado ? "ok" : "at"}">${D.nivel.comprovado ? "habitualidade cobre o nível " + D.nivel.comprovado : "habitualidade ainda não cobre nenhum nível"}</div></div>
       </div>
       <h3 class="sec-tit">Precisa de atenção</h3>
       <div class="lista">${D.avisos.length ? D.avisos.map((x) => `<div class="aviso ${x.nivel}"><span class="etiqueta ${x.nivel === "critico" ? "cr" : x.nivel === "atencao" ? "at" : ""}" style="width:max-content">${x.nivel === "critico" ? "Crítico" : x.nivel === "atencao" ? "Atenção" : "Info"}</span><b>${esc(x.titulo)}</b><span class="pequeno">${esc(x.texto)}</span></div>`).join("") : '<div class="vazio">Nada pendente.</div>'}</div>
