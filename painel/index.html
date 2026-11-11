@@ -200,6 +200,7 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 .voltar-hub:hover{color:var(--ouro);border-color:rgba(226,182,87,.5)}
 #balx[data-cad]>.aviso,#balx[data-cad]>p.pequeno{display:none}
 @media (max-width:860px){nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}nav button{font-size:10px!important}}
+.nivel-card .chip.ativo{color:var(--ouro);border-color:var(--ouro);background:rgba(226,182,87,.08)}.nivel-card .chip{min-height:44px;padding:10px 18px}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -1141,6 +1142,7 @@ function render() {
   const docs = D.documentos;
   renderTela(c, a, primeiro, docs);
   c.querySelectorAll("[data-doc]").forEach((b) => b.onclick = () => (b.dataset.doc === "foto" ? fotografar() : $("#arq").click()));
+  nivelLigar(c);
   const atalho = c.querySelector("#ir-balistica"); if (atalho) atalho.onclick = () => irPara("balistica", "tiro");
   if (D._offline) c.insertAdjacentHTML("afterbegin", `<div class="offline">Sem internet: mostrando seus dados salvos em ${new Date(D._offline).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}.</div>`);
 }
@@ -1208,6 +1210,43 @@ function renderTela(c, a, primeiro, docs) {
   c.insertAdjacentHTML("afterbegin", `<button class="voltar-hub">‹ ${hub.titulo}</button>`);
   c.querySelector(".voltar-hub").onclick = () => irPara(tela, "");
 }
+function nivelFalta(a) {
+  if (!a) return "";
+  const itens = [];
+  for (const g of a.grupos || []) {
+    const f = Object.entries(g.falta || {}).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${({ eventos: "eventos", treinos: "treinos", competicoes: "competições", competicoes_no_ambito_exigido: "competições no âmbito exigido" })[k] || k.replace(/_/g, " ")}`).join(", ");
+    if (f) itens.push(`<div class="linha"><div><div class="t">${esc(g.nome)}</div><div class="pequeno at">faltam ${esc(f)}</div></div><div class="pequeno">${g.feitos.treinos} treinos · ${g.feitos.competicoes} competições</div></div>`);
+  }
+  return itens.join("");
+}
+function nivelCartao() {
+  const n = D.nivel, an = n.analise || {}, dec = n.declarado, atual = an[dec], prox = an[dec + 1];
+  const chips = [1, 2, 3].map((i) => `<button class="chip${i === dec ? " ativo" : ""}" data-nivel="${i}">Nível ${i}</button>`).join("");
+  let h = `<div class="card nivel-card"><div class="rotulo">Meu nível</div>
+    <p class="pequeno" style="margin:8px 0 10px">Marque o nível que consta no seu CR. A análise abaixo usa os treinos e competições registrados nos últimos 12 meses.</p>
+    <div class="chips">${chips}</div><div class="msg" id="nivel-msg"></div>`;
+  if (!atual) return h + `<p class="pequeno" style="margin:8px 0 0">A análise por nível aparece assim que seus dados forem atualizados.</p></div>`;
+  h += `<h3 class="sec-tit" style="margin-top:14px">Manter o nível ${dec}</h3><p class="pequeno" style="margin:0 0 10px">${esc(atual.exigencia || "")}</p>`;
+  if (n.dispensado) h += `<div class="aviso info"><b>Primeiro ano do CR</b><span class="pequeno">Você está dispensado da habitualidade neste período. Vale registrar os treinos mesmo assim.</span></div>`;
+  else if (atual.completo) h += `<div class="aviso info" style="border-left-color:var(--verde)"><b class="ok">Em dia</b><span class="pequeno">Seus registros dos últimos 12 meses cobrem o nível ${dec}. Continue registrando: a janela é móvel e treinos antigos saem da conta.</span></div>`;
+  else h += `<div class="aviso atencao"><b>Faltam ${atual.falta_total} registro(s)</b><span class="pequeno">Complete para o nível ${dec} não ficar abaixo do declarado.</span></div><div class="lista" style="margin-top:10px">${nivelFalta(atual)}</div>`;
+  if (prox) {
+    h += `<h3 class="sec-tit" style="margin-top:18px">Evoluir para o nível ${dec + 1}</h3><p class="pequeno" style="margin:0 0 10px">${esc(prox.exigencia || "")}</p>`;
+    h += prox.completo ? `<div class="aviso info" style="border-left-color:var(--verde)"><b class="ok">Você já cumpre a habitualidade do nível ${dec + 1}</b><span class="pequeno">Se quiser subir de nível, fale com a gente no WhatsApp para ver os documentos do pedido.</span></div>`
+      : `<div class="aviso"><b>Faltam ${prox.falta_total} registro(s) para o nível ${dec + 1}</b><span class="pequeno">Opcional: só se você quiser subir de nível.</span></div><div class="lista" style="margin-top:10px">${nivelFalta(prox)}</div>`;
+  } else h += `<p class="pequeno" style="margin:14px 0 0">Você está no nível mais alto. O foco é manter a habitualidade em dia.</p>`;
+  return h + `<p class="pequeno" style="margin:14px 0 0">Comprovado pelos registros: ${n.comprovado ? "nível " + n.comprovado : "nenhum nível ainda"}. A análise é um apoio; quem concede e confere o nível é o Exército.</p></div>`;
+}
+function nivelLigar(c) {
+  c.querySelectorAll("[data-nivel]").forEach((b) => b.onclick = async () => {
+    const nv = Number(b.dataset.nivel); if (nv === D.nivel.declarado) return;
+    const m = c.querySelector("#nivel-msg"); m.textContent = "Salvando…"; m.className = "msg";
+    const r = await api("definir_nivel", { nivel: String(nv) });
+    if (!r.ok) { m.textContent = r.erro || "Não foi possível salvar o nível."; m.className = "msg erro"; return; }
+    await carregar(); irPara("documentos", "habitualidade");
+  });
+  const ir = c.querySelector("#ir-nivel"); if (ir) ir.onclick = () => irPara("documentos", "habitualidade");
+}
 function renderTela0(c, a, primeiro, docs) {
   if (tela === "balistica") { renderBalistica(c); return; }
   if (tela === "painel") {
@@ -1223,7 +1262,7 @@ function renderTela0(c, a, primeiro, docs) {
         <div class="card"><div class="rotulo">Certificado de Registro</div><div class="grande ${cr && cr.validade ? cor(cr.dias) : "at"}">${cr && cr.validade ? br(cr.validade) : "a informar"}</div><div class="pequeno">${cr && cr.validade ? prazo(cr.dias) : "mande o CR pelo WhatsApp"}</div></div>
         <div class="card"><div class="rotulo">Acervo</div><div class="grande">${D.resumo.armas}</div><div class="pequeno">armas com CRAF${D.resumo.autorizacoes ? ` · ${D.resumo.autorizacoes} autorização(ões) em andamento` : ""}</div></div>
         <div class="card"><div class="rotulo">Transporte hoje</div><div class="grande ${D.resumo.transporte.semGuia ? "at" : "ok"}">${D.resumo.transporte.podeLevar} com guia</div><div class="pequeno">${D.resumo.transporte.semGuia} arma(s) com CRAF sem guia vigente</div></div>
-        <div class="card"><div class="rotulo">Nível</div><div class="grande">${D.nivel.declarado} <span class="pequeno">declarado</span></div><div class="pequeno ${D.nivel.comprovado >= D.nivel.declarado ? "ok" : "at"}">${D.nivel.comprovado ? "nível " + D.nivel.comprovado + " comprovado" : "nenhum nível comprovado ainda"}</div></div>
+        <div class="card" id="ir-nivel" style="cursor:pointer"><div class="rotulo">Nível ›</div><div class="grande">${D.nivel.declarado} <span class="pequeno">declarado</span></div><div class="pequeno ${D.nivel.comprovado >= D.nivel.declarado ? "ok" : "at"}">${D.nivel.comprovado ? "nível " + D.nivel.comprovado + " comprovado" : "nenhum nível comprovado ainda"}</div></div>
       </div>
       <h3 class="sec-tit">Precisa de atenção</h3>
       <div class="lista">${D.avisos.length ? D.avisos.map((x) => `<div class="aviso ${x.nivel}"><span class="etiqueta ${x.nivel === "critico" ? "cr" : x.nivel === "atencao" ? "at" : ""}" style="width:max-content">${x.nivel === "critico" ? "Crítico" : x.nivel === "atencao" ? "Atenção" : "Info"}</span><b>${esc(x.titulo)}</b><span class="pequeno">${esc(x.texto)}</span></div>`).join("") : '<div class="vazio">Nada pendente.</div>'}</div>
@@ -1258,6 +1297,8 @@ function renderTela0(c, a, primeiro, docs) {
   if (tela === "habitualidade") {
     const s = D.habitualidade.situacao, regs = D.habitualidade.registros;
     c.innerHTML = `<div class="topo"><div><h2>Habitualidade</h2><p>Nível ${D.nivel.declarado} · ${esc(s.exigencia || "")} · janela móvel de 12 meses</p></div></div>
+      ${nivelCartao()}
+      <h3 class="sec-tit">Situação por grupo de arma · nível ${D.nivel.declarado}</h3>
       ${grupos()}
       <h3 class="sec-tit">Registros (${regs.length})</h3>
       <div class="lista">${regs.map((r) => `<div class="linha"><div><div class="t">${r.tipo === "competicao" ? "Competição" : "Treino"} · ${esc(r.clube || "")}</div><div class="pequeno">${esc([r.arma, r.calibre, r.ambito].filter(Boolean).join(" · "))}</div></div><div class="pequeno">${br(r.data)}</div></div>`).join("") || '<div class="vazio">Nenhum treino registrado nos últimos 12 meses. Conte no WhatsApp: "treinei hoje no clube X com a pistola 9mm".</div>'}</div>`;
