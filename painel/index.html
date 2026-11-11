@@ -209,6 +209,17 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 .caca-topo{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
 .dados-caca{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px}.dados-caca div{background:var(--card2);padding:10px 12px}.dados-caca span{display:block;font:600 10px 'Chakra Petch';letter-spacing:.12em;text-transform:uppercase;color:var(--sub)}.dados-caca b{display:block;font:700 16px 'Chakra Petch';margin-top:3px}.dados-caca em{font-style:normal;font-size:12px;color:var(--sub)}
 @media (max-width:860px){nav{grid-template-columns:repeat(6,minmax(0,1fr))!important}nav button{font-size:9px!important}}
+.caca-doc{display:block!important}.caca-envia{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.caca-envia .btn{min-height:40px;padding:8px 12px;font-size:13px;flex:1}.caca-env{color:var(--verde);margin-top:8px}
+.ip-caixa{text-align:center}.ip-caixa[data-fase="rodando"]{border-color:var(--verde)}.ip-caixa[data-fase="espera"]{border-color:var(--amarelo)}
+.ip-tempo{font:700 64px/1.1 'Chakra Petch';letter-spacing:.02em;margin:8px 0 4px;font-variant-numeric:tabular-nums}.ip-tempo small{font-size:22px;color:var(--sub)}
+.ip-parar{width:100%;min-height:64px;font-size:20px;margin-top:14px}
+.ip-nivel{height:8px;background:var(--card2);margin:14px 0 6px;overflow:hidden}.ip-nivel i{display:block;height:100%;width:0;background:var(--verde)}
+.ip-caixa .dados-caca{text-align:left}
+.ip-tiros{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:12px}.ip-tiros div{display:flex;align-items:baseline;gap:8px;background:var(--card2);padding:8px 10px}.ip-tiros span{font:600 11px 'Chakra Petch';color:var(--sub);min-width:18px}.ip-tiros b{font:700 15px 'Chakra Petch'}.ip-tiros em{font-style:normal;font-size:12px;color:var(--sub);flex:1}.ip-tiros button,.ip-fotos button{background:none;border:1px solid var(--line);color:var(--sub);width:28px;height:28px;font-size:16px;line-height:1;cursor:pointer}
+.ip-fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:10px}.ip-fotos div{position:relative}.ip-fotos img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border:1px solid var(--line)}.ip-fotos button{position:absolute;top:4px;right:4px;background:rgba(10,10,12,.8);color:#fff}
+.ip-cont{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:12px}.ip-cont>div{background:var(--card2);padding:10px 12px}.ip-cont span{display:block;font:600 10px 'Chakra Petch';letter-spacing:.12em;text-transform:uppercase;color:var(--sub)}.ip-cont>div>div{display:flex;align-items:center;justify-content:space-between;margin-top:6px}.ip-cont b{font:700 22px 'Chakra Petch'}.ip-cont button{width:44px;height:44px;background:var(--bg);border:1px solid var(--line);color:var(--txt);font-size:22px;cursor:pointer}
+.ip-fator{display:flex}.ip-fator button{background:none;border:1px solid var(--line);color:var(--sub);padding:8px 14px;font:600 12px 'Chakra Petch';letter-spacing:.08em;text-transform:uppercase;cursor:pointer}.ip-fator button.on{background:var(--ouro);color:#0A0A0C;border-color:var(--ouro)}
+.caca-campos input[type=range]{padding:0;min-height:36px;accent-color:var(--ouro)}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -1188,6 +1199,7 @@ const HUBS = {
 function hubConta(k) {
   try {
     if (k === "acervo") return tela === "caca" ? D.documentos.filter((d) => d.tipo === "CRAF" && d.acervo === "cacador").length : D.resumo.armas;
+    if (k === "ipsc") return ipscLer().series.length;
     if (k === "propriedades") return cacaLer().props.length;
     if (k === "saidas") return cacaLer().saidas.length;
     if (k === "documentos") return D.documentos.length;
@@ -1234,6 +1246,8 @@ function cacaForm(p) {
     <div class="acoes" style="margin-top:12px"><button class="btn" id="cp-salvar">Salvar</button><button class="btn sec" id="cp-cancelar">Cancelar</button>${p.id ? '<button class="btn sec" id="cp-excluir" style="color:var(--vermelho)">Excluir</button>' : ""}</div>
     <div class="msg" id="cp-msg"></div></div>`;
 }
+const CACA_GERAL = ["id", "cr", "craf", "ctf"];
+let cacaDocAlvo = null;
 let cacaEdit = null, cacaWatch = null, cacaVer = null, cacaPasta = null;
 const cacaDist = (a, b) => { const R = 6371000, r = Math.PI / 180, x = Math.sin((b[0] - a[0]) * r / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin((b[1] - a[1]) * r / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
 const cacaKm = (t) => (t || []).reduce((s, p, i) => i ? s + cacaDist(t[i - 1], p) : 0, 0);
@@ -1293,21 +1307,170 @@ async function cacaCompartilhar(s, nome, msgEl) {
 function cacaPastaHtml(C, p) {
   const s = cacaSituacao(C, p), cr = D.resumo.cr, armas = D.documentos.filter((d) => d.tipo === "CRAF" && d.acervo === "cacador"), guias = D.documentos.filter((d) => d.tipo === "GT" && (d.dias === null || d.dias === undefined || d.dias >= 0));
   const L = [
-    ["Documento de identidade com foto", "De todos os que participam do manejo.", null, "Leve o original"],
-    ["CR com a atividade de caça", cr && cr.validade ? "Válido até " + br(cr.validade) + " (" + prazo(cr.dias) + ")." : "Envie o CR para o app acompanhar a validade.", cr && cr.validade ? cr.dias >= 0 : false, cr && cr.validade ? (cr.dias >= 0 ? "Em dia" : "Vencido") : "A informar"],
-    ["CRAF das armas do acervo de caça", armas.length ? armas.length + " arma(s) no acervo de caçador." : "Nenhuma arma marcada como acervo de caçador. Ajuste em Acervo de caça.", armas.length > 0, armas.length ? armas.length + " arma(s)" : "Falta"],
-    ["Guia de tráfego para o manejo", guias.length ? guias.length + " guia(s) vigente(s) no app. Confira se cobre esta propriedade." : "Nenhuma guia vigente no app.", guias.length > 0, guias.length ? "Conferir destino" : "Falta"],
-    ["Certificado de Regularidade do CTF/Ibama", C.ctf ? "Válido até " + br(C.ctf) + " (" + prazo(s.dc) + ")." : "Informe a validade. Vale 3 meses.", C.ctf ? s.dc >= 0 : false, C.ctf ? (s.dc >= 0 ? "Em dia" : "Vencido") : "A informar"],
-    ["Autorização de manejo do SIMAF", p.fim ? "Desta propriedade, válida até " + br(p.fim) + " (" + prazo(s.da) + ")." : "Informe a validade da autorização desta propriedade.", p.fim ? s.da >= 0 : false, p.fim ? (s.da >= 0 ? "Em dia" : "Vencida") : "A informar"],
-    ["Declaração de acesso do proprietário", "Assinada pelo dono, com nome e CPF de toda a equipe.", !!p.decl, p.decl ? "Em mãos" : "Falta"],
-    ["Inscrição da propriedade no CAR", p.car ? "Nº " + esc(p.car) : "Informe o número do CAR na ficha da propriedade.", !!p.car, p.car ? "Informado" : "A informar"],
+    ["id", "Documento de identidade com foto", "De todos os que participam do manejo.", null, "Leve o original"],
+    ["cr", "CR com a atividade de caça", cr && cr.validade ? "Válido até " + br(cr.validade) + " (" + prazo(cr.dias) + ")." : "Envie o CR para o app acompanhar a validade.", cr && cr.validade ? cr.dias >= 0 : false, cr && cr.validade ? (cr.dias >= 0 ? "Em dia" : "Vencido") : "A informar"],
+    ["craf", "CRAF das armas do acervo de caça", armas.length ? armas.length + " arma(s) no acervo de caçador." : "Nenhuma arma marcada como acervo de caçador. Ajuste em Acervo de caça.", armas.length > 0, armas.length ? armas.length + " arma(s)" : "Falta"],
+    ["gt", "Guia de tráfego para o manejo", guias.length ? guias.length + " guia(s) vigente(s) no app. Confira se cobre esta propriedade." : "Nenhuma guia vigente no app.", guias.length > 0, guias.length ? "Conferir destino" : "Falta"],
+    ["ctf", "Certificado de Regularidade do CTF/Ibama", C.ctf ? "Válido até " + br(C.ctf) + " (" + prazo(s.dc) + ")." : "Informe a validade. Vale 3 meses.", C.ctf ? s.dc >= 0 : false, C.ctf ? (s.dc >= 0 ? "Em dia" : "Vencido") : "A informar"],
+    ["simaf", "Autorização de manejo do SIMAF", p.fim ? "Desta propriedade, válida até " + br(p.fim) + " (" + prazo(s.da) + ")." : "Informe a validade da autorização desta propriedade.", p.fim ? s.da >= 0 : false, p.fim ? (s.da >= 0 ? "Em dia" : "Vencida") : "A informar"],
+    ["decl", "Declaração de acesso do proprietário", "Assinada pelo dono, com nome e CPF de toda a equipe.", !!p.decl, p.decl ? "Em mãos" : "Falta"],
+    ["car", "Inscrição da propriedade no CAR", p.car ? "Nº " + esc(p.car) : "Informe o número do CAR na ficha da propriedade.", !!p.car, p.car ? "Informado" : "A informar"],
   ];
-  const ok = L.filter((x) => x[2] === true).length, tot = L.filter((x) => x[2] !== null).length;
-  return `<div class="card" id="caca-pasta"><div class="caca-topo"><div><div class="rotulo">Pasta de documentos</div><div class="tit" style="font-size:17px;margin-top:4px">${esc(p.nome)}</div></div><span class="etiqueta ${ok === tot ? "ok" : "at"}">${ok} de ${tot} em dia</span></div>
-    <div class="lista" style="margin-top:12px">${L.map((x) => `<div class="linha"><div><div class="t">${x[0]}</div><div class="pequeno">${x[1]}</div></div><span class="etiqueta ${x[2] === null ? "" : x[2] ? "ok" : "cr"}" style="white-space:nowrap">${x[3]}</span></div>`).join("")}</div>
-    <div class="envio-doc" style="margin-top:12px"><button class="btn" data-doc="foto">Fotografar documento</button><button class="btn sec" data-doc="arq">Enviar arquivo ou PDF</button></div>
-    <p class="pequeno" style="margin:0">Os documentos enviados ficam em Documentos › Meus documentos. Lista baseada na IN Ibama 3/2013 e no Decreto 11.615/2023; confirme com o Everton se o seu caso tem exigência a mais.</p>
+  const ok = L.filter((x) => x[3] === true).length, tot = L.filter((x) => x[3] !== null).length, DC = C.docs || {};
+  const env = (k) => ((CACA_GERAL.includes(k) ? DC._ : DC[p.id]) || {})[k] || [];
+  return `<div class="card" id="caca-pasta"><div id="envio"></div><div class="caca-topo"><div><div class="rotulo">Pasta de documentos</div><div class="tit" style="font-size:17px;margin-top:4px">${esc(p.nome)}</div></div><span class="etiqueta ${ok === tot ? "ok" : "at"}">${ok} de ${tot} em dia</span></div>
+    <div class="lista" style="margin-top:12px">${L.map((x) => { const e = env(x[0]); return `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${x[1]}</div><div class="pequeno">${x[2]}</div></div><span class="etiqueta ${x[3] === null ? "" : x[3] ? "ok" : "cr"}" style="white-space:nowrap">${x[4]}</span></div>
+      ${e.length ? `<div class="pequeno caca-env">✓ ${e.length > 1 ? e.length + " arquivos enviados, o último em " : "Enviado em "}${new Date(e[e.length - 1].em).toLocaleDateString("pt-BR")}${e[e.length - 1].tipo ? " · lido como " + esc(e[e.length - 1].tipo) : ""}</div>` : ""}
+      <div class="caca-envia"><button class="btn sec" data-cdoc="foto" data-k="${x[0]}">Fotografar</button><button class="btn sec" data-cdoc="arq" data-k="${x[0]}">${e.length ? "Enviar outro arquivo" : "Enviar arquivo ou PDF"}</button></div></div>`; }).join("")}</div>
+    <p class="pequeno" style="margin:12px 0 0">Cada item tem o seu envio. Os arquivos ficam em Documentos › Meus documentos e a nossa equipe confere. Lista baseada na IN Ibama 3/2013 e no Decreto 11.615/2023; confirme com o Everton se o seu caso tem exigência a mais.</p>
     <button class="btn sec" id="caca-pasta-x" style="margin-top:12px">Fechar pasta</button></div>`;
+}
+ICON.ipsc = '<circle cx="12" cy="14" r="7.5"/><path d="M12 14V9.5M9.5 2.5h5M12 2.5v4M18.5 7.5L20 6"/>';
+HUBS.caderneta.itens.push(["ipsc", "Cronômetro IPSC", "Sinal de partida, tempo de cada tiro e pontuação da série.", "ipsc"]);
+const IPSC_K = "atica_ipsc_v1";
+function ipscLer() { let d = null; try { d = JSON.parse(localStorage.getItem(IPSC_K)); } catch (e) {} d = d || {}; d.cfg = Object.assign({ sens: 4, dmin: 1, dmax: 4, eco: 0.08, voz: true, auto: 10, fator: "minor" }, d.cfg || {}); d.series = d.series || []; return d; }
+function ipscGravar(d) { for (let n = 12; n >= 0; n -= 4) { d.series.forEach((s, i) => { if (i >= n) s.fotos = []; }); try { localStorage.setItem(IPSC_K, JSON.stringify(d)); return true; } catch (e) {} } return false; }
+let ipsc = { fase: "idle" };
+const ipscSeg = (t) => (Math.round(t * 100) / 100).toFixed(2).replace(".", ",");
+const ipscLimiar = (s) => Math.max(0.05, 0.95 - (s - 1) * 0.1);
+const ipscTempo = (s) => s.tiros[s.tiros.length - 1] || 0;
+const ipscPontos = (s) => Math.max(0, 5 * s.A + (s.fator === "major" ? 4 : 3) * s.C + (s.fator === "major" ? 2 : 1) * s.D - 10 * (s.M + s.NS + s.P));
+const ipscFator = (s) => ipscTempo(s) ? ipscPontos(s) / ipscTempo(s) : 0;
+const ipscHf = (s) => ipscFator(s).toFixed(4).replace(".", ",");
+function ipscSoltar() {
+  clearTimeout(ipsc.tm); cancelAnimationFrame(ipsc.raf);
+  try { if (ipsc.proc) ipsc.proc.onaudioprocess = null; } catch (e) {}
+  try { if (ipsc.stream) ipsc.stream.getTracks().forEach((t) => t.stop()); } catch (e) {}
+  try { if (ipsc.ctx) ipsc.ctx.close(); } catch (e) {}
+  try { if (ipsc.trava) ipsc.trava.release(); } catch (e) {}
+  try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+}
+async function ipscIniciar() {
+  const cfg = ipscLer().cfg, eu = ipsc = { fase: "prep", tiros: [], nivel: 0, cfg };
+  render();
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("sem");
+    eu.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  } catch (e) { if (ipsc === eu) { ipsc = { fase: "idle", erro: e && e.message === "sem" ? "Este aparelho não libera o microfone para o cronômetro." : "Microfone não permitido. Libere o acesso ao microfone para o cronômetro ouvir os tiros." }; render(); } return; }
+  if (ipsc !== eu) { eu.stream.getTracks().forEach((t) => t.stop()); return; }
+  const AC = window.AudioContext || window.webkitAudioContext, ctx = eu.ctx = new AC();
+  try { await ctx.resume(); } catch (e) {}
+  const src = ctx.createMediaStreamSource(eu.stream), proc = eu.proc = ctx.createScriptProcessor(512, 1, 1), mudo = ctx.createGain(); mudo.gain.value = 0;
+  src.connect(proc); proc.connect(mudo); mudo.connect(ctx.destination);
+  const lim = ipscLimiar(cfg.sens); let base = null, n = 0;
+  proc.onaudioprocess = (ev) => {
+    const b = ev.inputBuffer.getChannelData(0), sr = ctx.sampleRate; let pico = 0;
+    if (base === null) base = ctx.currentTime - b.length / sr;
+    for (let i = 0; i < b.length; i++) { const v = Math.abs(b[i]); if (v > pico) pico = v;
+      if (v >= lim && eu.fase === "rodando") { const t = base + (n + i) / sr - eu.t0; if (t >= 0.35 && (!eu.tiros.length || t - eu.tiros[eu.tiros.length - 1] >= cfg.eco)) eu.tiros.push(t); } }
+    n += b.length; eu.nivel = Math.max(pico, eu.nivel * 0.85);
+  };
+  try { eu.trava = await navigator.wakeLock.request("screen"); } catch (e) {}
+  const partida = () => { if (ipsc !== eu || eu.fase !== "prep") return; eu.fase = "espera"; ipscRotulo();
+    eu.tm = setTimeout(() => { if (ipsc !== eu || eu.fase !== "espera") return;
+      const t0 = ctx.currentTime + 0.06, o = ctx.createOscillator(), g = ctx.createGain(); o.type = "square"; o.frequency.value = 2400; g.gain.value = 0.9; o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0 + 0.3);
+      eu.t0 = t0; eu.fase = "rodando"; ipscRotulo(); }, (cfg.dmin + Math.random() * Math.max(0, cfg.dmax - cfg.dmin)) * 1000); };
+  if (cfg.voz && window.speechSynthesis && window.SpeechSynthesisUtterance) {
+    let foi = false; const ir = () => { if (!foi) { foi = true; partida(); } }, u = new SpeechSynthesisUtterance("Are you ready? Stand by."); u.lang = "en-US"; u.onend = ir; u.onerror = ir; setTimeout(ir, 4500);
+    try { speechSynthesis.speak(u); } catch (e) { ir(); }
+  } else partida();
+  ipscLoop();
+}
+function ipscRotulo() { const el = document.querySelector("#ip-fase"); if (el) el.textContent = ipsc.fase === "prep" ? "Are you ready?" : ipsc.fase === "espera" ? "Stand by…" : "Valendo"; const cx = document.querySelector("#ip-caixa"); if (cx) cx.dataset.fase = ipsc.fase; }
+function ipscLoop() {
+  const eu = ipsc, el = document.querySelector("#ip-tempo");
+  if (!["prep", "espera", "rodando"].includes(eu.fase)) return;
+  if (!el) { ipscSoltar(); ipsc = { fase: "idle" }; return; }
+  if (eu.fase === "rodando") {
+    const t = eu.ctx.currentTime - eu.t0, n = eu.tiros.length, ult = n ? eu.tiros[n - 1] : 0;
+    el.textContent = ipscSeg(Math.max(0, t));
+    document.querySelector("#ip-n").textContent = n; document.querySelector("#ip-ult").textContent = n ? ipscSeg(ult) : "—"; document.querySelector("#ip-split").textContent = n > 1 ? ipscSeg(ult - eu.tiros[n - 2]) : "—";
+    if ((eu.cfg.auto && n && t - ult >= eu.cfg.auto) || (!n && t > 90)) return ipscParar();
+  }
+  const nv = document.querySelector("#ip-nivel i"); if (nv) { nv.style.width = Math.min(100, eu.nivel * 100) + "%"; nv.style.background = eu.nivel >= ipscLimiar(eu.cfg.sens) ? "var(--vermelho)" : "var(--verde)"; }
+  eu.raf = requestAnimationFrame(ipscLoop);
+}
+function ipscParar() {
+  const eu = ipsc; ipscSoltar();
+  if (eu.fase === "rodando" && eu.tiros.length) ipsc = { fase: "resultado", novo: true, serie: { id: "i" + Date.now().toString(36), data: new Date().toISOString(), tiros: eu.tiros.map((t) => Math.round(t * 1000) / 1000), fator: eu.cfg.fator, A: 0, C: 0, D: 0, M: 0, NS: 0, P: 0, fotos: [], obs: "" } };
+  else ipsc = { fase: "idle", erro: eu.fase === "rodando" ? "Nenhum tiro detectado. Aumente a sensibilidade ou deixe o celular mais perto." : "" };
+  render();
+}
+function ipscFoto(arq) { return new Promise((ok, falha) => { const img = new Image(), url = URL.createObjectURL(arq);
+  img.onload = () => { const k = Math.min(1, 900 / Math.max(img.width, img.height)), cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); ok(cv.toDataURL("image/jpeg", 0.7)); };
+  img.onerror = () => { URL.revokeObjectURL(url); falha(new Error("imagem")); }; img.src = url; }); }
+function ipscTexto(s) {
+  const L = ["Série IPSC · " + new Date(s.data).toLocaleDateString("pt-BR") + " " + new Date(s.data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), "Tempo: " + ipscSeg(ipscTempo(s)) + " s · " + s.tiros.length + " tiros · 1º tiro " + ipscSeg(s.tiros[0]) + " s"];
+  if (s.A + s.C + s.D + s.M + s.NS + s.P) L.push(`A ${s.A} · C ${s.C} · D ${s.D} · Miss ${s.M} · No-shoot ${s.NS} · Proc ${s.P} (${s.fator === "major" ? "Major" : "Minor"})`, "Pontos: " + ipscPontos(s) + " · Fator: " + ipscHf(s));
+  L.push("Parciais: " + s.tiros.map((t, i) => ipscSeg(i ? t - s.tiros[i - 1] : t)).join(" · "));
+  if (s.obs) L.push(s.obs);
+  return L.join("\n") + "\nRegistrado no Ática.";
+}
+function renderIpsc(c) {
+  const d = ipscLer(), cfg = d.cfg, q = (x) => c.querySelector(x);
+  if (["prep", "espera", "rodando"].includes(ipsc.fase)) {
+    c.innerHTML = `<div class="topo"><div><h2>Cronômetro IPSC</h2><p>O tempo começa no sinal e vale até o último tiro ouvido.</p></div></div>
+      <div class="card ip-caixa" id="ip-caixa" data-fase="${ipsc.fase}"><div class="rotulo" id="ip-fase"></div><div class="ip-tempo" id="ip-tempo">0,00</div>
+        <div class="dados-caca"><div><span>Tiros</span><b id="ip-n">0</b></div><div><span>Último tiro</span><b id="ip-ult">—</b></div><div><span>Parcial</span><b id="ip-split">—</b></div></div>
+        <div class="ip-nivel" id="ip-nivel"><i></i></div><div class="pequeno">Nível do microfone. A barra fica vermelha quando o som conta como tiro.</div>
+        <button class="btn ip-parar" id="ip-parar">Parar</button></div>`;
+    q("#ip-parar").onclick = ipscParar; ipscRotulo(); cancelAnimationFrame(ipsc.raf); ipscLoop();
+    return;
+  }
+  if (ipsc.fase === "resultado") {
+    const s = ipsc.serie, lanc = s.A + s.C + s.D + s.M, CT = [["A", "Alpha"], ["C", "Charlie"], ["D", "Delta"], ["M", "Miss"], ["NS", "No-shoot"], ["P", "Procedimento"]];
+    c.innerHTML = `<div class="topo"><div><h2>${ipsc.novo ? "Série encerrada" : "Série registrada"}</h2><p>${new Date(s.data).toLocaleDateString("pt-BR")} às ${new Date(s.data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p></div></div>
+      <div class="card"><div class="rotulo">Tempo</div><div class="ip-tempo">${ipscSeg(ipscTempo(s))}<small> s</small></div>
+        <div class="dados-caca"><div><span>Tiros</span><b>${s.tiros.length}</b></div><div><span>1º tiro</span><b>${ipscSeg(s.tiros[0])}</b></div><div><span>Melhor parcial</span><b>${s.tiros.length > 1 ? ipscSeg(Math.min(...s.tiros.slice(1).map((t, i) => t - s.tiros[i]))) : "—"}</b></div></div>
+        <div class="ip-tiros">${s.tiros.map((t, i) => `<div><span>${i + 1}</span><b>${ipscSeg(t)}</b><em>${i ? "+" + ipscSeg(t - s.tiros[i - 1]) : "saque"}</em>${ipsc.novo ? `<button data-rm="${i}" aria-label="Excluir tiro ${i + 1}">×</button>` : ""}</div>`).join("")}</div>
+        ${ipsc.novo ? '<p class="pequeno" style="margin:8px 0 0">Entrou um eco ou barulho que não era tiro? Toque no × para tirar da contagem.</p>' : ""}</div>
+      <div class="card" style="margin-top:14px"><div class="rotulo">Foto do alvo</div>
+        <div class="ip-fotos">${(s.fotos || []).map((f, i) => `<div><img src="${f}" alt="Alvo ${i + 1}"><button data-rf="${i}" aria-label="Excluir foto ${i + 1}">×</button></div>`).join("")}</div>
+        ${(s.fotos || []).length < 4 ? '<button class="btn sec" id="ip-foto" style="margin-top:10px">Fotografar alvo</button><input type="file" id="ip-arq" accept="image/*" capture="environment" hidden>' : ""}
+        <p class="pequeno" style="margin:8px 0 0">Fotografe cada alvo e lance abaixo o que conferiu em cada zona. A foto fica de registro; a leitura das zonas é sua.</p></div>
+      <div class="card" style="margin-top:14px"><div class="caca-topo"><div class="rotulo">Pontuação</div><div class="ip-fator"><button data-f="minor" class="${s.fator === "minor" ? "on" : ""}">Minor</button><button data-f="major" class="${s.fator === "major" ? "on" : ""}">Major</button></div></div>
+        <div class="ip-cont">${CT.map(([k, t]) => `<div><span>${t}</span><div><button data-m="${k}" aria-label="Menos ${t}">−</button><b>${s[k]}</b><button data-p="${k}" aria-label="Mais ${t}">+</button></div></div>`).join("")}</div>
+        <div class="pequeno" style="margin-top:8px">${lanc} de ${s.tiros.length} tiros lançados.</div>
+        <div class="dados-caca"><div><span>Pontos</span><b>${ipscPontos(s)}</b></div><div><span>Tempo</span><b>${ipscSeg(ipscTempo(s))} s</b></div><div><span>Fator de acerto</span><b>${ipscHf(s)}</b></div></div>
+        <div class="caca-campos" style="grid-template-columns:1fr"><label>Observação (opcional)<input id="ip-obs" maxlength="100" value="${esc(s.obs || "")}"></label></div>
+        <p class="pequeno" style="margin:8px 0 0">Alpha 5 · Charlie ${s.fator === "major" ? 4 : 3} · Delta ${s.fator === "major" ? 2 : 1} · Miss, no-shoot e procedimento −10. Fator = pontos ÷ tempo. Vale o regulamento da prova e a decisão do árbitro.</p></div>
+      <div class="acoes" style="margin-top:14px"><button class="btn" id="ip-salvar">${ipsc.novo ? "Salvar série" : "Salvar alterações"}</button><button class="btn sec" id="ip-comp">Compartilhar</button><button class="btn sec" id="ip-desc">${ipsc.novo ? "Descartar" : "Excluir série"}</button>${ipsc.novo ? "" : '<button class="btn sec" id="ip-volta">Voltar</button>'}</div><div class="msg" id="ip-msg"></div>`;
+    const sair = () => { ipsc = { fase: "idle" }; render(); window.scrollTo(0, 0); };
+    q("#ip-obs").oninput = (e) => { s.obs = e.target.value; };
+    c.querySelectorAll("[data-p]").forEach((b) => b.onclick = () => { s[b.dataset.p]++; render(); });
+    c.querySelectorAll("[data-m]").forEach((b) => b.onclick = () => { s[b.dataset.m] = Math.max(0, s[b.dataset.m] - 1); render(); });
+    c.querySelectorAll("[data-f]").forEach((b) => b.onclick = () => { s.fator = b.dataset.f; render(); });
+    c.querySelectorAll("[data-rm]").forEach((b) => b.onclick = () => { if (s.tiros.length > 1) { s.tiros.splice(+b.dataset.rm, 1); render(); } });
+    c.querySelectorAll("[data-rf]").forEach((b) => b.onclick = () => { s.fotos.splice(+b.dataset.rf, 1); render(); });
+    if (q("#ip-foto")) { q("#ip-foto").onclick = () => q("#ip-arq").click(); q("#ip-arq").onchange = async (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; try { (s.fotos = s.fotos || []).push(await ipscFoto(f)); render(); } catch (x) { q("#ip-msg").textContent = "Não consegui abrir a foto."; } }; }
+    q("#ip-salvar").onclick = () => { const D2 = ipscLer(), i = D2.series.findIndex((x) => x.id === s.id); if (i >= 0) D2.series[i] = s; else D2.series.unshift(s); const cf = D2.cfg; cf.fator = s.fator; if (!ipscGravar(D2)) { q("#ip-msg").textContent = "Sem espaço no aparelho para salvar. Exclua séries antigas."; return; } sair(); };
+    q("#ip-desc").onclick = () => { if (!ipsc.novo) { const D2 = ipscLer(); D2.series = D2.series.filter((x) => x.id !== s.id); ipscGravar(D2); } sair(); };
+    if (q("#ip-volta")) q("#ip-volta").onclick = sair;
+    q("#ip-comp").onclick = async () => { const text = ipscTexto(s), m = q("#ip-msg"); try { if (navigator.share) { await navigator.share({ title: "Série IPSC", text }); return; } } catch (e) { if (e && e.name === "AbortError") return; } try { await navigator.clipboard.writeText(text); m.textContent = "Resumo copiado. Cole no WhatsApp ou onde quiser."; } catch (e) { m.textContent = "Não foi possível compartilhar neste aparelho."; } };
+    return;
+  }
+  const op = (v, l, at) => `<option value="${v}"${String(v) === String(at) ? " selected" : ""}>${l}</option>`;
+  c.innerHTML = `<div class="topo"><div><h2>Cronômetro IPSC <span class="etiqueta at">beta</span></h2><p>O app dá o sinal, ouve os tiros pelo microfone e marca o tempo até o último.</p></div></div>
+    ${ipsc.erro ? `<div class="aviso critico"><b>Não começou</b><span class="pequeno">${esc(ipsc.erro)}</span></div>` : ""}
+    <div class="card ip-caixa"><div class="rotulo">Pronto</div><div class="ip-tempo">0,00</div>
+      <button class="btn ip-parar" id="ip-ini">Iniciar</button>
+      <p class="pequeno" style="margin:10px 0 0">Ao tocar em Iniciar: “Are you ready? Stand by”, uma espera aleatória e o bip. O tempo corre a partir do bip.</p></div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Ajustes</div>
+      <div class="caca-campos">
+        <label>Sensibilidade do microfone: <b id="ip-sv">${cfg.sens}</b><input type="range" id="ip-sens" min="1" max="10" step="1" value="${cfg.sens}"></label>
+        <label>Tempo mínimo entre tiros<select id="ip-eco">${[[0.05, "0,05 s"], [0.08, "0,08 s (padrão)"], [0.12, "0,12 s"], [0.2, "0,20 s (estande fechado, muito eco)"]].map(([v, l]) => op(v, l, cfg.eco)).join("")}</select></label>
+        <label>Espera antes do bip<select id="ip-esp">${[["1-4", "Aleatória, de 1 a 4 s"], ["2-5", "Aleatória, de 2 a 5 s"], ["2-2", "Fixa, 2 s"], ["0-0", "Sem espera"]].map(([v, l]) => op(v, l, cfg.dmin + "-" + cfg.dmax)).join("")}</select></label>
+        <label>Parar sozinho após<select id="ip-auto">${[[5, "5 s sem tiro"], [10, "10 s sem tiro"], [20, "20 s sem tiro"], [0, "Só no botão Parar"]].map(([v, l]) => op(v, l, cfg.auto)).join("")}</select></label>
+      </div>
+      <label class="caca-check"><input type="checkbox" id="ip-voz"${cfg.voz ? " checked" : ""}> Falar “Are you ready? Stand by” antes do bip</label>
+      <p class="pequeno" style="margin:10px 0 0">Sensibilidade baixa só conta som forte (tiro real perto). Para testar em casa com palmas, suba para 8 ou mais. Tiro de outra baia também pode contar: ajuste no estande antes de valer.</p></div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Séries salvas</div>
+      ${d.series.length ? `<div class="lista" style="margin-top:10px">${d.series.map((s) => `<div class="linha"><div><div class="t">${ipscSeg(ipscTempo(s))} s · ${s.tiros.length} tiros</div><div class="pequeno">${new Date(s.data).toLocaleDateString("pt-BR")} ${new Date(s.data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}${s.A + s.C + s.D + s.M + s.NS + s.P ? " · " + ipscPontos(s) + " pts · fator " + ipscHf(s) : " · sem pontuação"}${s.obs ? " · " + esc(s.obs) : ""}</div></div><button class="btn sec" data-ab="${s.id}" style="min-height:36px;padding:6px 12px">Abrir</button></div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nenhuma série salva ainda.</div>'}
+      <p class="pequeno" style="margin:10px 0 0">As séries ficam neste aparelho. As fotos são mantidas nas 12 mais recentes.</p></div>`;
+  const salvaCfg = () => { const D2 = ipscLer(), e = q("#ip-esp").value.split("-"); Object.assign(D2.cfg, { sens: +q("#ip-sens").value, eco: +q("#ip-eco").value, dmin: +e[0], dmax: +e[1], auto: +q("#ip-auto").value, voz: q("#ip-voz").checked }); ipscGravar(D2); q("#ip-sv").textContent = D2.cfg.sens; };
+  ["#ip-sens", "#ip-eco", "#ip-esp", "#ip-auto", "#ip-voz"].forEach((x) => { q(x).oninput = salvaCfg; q(x).onchange = salvaCfg; });
+  q("#ip-ini").onclick = ipscIniciar;
+  c.querySelectorAll("[data-ab]").forEach((b) => b.onclick = () => { const s = ipscLer().series.find((x) => x.id === b.dataset.ab); if (s) { ipsc = { fase: "resultado", novo: false, serie: s }; render(); window.scrollTo(0, 0); } });
 }
 function renderCaca(c, sub) {
   const C = cacaLer(), topo = (t, s) => `<div class="topo"><div><h2>${t}</h2><p>${s}</p></div></div>`;
@@ -1335,6 +1498,7 @@ function renderCaca(c, sub) {
     if (g("caca-nova")) g("caca-nova").onclick = () => { cacaEdit = {}; render(); };
     c.querySelectorAll("[data-ed]").forEach((b) => b.onclick = () => { cacaEdit = { ...C.props.find((p) => p.id === b.dataset.ed) }; render(); window.scrollTo(0, 0); });
     c.querySelectorAll("[data-pasta]").forEach((b) => b.onclick = () => { cacaPasta = b.dataset.pasta; cacaEdit = null; render(); window.scrollTo(0, 0); });
+    c.querySelectorAll("[data-cdoc]").forEach((b) => b.onclick = () => { cacaDocAlvo = { prop: cacaPasta, k: b.dataset.k }; b.dataset.cdoc === "foto" ? fotografar() : $("#arq").click(); });
     if (g("caca-pasta-x")) g("caca-pasta-x").onclick = () => { cacaPasta = null; render(); };
     c.querySelectorAll("[data-rel]").forEach((b) => b.onclick = () => { C.props.find((p) => p.id === b.dataset.rel).relatorio = true; cacaGravar(C); render(); });
     c.querySelectorAll("[data-ir]").forEach((b) => b.onclick = () => { C.escolha = b.dataset.ir; cacaGravar(C); irPara("caca", "manejo"); });
@@ -1429,7 +1593,8 @@ function renderTela(c, a, primeiro, docs) {
     return;
   }
   const item = hub.itens.find((i) => i[0] === subTela);
-  if (tela === "caca") { if (subTela === "acervo") { acervoFiltro = "cacador"; tela = "acervo"; try { renderTela0(c, a, primeiro, docs); } finally { tela = "caca"; } } else renderCaca(c, subTela); }
+  if (tela === "caderneta" && subTela === "ipsc") renderIpsc(c);
+  else if (tela === "caca") { if (subTela === "acervo") { acervoFiltro = "cacador"; tela = "acervo"; try { renderTela0(c, a, primeiro, docs); } finally { tela = "caca"; } } else renderCaca(c, subTela); }
   else if (tela === "documentos") { tela = subTela; try { renderTela0(c, a, primeiro, docs); } finally { tela = "documentos"; } }
   else {
     renderBalistica(c);
@@ -1673,7 +1838,8 @@ async function enviarDocumento(base64, mime) {
   const r = await api("enviar_documento", { arquivo: base64, mime });
   if (!r.ok) { statusEnvio(`<div class="aviso critico"><b>Não deu certo</b><span class="pequeno">${esc(r.erro || "Tente de novo.")}</span></div>`); return; }
   await carregar();
-  tela = "documentos"; montarMenu(); render();
+  if (tela === "caca" && cacaDocAlvo) { const C = cacaLer(), al = cacaDocAlvo, ch = CACA_GERAL.includes(al.k) ? "_" : al.prop; C.docs = C.docs || {}; C.docs[ch] = C.docs[ch] || {}; (C.docs[ch][al.k] = C.docs[ch][al.k] || []).push({ em: new Date().toISOString(), tipo: r.nome_tipo || "" }); cacaGravar(C); cacaPasta = al.prop; cacaDocAlvo = null; subTela = "propriedades"; montarMenu(); render(); window.scrollTo(0, 0); }
+  else { tela = "documentos"; montarMenu(); render(); }
   statusEnvio(`<div class="aviso ${r.vencido ? "atencao" : "info"}"><b>${esc(r.nome_tipo[0].toUpperCase() + r.nome_tipo.slice(1))} recebido ✓</b><span class="pequeno">${r.arma ? esc(r.arma) + " · " : ""}${r.validade ? (r.vencido ? "venceu em " : "válido até ") + br(r.validade) : "sem validade lida"} · a nossa equipe vai conferir.</span></div>`);
 }
 async function fotografar() {
