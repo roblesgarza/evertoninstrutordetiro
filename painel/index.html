@@ -201,6 +201,14 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 #balx[data-cad]>.aviso,#balx[data-cad]>p.pequeno{display:none}
 @media (max-width:860px){nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}nav button{font-size:10px!important}}
 .nivel-card .chip.ativo{color:var(--ouro);border-color:var(--ouro);background:rgba(226,182,87,.08)}.nivel-card .chip{min-height:44px;padding:10px 18px}
+
+/* manejo de javali */
+.caca-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:10px}
+.caca-check{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:14px;color:var(--txt)}.caca-check input{width:20px;height:20px;flex:none;margin-top:1px}
+.caca-campos select{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:13px 12px;font:inherit;min-height:48px}
+.caca-topo{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.dados-caca{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:12px}.dados-caca div{background:var(--card2);padding:10px 12px}.dados-caca span{display:block;font:600 10px 'Chakra Petch';letter-spacing:.12em;text-transform:uppercase;color:var(--sub)}.dados-caca b{display:block;font:700 16px 'Chakra Petch';margin-top:3px}.dados-caca em{font-style:normal;font-size:12px;color:var(--sub)}
+@media (max-width:860px){nav{grid-template-columns:repeat(6,minmax(0,1fr))!important}nav button{font-size:9px!important}}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -350,7 +358,7 @@ const ICON = {
   balistica: '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.6"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>',
   conta: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
 };
-const MENU = [["painel", "Início", "Início"], ["documentos", "Documentos", "Docs"], ["balistica", "Balística", "Balística"], ["caderneta", "Caderneta", "Caderneta"], ["conta", "Conta", "Conta"]];
+const MENU = [["painel", "Início", "Início"], ["documentos", "Documentos", "Docs"], ["balistica", "Balística", "Balística"], ["caderneta", "Caderneta", "Caderneta"], ["caca", "Manejo de javali", "Manejo"], ["conta", "Conta", "Conta"]];
 function montarMenu() {
   $("#menu").innerHTML = MENU.map(([k, t, curto]) => `<button data-t="${k}" class="${k === tela ? "ativo" : ""}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON[k]}</svg><span class="nl">${t}</span><span class="nc">${curto}</span></button>`).join("");
   $("#menu").querySelectorAll("button").forEach((b) => b.onclick = () => irPara(b.dataset.t, ""));
@@ -1179,13 +1187,236 @@ const HUBS = {
 };
 function hubConta(k) {
   try {
-    if (k === "acervo") return D.resumo.armas;
+    if (k === "acervo") return tela === "caca" ? D.documentos.filter((d) => d.tipo === "CRAF" && d.acervo === "cacador").length : D.resumo.armas;
+    if (k === "propriedades") return cacaLer().props.length;
+    if (k === "saidas") return cacaLer().saidas.length;
     if (k === "documentos") return D.documentos.length;
     if (k === "alvos") return JSON.parse(localStorage.getItem("atica_alvos_v1") || "[]").length;
   } catch (e) {}
   return 0;
 }
 function irPara(t, s) { tela = t; subTela = s || ""; montarMenu(); render(); window.scrollTo(0, 0); }
+// ---------- Manejo de javali (protótipo: dados guardados neste aparelho) ----------
+ICON.caca = '<path d="M12 3l4 6h-2.5l3.5 5h-3l3 4H7l3-4H7l3.5-5H8z"/><path d="M12 18v3"/>';
+ICON.propriedades = '<path d="M3 20V10l6-4 6 4v10M9 20v-5h0M15 12l6 3v5H3"/><path d="M7 12h4"/>';
+ICON.manejo = '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>';
+ICON.saidas = '<path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h3"/>';
+HUBS.caca = { titulo: "Manejo de javali", sub: "Propriedades, autorizações do SIMAF e registro das saídas.", itens: [
+  ["propriedades", "Propriedades e autorizações", "Prazo de cada autorização do SIMAF, declaração do dono e relatório.", "propriedades"],
+  ["manejo", "Manejo em andamento", "Inicie e encerre a saída; o proprietário pode ser avisado.", "manejo"],
+  ["saidas", "Registro de saídas", "Histórico por propriedade, pronto para o relatório do SIMAF.", "saidas"],
+  ["acervo", "Acervo de caça", "Armas do acervo de caçador, separadas do tiro esportivo e da coleção.", "acervo"]] };
+const cacaLer = () => { let c = {}; try { c = JSON.parse(localStorage.getItem("atica_caca_v1") || "{}"); } catch (e) {} return { props: [], saidas: [], ctf: "", ativa: null, ...c }; };
+const cacaGravar = (c) => { try { localStorage.setItem("atica_caca_v1", JSON.stringify(c)); } catch (e) {} };
+const cacaDias = (iso) => iso ? Math.round((new Date(iso + "T12:00:00") - new Date(D.hoje + "T12:00:00")) / 864e5) : null;
+function cacaSituacao(C, p) {
+  const da = cacaDias(p.fim), dc = cacaDias(C.ctf), falta = [];
+  if (!p.fim) falta.push("informar a validade da autorização do SIMAF"); else if (da < 0) falta.push("autorização do SIMAF vencida");
+  if (!C.ctf) falta.push("informar a validade do certificado do CTF/Ibama"); else if (dc < 0) falta.push("certificado do CTF/Ibama vencido");
+  if (!p.decl) falta.push("declaração assinada do proprietário");
+  const relatorio = p.fim && da < 0 && !p.relatorio;
+  return { da, dc, falta, pode: !falta.length, relatorio, cor: falta.length ? "cr" : da <= 30 || dc <= 15 ? "at" : "ok" };
+}
+function cacaForm(p) {
+  return `<div class="card" id="caca-form"><div class="rotulo">${p.id ? "Editar propriedade" : "Nova propriedade"}</div>
+    <div class="caca-campos">
+      <label>Nome da propriedade<input id="cp-nome" maxlength="60" value="${esc(p.nome || "")}"></label>
+      <label>Município / UF<input id="cp-mun" maxlength="50" value="${esc(p.mun || "")}"></label>
+      <label>Nº do CAR (opcional)<input id="cp-car" maxlength="60" value="${esc(p.car || "")}"></label>
+      <label>Autorização do SIMAF: início<input id="cp-ini" type="date" value="${esc(p.ini || "")}"></label>
+      <label>Autorização do SIMAF: validade<input id="cp-fim" type="date" value="${esc(p.fim || "")}"></label>
+      <label>Equipe na autorização (nomes)<input id="cp-eq" maxlength="160" value="${esc(p.equipe || "")}"></label>
+      <label>Proprietário<input id="cp-dono" maxlength="60" value="${esc(p.dono || "")}"></label>
+      <label>WhatsApp do proprietário (opcional)<input id="cp-fone" inputmode="tel" maxlength="20" value="${esc(p.fone || "")}"></label>
+    </div>
+    <label class="caca-check"><input type="checkbox" id="cp-decl" ${p.decl ? "checked" : ""}> Tenho a declaração de acesso assinada pelo proprietário</label>
+    <label class="caca-check"><input type="checkbox" id="cp-avisar" ${p.avisar ? "checked" : ""}> Avisar o proprietário quando eu iniciar e encerrar o manejo (ele precisa aceitar)</label>
+    <div class="acoes" style="margin-top:12px"><button class="btn" id="cp-salvar">Salvar</button><button class="btn sec" id="cp-cancelar">Cancelar</button>${p.id ? '<button class="btn sec" id="cp-excluir" style="color:var(--vermelho)">Excluir</button>' : ""}</div>
+    <div class="msg" id="cp-msg"></div></div>`;
+}
+let cacaEdit = null, cacaWatch = null, cacaVer = null, cacaPasta = null;
+const cacaDist = (a, b) => { const R = 6371000, r = Math.PI / 180, x = Math.sin((b[0] - a[0]) * r / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin((b[1] - a[1]) * r / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
+const cacaKm = (t) => (t || []).reduce((s, p, i) => i ? s + cacaDist(t[i - 1], p) : 0, 0);
+const cacaFmtKm = (m) => m >= 1000 ? (m / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + " km" : Math.round(m) + " m";
+const cacaHora = (t) => new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+const CACA_MARCAS = { avistado: "Javali avistado", abatido: "Javali abatido", rastro: "Rastro ou fuçado", ceva: "Ceva ou armadilha" };
+function cacaParar() { if (cacaWatch !== null && navigator.geolocation) navigator.geolocation.clearWatch(cacaWatch); cacaWatch = null; }
+function cacaRastrear() {
+  if (cacaWatch !== null) return;
+  const aviso = (t) => { const el = document.querySelector("#cm-gps"); if (el) el.textContent = t; };
+  if (!navigator.geolocation) return aviso("Este aparelho não informa a localização.");
+  cacaWatch = navigator.geolocation.watchPosition((pos) => {
+    const C = cacaLer(); if (!C.ativa || C.ativa.gps === false) return cacaParar();
+    const p = [+pos.coords.latitude.toFixed(6), +pos.coords.longitude.toFixed(6), Date.now()], t = C.ativa.trilha = C.ativa.trilha || [];
+    C.ativa.pos = p; C.ativa.precisao = Math.round(pos.coords.accuracy);
+    if (pos.coords.accuracy <= 50 && t.length < 4000 && (!t.length || cacaDist(t[t.length - 1], p) >= 10)) t.push(p);
+    cacaGravar(C); const el = document.querySelector("#cm-trilha"); if (el) el.innerHTML = cacaTrilhaAoVivo(C.ativa);
+  }, (e) => aviso(e.code === 1 ? "Localização não permitida. Libere o acesso à localização para gravar a trilha." : "Sem sinal de GPS no momento. Continue: a trilha volta quando o sinal voltar."), { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
+}
+function cacaMapa(trilha, marcas) {
+  const pts = [...(trilha || []), ...(marcas || []).map((m) => [m.lat, m.lon])];
+  if (!pts.length) return '<div class="vazio">Nenhum ponto de GPS gravado nesta saída.</div>';
+  const W = 340, H = 260, M = 24, lat0 = pts.reduce((a, p) => a + p[0], 0) / pts.length, kx = Math.cos(lat0 * Math.PI / 180) * 111320, ky = 110540;
+  const xs = pts.map((p) => p[1] * kx), ys = pts.map((p) => p[0] * ky), minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+  const larg = Math.max(maxX - minX, maxY - minY, 60), esc2 = (Math.min(W, H) - 2 * M) / larg, ox = (W - (maxX - minX) * esc2) / 2, oy = (H - (maxY - minY) * esc2) / 2;
+  const X = (p) => (ox + (p[1] * kx - minX) * esc2).toFixed(1), Y = (p) => (H - oy - (p[0] * ky - minY) * esc2).toFixed(1);
+  const barra = [20, 50, 100, 200, 500, 1000, 2000, 5000].find((b) => b * esc2 >= 50) || 5000, t = trilha || [];
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Trilha da saída" style="display:block;width:100%;height:auto;background:var(--card2);border:1px solid var(--line)" font-family="Inter" font-size="9" fill="#A9A9B2">
+    ${t.length > 1 ? `<polyline points="${t.map((p) => X(p) + "," + Y(p)).join(" ")}" fill="none" stroke="#E2B657" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
+    ${t.length ? `<circle cx="${X(t[0])}" cy="${Y(t[0])}" r="5" fill="#3FCB7E"/><text x="${+X(t[0]) + 8}" y="${+Y(t[0]) + 3}">início</text>` : ""}
+    ${t.length > 1 ? `<rect x="${X(t[t.length - 1]) - 4}" y="${Y(t[t.length - 1]) - 4}" width="8" height="8" fill="#F0524F"/><text x="${+X(t[t.length - 1]) + 8}" y="${+Y(t[t.length - 1]) + 3}">fim</text>` : ""}
+    ${(marcas || []).map((m, i) => { const p = [m.lat, m.lon]; return `<circle cx="${X(p)}" cy="${Y(p)}" r="8" fill="#0A0A0C" stroke="#6E9BF5" stroke-width="2"/><text x="${X(p)}" y="${+Y(p) + 3}" text-anchor="middle" fill="#fff" font-weight="700">${i + 1}</text>`; }).join("")}
+    <line x1="14" y1="${H - 12}" x2="${14 + barra * esc2}" y2="${H - 12}" stroke="#A9A9B2" stroke-width="2"/><text x="14" y="${H - 17}">${cacaFmtKm(barra)}</text>
+    <path d="M${W - 18} 26l5 12h-10z" fill="#A9A9B2"/><text x="${W - 18}" y="18" text-anchor="middle">N</text></svg>`;
+}
+function cacaTrilhaAoVivo(a) {
+  const t = a.trilha || [], m = a.marcas || [];
+  return `${cacaMapa(t, m)}<div class="dados-caca"><div><span>Percorrido</span><b>${cacaFmtKm(cacaKm(t))}</b></div><div><span>Pontos marcados</span><b>${m.length}</b></div><div><span>Precisão do GPS</span><b>${a.precisao ? "±" + a.precisao + " m" : "—"}</b></div></div>`;
+}
+function cacaTexto(s, nome) {
+  const dur = Math.round((new Date(s.fim) - new Date(s.inicio)) / 6e4), L = [`Manejo de javali · ${nome}`, `${new Date(s.inicio).toLocaleDateString("pt-BR")}, das ${cacaHora(s.inicio)} às ${cacaHora(s.fim)} (${dur >= 60 ? Math.floor(dur / 60) + "h" + String(dur % 60).padStart(2, "0") : dur + " min"})`];
+  if ((s.trilha || []).length > 1) L.push(`Percorrido: ${cacaFmtKm(cacaKm(s.trilha))}`);
+  if (s.animais) L.push(`Abatidos: ${s.animais}`);
+  (s.marcas || []).forEach((m, i) => L.push(`${i + 1}. ${CACA_MARCAS[m.tipo] || "Ponto"} às ${cacaHora(m.t)}${m.obs ? " (" + m.obs + ")" : ""}: https://maps.google.com/?q=${m.lat},${m.lon}`));
+  if ((s.trilha || []).length) L.push(`Início da trilha: https://maps.google.com/?q=${s.trilha[0][0]},${s.trilha[0][1]}`);
+  return L.join("\n") + "\nRegistrado no Ática.";
+}
+function cacaGpx(s, nome) {
+  const x = (v) => String(v).replace(/[<&>]/g, "");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Atica" xmlns="http://www.topografix.com/GPX/1/1">\n${(s.marcas || []).map((m, i) => `<wpt lat="${m.lat}" lon="${m.lon}"><time>${new Date(m.t).toISOString()}</time><name>${i + 1}. ${x(CACA_MARCAS[m.tipo] || "Ponto")}</name>${m.obs ? `<desc>${x(m.obs)}</desc>` : ""}</wpt>`).join("\n")}\n<trk><name>${x(nome)} ${new Date(s.inicio).toLocaleDateString("pt-BR")}</name><trkseg>\n${(s.trilha || []).map((p) => `<trkpt lat="${p[0]}" lon="${p[1]}"><time>${new Date(p[2]).toISOString()}</time></trkpt>`).join("\n")}\n</trkseg></trk>\n</gpx>`;
+}
+async function cacaCompartilhar(s, nome, msgEl) {
+  const text = cacaTexto(s, nome);
+  try { if (navigator.share) { await navigator.share({ title: "Manejo de javali · " + nome, text }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(text); msgEl.textContent = "Resumo copiado. Cole no WhatsApp ou onde quiser."; } catch (e) { msgEl.textContent = "Não foi possível compartilhar neste aparelho."; }
+}
+function cacaPastaHtml(C, p) {
+  const s = cacaSituacao(C, p), cr = D.resumo.cr, armas = D.documentos.filter((d) => d.tipo === "CRAF" && d.acervo === "cacador"), guias = D.documentos.filter((d) => d.tipo === "GT" && (d.dias === null || d.dias === undefined || d.dias >= 0));
+  const L = [
+    ["Documento de identidade com foto", "De todos os que participam do manejo.", null, "Leve o original"],
+    ["CR com a atividade de caça", cr && cr.validade ? "Válido até " + br(cr.validade) + " (" + prazo(cr.dias) + ")." : "Envie o CR para o app acompanhar a validade.", cr && cr.validade ? cr.dias >= 0 : false, cr && cr.validade ? (cr.dias >= 0 ? "Em dia" : "Vencido") : "A informar"],
+    ["CRAF das armas do acervo de caça", armas.length ? armas.length + " arma(s) no acervo de caçador." : "Nenhuma arma marcada como acervo de caçador. Ajuste em Acervo de caça.", armas.length > 0, armas.length ? armas.length + " arma(s)" : "Falta"],
+    ["Guia de tráfego para o manejo", guias.length ? guias.length + " guia(s) vigente(s) no app. Confira se cobre esta propriedade." : "Nenhuma guia vigente no app.", guias.length > 0, guias.length ? "Conferir destino" : "Falta"],
+    ["Certificado de Regularidade do CTF/Ibama", C.ctf ? "Válido até " + br(C.ctf) + " (" + prazo(s.dc) + ")." : "Informe a validade. Vale 3 meses.", C.ctf ? s.dc >= 0 : false, C.ctf ? (s.dc >= 0 ? "Em dia" : "Vencido") : "A informar"],
+    ["Autorização de manejo do SIMAF", p.fim ? "Desta propriedade, válida até " + br(p.fim) + " (" + prazo(s.da) + ")." : "Informe a validade da autorização desta propriedade.", p.fim ? s.da >= 0 : false, p.fim ? (s.da >= 0 ? "Em dia" : "Vencida") : "A informar"],
+    ["Declaração de acesso do proprietário", "Assinada pelo dono, com nome e CPF de toda a equipe.", !!p.decl, p.decl ? "Em mãos" : "Falta"],
+    ["Inscrição da propriedade no CAR", p.car ? "Nº " + esc(p.car) : "Informe o número do CAR na ficha da propriedade.", !!p.car, p.car ? "Informado" : "A informar"],
+  ];
+  const ok = L.filter((x) => x[2] === true).length, tot = L.filter((x) => x[2] !== null).length;
+  return `<div class="card" id="caca-pasta"><div class="caca-topo"><div><div class="rotulo">Pasta de documentos</div><div class="tit" style="font-size:17px;margin-top:4px">${esc(p.nome)}</div></div><span class="etiqueta ${ok === tot ? "ok" : "at"}">${ok} de ${tot} em dia</span></div>
+    <div class="lista" style="margin-top:12px">${L.map((x) => `<div class="linha"><div><div class="t">${x[0]}</div><div class="pequeno">${x[1]}</div></div><span class="etiqueta ${x[2] === null ? "" : x[2] ? "ok" : "cr"}" style="white-space:nowrap">${x[3]}</span></div>`).join("")}</div>
+    <div class="envio-doc" style="margin-top:12px"><button class="btn" data-doc="foto">Fotografar documento</button><button class="btn sec" data-doc="arq">Enviar arquivo ou PDF</button></div>
+    <p class="pequeno" style="margin:0">Os documentos enviados ficam em Documentos › Meus documentos. Lista baseada na IN Ibama 3/2013 e no Decreto 11.615/2023; confirme com o Everton se o seu caso tem exigência a mais.</p>
+    <button class="btn sec" id="caca-pasta-x" style="margin-top:12px">Fechar pasta</button></div>`;
+}
+function renderCaca(c, sub) {
+  const C = cacaLer(), topo = (t, s) => `<div class="topo"><div><h2>${t}</h2><p>${s}</p></div></div>`;
+  const nomeProp = (id) => (C.props.find((p) => p.id === id) || {}).nome || "Propriedade removida";
+  if (sub === "propriedades") {
+    const dc = cacaDias(C.ctf);
+    c.innerHTML = topo("Propriedades e autorizações", "Uma autorização do SIMAF por propriedade. O app acompanha cada prazo.") +
+      `<div class="card" style="margin-bottom:14px"><div class="rotulo">Certificado de Regularidade do CTF/Ibama</div>
+        <div class="caca-campos" style="margin-top:8px"><label>Validade (vale 3 meses)<input id="caca-ctf" type="date" value="${esc(C.ctf)}"></label>
+        <div class="pequeno ${dc === null ? "at" : dc < 0 ? "cr" : dc <= 15 ? "at" : "ok"}" style="align-self:end;padding-bottom:12px">${dc === null ? "Informe a validade: ele precisa estar em dia no dia do manejo." : dc < 0 ? "Vencido: renove no site do Ibama antes de sair." : "Vence " + prazo(dc) + "."}</div></div></div>
+      ${cacaPasta && C.props.find((p) => p.id === cacaPasta) ? cacaPastaHtml(C, C.props.find((p) => p.id === cacaPasta)) : ""}
+      ${cacaEdit ? cacaForm(cacaEdit) : '<button class="btn" id="caca-nova" style="margin:14px 0">+ Adicionar propriedade</button>'}
+      <div class="lista">${C.props.map((p) => { const s = cacaSituacao(C, p); return `<div class="card caca-prop">
+        <div class="caca-topo"><div><div class="tit" style="font-size:17px">${esc(p.nome)}</div><div class="pequeno">${esc([p.mun, p.dono ? "Proprietário: " + p.dono : ""].filter(Boolean).join(" · "))}</div></div>
+          <span class="etiqueta ${s.cor}">${s.pode ? (s.cor === "at" ? "Atenção ao prazo" : "Liberada") : "Pendente"}</span></div>
+        <div class="dados-caca"><div><span>Autorização SIMAF</span><b class="${s.da === null ? "at" : cor(s.da)}">${p.fim ? br(p.fim) : "a informar"}</b><em>${p.fim ? prazo(s.da) : ""}</em></div>
+          <div><span>Declaração do dono</span><b class="${p.decl ? "ok" : "cr"}">${p.decl ? "Em mãos" : "Falta"}</b></div>
+          <div><span>Aviso ao proprietário</span><b>${p.avisar && p.fone ? "Ligado" : "Desligado"}</b></div></div>
+        ${s.falta.length ? `<div class="aviso critico" style="margin-top:10px"><b>Não saia para esta propriedade ainda</b><span class="pequeno">Falta: ${esc(s.falta.join("; "))}.</span></div>` : ""}
+        ${s.relatorio ? `<div class="aviso atencao" style="margin-top:10px"><b>Relatório do SIMAF pendente</b><span class="pequeno">A autorização terminou. Envie o relatório no SIMAF, mesmo sem abate; sem ele não sai autorização nova.</span><button class="btn sec" data-rel="${p.id}" style="margin-top:8px;align-self:flex-start">Já enviei o relatório</button></div>` : ""}
+        <div class="acoes" style="margin-top:12px"><button class="btn sec" data-ed="${p.id}">Editar</button><button class="btn sec" data-pasta="${p.id}">Documentos</button>${s.pode ? `<button class="btn" data-ir="${p.id}">Iniciar manejo</button>` : ""}</div></div>`; }).join("") || '<div class="vazio">Nenhuma propriedade cadastrada. Adicione a primeira com os dados da autorização do SIMAF.</div>'}</div>
+      <p class="pequeno" style="margin-top:14px">Leve sempre: documento com foto, autorização do SIMAF, certificado do CTF em dia, declaração do proprietário e a guia de tráfego. O Ática organiza prazos e registros; a autorização é emitida pelo Ibama no SIMAF.</p>`;
+    const g = (i) => c.querySelector("#" + i);
+    g("caca-ctf").onchange = () => { C.ctf = g("caca-ctf").value; cacaGravar(C); render(); };
+    if (g("caca-nova")) g("caca-nova").onclick = () => { cacaEdit = {}; render(); };
+    c.querySelectorAll("[data-ed]").forEach((b) => b.onclick = () => { cacaEdit = { ...C.props.find((p) => p.id === b.dataset.ed) }; render(); window.scrollTo(0, 0); });
+    c.querySelectorAll("[data-pasta]").forEach((b) => b.onclick = () => { cacaPasta = b.dataset.pasta; cacaEdit = null; render(); window.scrollTo(0, 0); });
+    if (g("caca-pasta-x")) g("caca-pasta-x").onclick = () => { cacaPasta = null; render(); };
+    c.querySelectorAll("[data-rel]").forEach((b) => b.onclick = () => { C.props.find((p) => p.id === b.dataset.rel).relatorio = true; cacaGravar(C); render(); });
+    c.querySelectorAll("[data-ir]").forEach((b) => b.onclick = () => { C.escolha = b.dataset.ir; cacaGravar(C); irPara("caca", "manejo"); });
+    if (cacaEdit) {
+      g("cp-cancelar").onclick = () => { cacaEdit = null; render(); };
+      if (g("cp-excluir")) g("cp-excluir").onclick = () => { if (!confirm("Excluir esta propriedade?")) return; C.props = C.props.filter((p) => p.id !== cacaEdit.id); cacaGravar(C); cacaEdit = null; render(); };
+      g("cp-salvar").onclick = () => {
+        const nome = g("cp-nome").value.trim(); if (nome.length < 2) { g("cp-msg").textContent = "Informe o nome da propriedade."; g("cp-msg").className = "msg erro"; return; }
+        const p = { id: cacaEdit.id || "p" + Date.now().toString(36), nome, mun: g("cp-mun").value.trim(), car: g("cp-car").value.trim(), ini: g("cp-ini").value, fim: g("cp-fim").value, equipe: g("cp-eq").value.trim(), dono: g("cp-dono").value.trim(), fone: g("cp-fone").value.replace(/\D/g, ""), decl: g("cp-decl").checked, avisar: g("cp-avisar").checked, relatorio: cacaEdit.fim === g("cp-fim").value ? !!cacaEdit.relatorio : false };
+        const i = C.props.findIndex((x) => x.id === p.id); if (i >= 0) C.props[i] = p; else C.props.push(p);
+        cacaGravar(C); cacaEdit = null; render();
+      };
+    }
+    return;
+  }
+  if (sub === "manejo") {
+    const hora = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    if (C.ativa) {
+      const p = C.props.find((x) => x.id === C.ativa.prop) || {}, av = p.avisar && p.fone;
+      c.innerHTML = topo("Manejo em andamento", esc(p.nome || "") + " · iniciado às " + hora(C.ativa.inicio)) +
+        `<div class="card" style="border-color:rgba(63,203,126,.45)"><div class="rotulo ok">Em andamento</div><div class="grande">${hora(C.ativa.inicio)} <span class="pequeno">até cerca de ${hora(C.ativa.previsto)}</span></div>
+          <div class="pequeno" id="cm-gps">${C.ativa.gps === false ? "Trilha por GPS desligada nesta saída." : "Gravando a trilha por GPS. Mantenha o app aberto e a tela ligada."}</div>
+          <div class="pequeno">${av ? "Aviso ao proprietário ligado (" + esc(p.dono || "") + "). Nesta versão de demonstração a mensagem ainda não é enviada." : "Aviso ao proprietário desligado para esta propriedade."}</div></div>
+        ${C.ativa.gps === false ? "" : `<div class="card" style="margin-top:14px"><div class="rotulo">Trilha e pontos</div><div id="cm-trilha" style="margin-top:10px">${cacaTrilhaAoVivo(C.ativa)}</div>
+          <div class="caca-campos"><label>Marcar ponto aqui<select id="cm-tipo">${Object.entries(CACA_MARCAS).map(([k, t]) => `<option value="${k}">${t}</option>`).join("")}</select></label><label>Observação (opcional)<input id="cm-mobs" maxlength="80"></label></div>
+          <button class="btn" id="cm-marcar" style="margin-top:12px">Marcar ponto</button><div class="msg" id="cm-mmsg"></div></div>`}
+        <div class="card" style="margin-top:14px"><div class="rotulo">Encerrar a saída</div><div class="caca-campos" style="margin-top:8px">
+          <label>Animais abatidos (opcional)<input id="cm-n" inputmode="numeric" maxlength="3" placeholder="0"></label>
+          <label>Observação (opcional)<input id="cm-obs" maxlength="140"></label></div>
+          <button class="btn" id="cm-fim" style="margin-top:12px">Encerrar manejo</button></div>`;
+      if (C.ativa.gps !== false) {
+        cacaRastrear();
+        c.querySelector("#cm-marcar").onclick = () => { const A = cacaLer(), m = c.querySelector("#cm-mmsg"); if (!A.ativa) return;
+          if (!A.ativa.pos) { m.textContent = "Ainda sem posição do GPS. Aguarde alguns segundos em área aberta."; m.className = "msg erro"; return; }
+          (A.ativa.marcas = A.ativa.marcas || []).push({ lat: A.ativa.pos[0], lon: A.ativa.pos[1], t: Date.now(), tipo: c.querySelector("#cm-tipo").value, obs: c.querySelector("#cm-mobs").value.trim() });
+          cacaGravar(A); c.querySelector("#cm-mobs").value = ""; c.querySelector("#cm-trilha").innerHTML = cacaTrilhaAoVivo(A.ativa); m.textContent = "Ponto " + A.ativa.marcas.length + " marcado."; m.className = "msg"; };
+      }
+      c.querySelector("#cm-fim").onclick = () => { const A = cacaLer(); cacaParar(); A.saidas.unshift({ id: "s" + Date.now().toString(36), prop: A.ativa.prop, inicio: A.ativa.inicio, fim: new Date().toISOString(), animais: Number(c.querySelector("#cm-n").value) || 0, obs: c.querySelector("#cm-obs").value.trim(), trilha: A.ativa.trilha || [], marcas: A.ativa.marcas || [] }); cacaVer = A.saidas[0].id; A.ativa = null; cacaGravar(A); irPara("caca", "saidas"); };
+      return;
+    }
+    const ok = C.props.filter((p) => cacaSituacao(C, p).pode), sel = ok.find((p) => p.id === C.escolha) || ok[0];
+    c.innerHTML = topo("Manejo em andamento", "Registre o início e o fim de cada saída. Só propriedades com a documentação em dia aparecem aqui.") + (!ok.length
+      ? `<div class="aviso atencao"><b>Nenhuma propriedade liberada</b><span class="pequeno">Cadastre a propriedade e confira a autorização do SIMAF, o certificado do CTF e a declaração do proprietário.</span></div><button class="btn" id="cm-props" style="margin-top:12px">Ver propriedades</button>`
+      : `<div class="card"><div class="caca-campos"><label>Propriedade<select id="cm-prop">${ok.map((p) => `<option value="${p.id}" ${sel.id === p.id ? "selected" : ""}>${esc(p.nome)}</option>`).join("")}</select></label>
+          <label>Previsão de término<select id="cm-h">${[2, 4, 6, 8, 12].map((h) => `<option value="${h}" ${h === 6 ? "selected" : ""}>em ${h} horas</option>`).join("")}</select></label></div>
+          <label class="caca-check"><input type="checkbox" id="cm-gpsck" checked> Gravar a trilha por GPS e permitir marcar pontos (fica só neste aparelho)</label>
+          <div id="cm-aviso" style="margin-top:12px"></div>
+          <button class="btn" id="cm-ini" style="margin-top:12px">Iniciar manejo</button></div>`);
+    if (!ok.length) { c.querySelector("#cm-props").onclick = () => irPara("caca", "propriedades"); return; }
+    const previa = () => { const p = ok.find((x) => x.id === c.querySelector("#cm-prop").value), h = Number(c.querySelector("#cm-h").value), fim = new Date(Date.now() + h * 36e5);
+      c.querySelector("#cm-aviso").innerHTML = p.avisar && p.fone ? `<div class="aviso info"><b>Aviso ao proprietário pelo WhatsApp</b><span class="pequeno">Modelo da mensagem (o envio entra na próxima etapa, depois que ele aceitar receber): "Olá, ${esc(p.dono || "")}. Aqui é o Ática. ${primeiroNome()} iniciou agora o manejo de javali na ${esc(p.nome)}, com previsão de término às ${fim.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}. Equipe: ${esc(p.equipe || primeiroNome())}. Você recebe outro aviso no encerramento."</span></div>`
+        : `<div class="aviso"><b>Sem aviso ao proprietário</b><span class="pequeno">Para avisar, cadastre o WhatsApp dele e ligue a opção na propriedade.</span></div>`; };
+    c.querySelector("#cm-prop").onchange = previa; c.querySelector("#cm-h").onchange = previa; previa();
+    c.querySelector("#cm-ini").onclick = () => { const h = Number(c.querySelector("#cm-h").value); C.ativa = { prop: c.querySelector("#cm-prop").value, inicio: new Date().toISOString(), previsto: new Date(Date.now() + h * 36e5).toISOString(), gps: c.querySelector("#cm-gpsck").checked, trilha: [], marcas: [] }; cacaGravar(C); render(); };
+    return;
+  }
+  if (sub === "saidas") {
+    const sv = cacaVer && C.saidas.find((x) => x.id === cacaVer);
+    if (sv) {
+      const nome = nomeProp(sv.prop);
+      c.innerHTML = topo("Trilha da saída", esc(nome) + " · " + new Date(sv.inicio).toLocaleDateString("pt-BR") + ", " + cacaHora(sv.inicio) + "–" + cacaHora(sv.fim)) +
+        `<div class="card">${cacaMapa(sv.trilha, sv.marcas)}
+          <div class="dados-caca"><div><span>Percorrido</span><b>${cacaFmtKm(cacaKm(sv.trilha))}</b></div><div><span>Pontos marcados</span><b>${(sv.marcas || []).length}</b></div><div><span>Abatidos</span><b>${sv.animais || 0}</b></div></div>
+          ${(sv.marcas || []).length ? `<div class="lista" style="margin-top:12px">${sv.marcas.map((m, i) => `<div class="linha"><div><div class="t">${i + 1}. ${CACA_MARCAS[m.tipo] || "Ponto"}</div><div class="pequeno">${cacaHora(m.t)} · ${m.lat.toFixed(5)}, ${m.lon.toFixed(5)}${m.obs ? " · " + esc(m.obs) : ""}</div></div><a href="https://maps.google.com/?q=${m.lat},${m.lon}" target="_blank" rel="noopener">Abrir no mapa</a></div>`).join("")}</div>` : ""}
+          <div class="acoes" style="margin-top:14px"><button class="btn" id="cs-comp">Compartilhar</button><button class="btn sec" id="cs-gpx">Baixar GPX</button><button class="btn sec" id="cs-volta">Voltar às saídas</button></div><div class="msg" id="cs-msg"></div>
+          <p class="pequeno" style="margin:10px 0 0">Você escolhe com quem compartilhar. O resumo leva os pontos marcados com link de mapa; o arquivo GPX abre em apps de trilha e mapas.</p></div>`;
+      c.querySelector("#cs-volta").onclick = () => { cacaVer = null; render(); };
+      c.querySelector("#cs-comp").onclick = () => cacaCompartilhar(sv, nome, c.querySelector("#cs-msg"));
+      c.querySelector("#cs-gpx").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([cacaGpx(sv, nome)], { type: "application/gpx+xml" })); a.download = "manejo-" + sv.inicio.slice(0, 10) + ".gpx"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+      return;
+    }
+    const porProp = {}; for (const s of C.saidas) (porProp[s.prop] = porProp[s.prop] || []).push(s);
+    const dur = (s) => { const m = Math.round((new Date(s.fim) - new Date(s.inicio)) / 6e4); return m >= 60 ? Math.floor(m / 60) + "h" + String(m % 60).padStart(2, "0") : m + " min"; };
+    c.innerHTML = topo("Registro de saídas", "Cada manejo encerrado fica aqui, por propriedade. Use os totais para preencher o relatório do SIMAF.") +
+      (Object.keys(porProp).map((id) => { const L = porProp[id], tot = L.reduce((a, s) => a + (s.animais || 0), 0);
+        return `<h3 class="sec-tit">${esc(nomeProp(id))} · ${L.length} saída(s) · ${tot} animal(is)</h3><div class="lista">${L.map((s) => `<div class="linha"><div><div class="t">${new Date(s.inicio).toLocaleDateString("pt-BR")} · ${dur(s)}</div><div class="pequeno">${s.animais ? s.animais + " abatido(s)" : "sem abate"}${(s.trilha || []).length > 1 ? " · " + cacaFmtKm(cacaKm(s.trilha)) : ""}${(s.marcas || []).length ? " · " + s.marcas.length + " ponto(s)" : ""}${s.obs ? " · " + esc(s.obs) : ""}</div></div><div style="text-align:right"><div class="pequeno">${new Date(s.inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}–${new Date(s.fim).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div><button class="btn sec" data-ver="${s.id}" style="min-height:36px;padding:6px 12px;margin-top:6px">Ver trilha</button></div></div>`).join("")}</div>`; }).join("")
+        || '<div class="vazio">Nenhuma saída registrada ainda. Inicie um manejo para começar o histórico.</div>');
+    c.querySelectorAll("[data-ver]").forEach((b) => b.onclick = () => { cacaVer = b.dataset.ver; render(); window.scrollTo(0, 0); });
+    return;
+  }
+}
+function primeiroNome() { return esc(((D.assinante || {}).nome || "O caçador").split(" ")[0]); }
 function renderTela(c, a, primeiro, docs) {
   const hub = HUBS[tela];
   if (!hub) { subTela = ""; return renderTela0(c, a, primeiro, docs); }
@@ -1198,7 +1429,8 @@ function renderTela(c, a, primeiro, docs) {
     return;
   }
   const item = hub.itens.find((i) => i[0] === subTela);
-  if (tela === "documentos") { tela = subTela; try { renderTela0(c, a, primeiro, docs); } finally { tela = "documentos"; } }
+  if (tela === "caca") { if (subTela === "acervo") { acervoFiltro = "cacador"; tela = "acervo"; try { renderTela0(c, a, primeiro, docs); } finally { tela = "caca"; } } else renderCaca(c, subTela); }
+  else if (tela === "documentos") { tela = subTela; try { renderTela0(c, a, primeiro, docs); } finally { tela = "documentos"; } }
   else {
     renderBalistica(c);
     const bx = c.querySelector("#balx"), abas = bx.querySelector("#abas"), x = globalThis.scrollX, y = globalThis.scrollY;
