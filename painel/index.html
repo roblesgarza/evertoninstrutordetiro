@@ -1201,6 +1201,7 @@ function hubConta(k) {
     if (k === "acervo") return tela === "caca" ? D.documentos.filter((d) => d.tipo === "CRAF" && d.acervo === "cacador").length : D.resumo.armas;
     if (k === "ipsc") return ipscLer().series.length;
     if (k === "propriedades") return cacaLer().props.length;
+    if (k === "autorizacoes") return cacaDocsConta().length;
     if (k === "saidas") return cacaLer().saidas.length;
     if (k === "documentos") return D.documentos.length;
     if (k === "alvos") return JSON.parse(localStorage.getItem("atica_alvos_v1") || "[]").length;
@@ -1215,6 +1216,7 @@ ICON.manejo = '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>';
 ICON.saidas = '<path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h3"/>';
 HUBS.caca = { titulo: "Manejo de javali", sub: "Propriedades, autorizações do SIMAF e registro das saídas.", itens: [
   ["propriedades", "Propriedades e autorizações", "Prazo de cada autorização do SIMAF, declaração do dono e relatório.", "propriedades"],
+  ["autorizacoes", "Autorizações e documentos", "Autorizações de manejo, declarações de proprietário, SIMAF, CTF e CAR que você enviou.", "documentos"],
   ["manejo", "Manejo em andamento", "Inicie e encerre a saída; o proprietário pode ser avisado.", "manejo"],
   ["saidas", "Registro de saídas", "Histórico por propriedade, pronto para o relatório do SIMAF.", "saidas"],
   ["acervo", "Acervo de caça", "Armas do acervo de caçador, separadas do tiro esportivo e da coleção.", "acervo"]] };
@@ -1248,6 +1250,9 @@ function cacaForm(p) {
 }
 const CACA_GERAL = ["id", "cr", "craf", "ctf"];
 let cacaDocAlvo = null;
+const CACA_RX = /manejo|javali|simaf|ibama|cadastro t[ée]cnico federal|\bctf\b|cadastro ambiental rural|\bcar\b|ca[çc]ador|ca[çc]a\b|abate|fauna|arrendat|propriet[áa]rio (rural|da (terra|fazenda|propriedade|área))|propriedade rural/i;
+const cacaDocsConta = () => { try { return D.documentos.filter((d) => d.status !== "substituido" && (d.tipo === "OUTRO" || d.tipo === "GT") && CACA_RX.test((d.descricao || "") + " " + (d.destino || ""))); } catch (e) { return []; } };
+const cacaDocLinha = (d) => `<div class="linha"><div><div class="t">${esc(d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.tipo === "GT" ? "Guia de tráfego · " : ""}${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`;
 let cacaEdit = null, cacaWatch = null, cacaVer = null, cacaPasta = null;
 const cacaDist = (a, b) => { const R = 6371000, r = Math.PI / 180, x = Math.sin((b[0] - a[0]) * r / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin((b[1] - a[1]) * r / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
 const cacaKm = (t) => (t || []).reduce((s, p, i) => i ? s + cacaDist(t[i - 1], p) : 0, 0);
@@ -1322,6 +1327,7 @@ function cacaPastaHtml(C, p) {
     <div class="lista" style="margin-top:12px">${L.map((x) => { const e = env(x[0]); return `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${x[1]}</div><div class="pequeno">${x[2]}</div></div><span class="etiqueta ${x[3] === null ? "" : x[3] ? "ok" : "cr"}" style="white-space:nowrap">${x[4]}</span></div>
       ${e.length ? `<div class="pequeno caca-env">✓ ${e.length > 1 ? e.length + " arquivos enviados, o último em " : "Enviado em "}${new Date(e[e.length - 1].em).toLocaleDateString("pt-BR")}${e[e.length - 1].tipo ? " · lido como " + esc(e[e.length - 1].tipo) : ""}</div>` : ""}
       <div class="caca-envia"><button class="btn sec" data-cdoc="foto" data-k="${x[0]}">Fotografar</button><button class="btn sec" data-cdoc="arq" data-k="${x[0]}">${e.length ? "Enviar outro arquivo" : "Enviar arquivo ou PDF"}</button></div></div>`; }).join("")}</div>
+    ${cacaDocsConta().length ? `<div class="aviso info" style="margin-top:12px"><b>${cacaDocsConta().length} documento(s) de manejo na sua conta</b><span class="pequeno">Autorizações e declarações já enviadas. <a href="#" id="caca-ver-aut">Ver todos</a></span></div>` : ""}
     <p class="pequeno" style="margin:12px 0 0">Cada item tem o seu envio. Os arquivos ficam em Documentos › Meus documentos e a nossa equipe confere. Lista baseada na IN Ibama 3/2013 e no Decreto 11.615/2023; confirme com o Everton se o seu caso tem exigência a mais.</p>
     <button class="btn sec" id="caca-pasta-x" style="margin-top:12px">Fechar pasta</button></div>`;
 }
@@ -1499,6 +1505,7 @@ function renderCaca(c, sub) {
     c.querySelectorAll("[data-ed]").forEach((b) => b.onclick = () => { cacaEdit = { ...C.props.find((p) => p.id === b.dataset.ed) }; render(); window.scrollTo(0, 0); });
     c.querySelectorAll("[data-pasta]").forEach((b) => b.onclick = () => { cacaPasta = b.dataset.pasta; cacaEdit = null; render(); window.scrollTo(0, 0); });
     c.querySelectorAll("[data-cdoc]").forEach((b) => b.onclick = () => { cacaDocAlvo = { prop: cacaPasta, k: b.dataset.k }; b.dataset.cdoc === "foto" ? fotografar() : $("#arq").click(); });
+    if (g("caca-ver-aut")) g("caca-ver-aut").onclick = (e) => { e.preventDefault(); irPara("caca", "autorizacoes"); };
     if (g("caca-pasta-x")) g("caca-pasta-x").onclick = () => { cacaPasta = null; render(); };
     c.querySelectorAll("[data-rel]").forEach((b) => b.onclick = () => { C.props.find((p) => p.id === b.dataset.rel).relatorio = true; cacaGravar(C); render(); });
     c.querySelectorAll("[data-ir]").forEach((b) => b.onclick = () => { C.escolha = b.dataset.ir; cacaGravar(C); irPara("caca", "manejo"); });
@@ -1553,6 +1560,15 @@ function renderCaca(c, sub) {
         : `<div class="aviso"><b>Sem aviso ao proprietário</b><span class="pequeno">Para avisar, cadastre o WhatsApp dele e ligue a opção na propriedade.</span></div>`; };
     c.querySelector("#cm-prop").onchange = previa; c.querySelector("#cm-h").onchange = previa; previa();
     c.querySelector("#cm-ini").onclick = () => { const h = Number(c.querySelector("#cm-h").value); C.ativa = { prop: c.querySelector("#cm-prop").value, inicio: new Date().toISOString(), previsto: new Date(Date.now() + h * 36e5).toISOString(), gps: c.querySelector("#cm-gpsck").checked, trilha: [], marcas: [] }; cacaGravar(C); render(); };
+    return;
+  }
+  if (sub === "autorizacoes") {
+    const docs = cacaDocsConta();
+    c.innerHTML = topo("Autorizações e documentos", "Tudo o que você enviou sobre manejo: autorização do dono ou arrendatário, SIMAF, CTF, CAR e guias para o manejo.") +
+      `<div class="envio-doc"><button class="btn" data-doc="foto">Fotografar documento</button><button class="btn sec" data-doc="arq">Enviar arquivo ou PDF</button></div><div id="envio"></div>
+      ${docs.length ? `<div class="lista">${docs.map(cacaDocLinha).join("")}</div>` : '<div class="vazio">Nenhum documento de manejo na sua conta ainda. Envie a autorização do proprietário, a do SIMAF, o certificado do CTF ou o CAR.</div>'}
+      <p class="pequeno" style="margin-top:12px">O app separa aqui, sozinho, os documentos que falam de manejo, javali, SIMAF, Ibama, CTF ou CAR. Se algum não apareceu, ele está em Documentos › Meus documentos › Outros; avise a nossa equipe para corrigirmos.</p>`;
+    c.querySelectorAll("[data-doc]").forEach((b) => b.onclick = () => { cacaDocAlvo = { lista: true }; b.dataset.doc === "foto" ? fotografar() : $("#arq").click(); });
     return;
   }
   if (sub === "saidas") {
@@ -1838,7 +1854,8 @@ async function enviarDocumento(base64, mime) {
   const r = await api("enviar_documento", { arquivo: base64, mime });
   if (!r.ok) { statusEnvio(`<div class="aviso critico"><b>Não deu certo</b><span class="pequeno">${esc(r.erro || "Tente de novo.")}</span></div>`); return; }
   await carregar();
-  if (tela === "caca" && cacaDocAlvo) { const C = cacaLer(), al = cacaDocAlvo, ch = CACA_GERAL.includes(al.k) ? "_" : al.prop; C.docs = C.docs || {}; C.docs[ch] = C.docs[ch] || {}; (C.docs[ch][al.k] = C.docs[ch][al.k] || []).push({ em: new Date().toISOString(), tipo: r.nome_tipo || "" }); cacaGravar(C); cacaPasta = al.prop; cacaDocAlvo = null; subTela = "propriedades"; montarMenu(); render(); window.scrollTo(0, 0); }
+  if (tela === "caca" && cacaDocAlvo && cacaDocAlvo.lista) { cacaDocAlvo = null; subTela = "autorizacoes"; montarMenu(); render(); }
+  else if (tela === "caca" && cacaDocAlvo) { const C = cacaLer(), al = cacaDocAlvo, ch = CACA_GERAL.includes(al.k) ? "_" : al.prop; C.docs = C.docs || {}; C.docs[ch] = C.docs[ch] || {}; (C.docs[ch][al.k] = C.docs[ch][al.k] || []).push({ em: new Date().toISOString(), tipo: r.nome_tipo || "" }); cacaGravar(C); cacaPasta = al.prop; cacaDocAlvo = null; subTela = "propriedades"; montarMenu(); render(); window.scrollTo(0, 0); }
   else { tela = "documentos"; montarMenu(); render(); }
   statusEnvio(`<div class="aviso ${r.vencido ? "atencao" : "info"}"><b>${esc(r.nome_tipo[0].toUpperCase() + r.nome_tipo.slice(1))} recebido ✓</b><span class="pequeno">${r.arma ? esc(r.arma) + " · " : ""}${r.validade ? (r.vencido ? "venceu em " : "válido até ") + br(r.validade) : "sem validade lida"} · a nossa equipe vai conferir.</span></div>`);
 }
