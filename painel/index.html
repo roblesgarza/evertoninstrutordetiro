@@ -212,6 +212,7 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 .caca-doc{display:block!important}.caca-envia{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.caca-envia .btn{min-height:40px;padding:8px 12px;font-size:13px;flex:1}.caca-env{color:var(--verde);margin-top:8px}
 .ip-caixa{text-align:center}.ip-caixa[data-fase="rodando"]{border-color:var(--verde)}.ip-caixa[data-fase="espera"]{border-color:var(--amarelo)}
 .ip-tempo{font:700 64px/1.1 'Chakra Petch';letter-spacing:.02em;margin:8px 0 4px;font-variant-numeric:tabular-nums}.ip-tempo small{font-size:22px;color:var(--sub)}
+.ip-fim{min-height:22px;font:600 14px 'Chakra Petch';color:var(--amarelo);margin-bottom:6px}
 .ip-parar{width:100%;min-height:64px;font-size:20px;margin-top:14px}
 .ip-nivel{height:8px;background:var(--card2);margin:14px 0 6px;overflow:hidden}.ip-nivel i{display:block;height:100%;width:0;background:var(--verde)}
 .ip-caixa .dados-caca{text-align:left}
@@ -1401,6 +1402,8 @@ function ipscLoop() {
     const t = eu.ctx.currentTime - eu.t0, n = eu.tiros.length, ult = n ? eu.tiros[n - 1] : 0;
     el.textContent = ipscSeg(Math.max(0, t));
     document.querySelector("#ip-n").textContent = n; document.querySelector("#ip-ult").textContent = n ? ipscSeg(ult) : "—"; document.querySelector("#ip-split").textContent = n > 1 ? ipscSeg(ult - eu.tiros[n - 2]) : "—";
+    const fm = document.querySelector("#ip-fim");
+    if (fm) fm.textContent = !n ? "Aguardando o primeiro tiro" : eu.cfg.auto ? "Tempo da prova: " + ipscSeg(ult) + " s · encerra em " + Math.max(1, Math.ceil(eu.cfg.auto - (t - ult))) + " s se não houver outro tiro" : "Tempo da prova: " + ipscSeg(ult) + " s · toque em Parar para encerrar";
     if ((eu.cfg.auto && n && t - ult >= eu.cfg.auto) || (!n && t > 90)) return ipscParar();
   }
   const nv = document.querySelector("#ip-nivel i"); if (nv) { nv.style.width = Math.min(100, eu.nivel * 100) + "%"; nv.style.background = eu.nivel >= ipscLimiar(eu.cfg.sens) ? "var(--vermelho)" : "var(--verde)"; }
@@ -1426,7 +1429,7 @@ function renderIpsc(c) {
   const d = ipscLer(), cfg = d.cfg, q = (x) => c.querySelector(x);
   if (["prep", "espera", "rodando"].includes(ipsc.fase)) {
     c.innerHTML = `<div class="topo"><div><h2>Cronômetro IPSC</h2><p>O tempo começa no sinal e vale até o último tiro ouvido.</p></div></div>
-      <div class="card ip-caixa" id="ip-caixa" data-fase="${ipsc.fase}"><div class="rotulo" id="ip-fase"></div><div class="ip-tempo" id="ip-tempo">0,00</div>
+      <div class="card ip-caixa" id="ip-caixa" data-fase="${ipsc.fase}"><div class="rotulo" id="ip-fase"></div><div class="ip-tempo" id="ip-tempo">0,00</div><div class="ip-fim" id="ip-fim"></div>
         <div class="dados-caca"><div><span>Tiros</span><b id="ip-n">0</b></div><div><span>Último tiro</span><b id="ip-ult">—</b></div><div><span>Parcial</span><b id="ip-split">—</b></div></div>
         <div class="ip-nivel" id="ip-nivel"><i></i></div><div class="pequeno">Nível do microfone. A barra fica vermelha quando o som conta como tiro.</div>
         <button class="btn ip-parar" id="ip-parar">Parar</button></div>`;
