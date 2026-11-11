@@ -179,6 +179,8 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 @media (max-width:860px){#balx .duas,#balx .duas>div{display:flex;flex-direction:column;gap:14px}}
 .bal-atalho{display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid rgba(226,182,87,.4);background:rgba(226,182,87,.07);padding:16px 18px;margin-bottom:18px;width:100%;color:var(--txt);text-align:left}
 .bal-atalho b{font:700 16px 'Chakra Petch';letter-spacing:.06em;text-transform:uppercase;color:var(--ouro);display:block}
+#balx .abas{grid-template-columns:repeat(6,minmax(0,1fr))}
+@media (max-width:480px){#balx .abas button{font-size:10px;letter-spacing:.04em;padding:11px 0}}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -459,7 +461,7 @@ const Balistica = (() => {
 
   return { estabilidade, atmosfera, calcular, tabela, curva, cd, TAB, MOA_POR_MRAD, SMOA_POR_MRAD };
 })();
-const BALX_HTML = "<div class=\"topo\"><div><h2>Balística <span class=\"etiqueta at\" style=\"vertical-align:4px;margin-left:6px\">Beta<\/span><\/h2><p>Correções de elevação e vento, tabela, gráfico e retículo para o seu rifle, mira e munição.<\/p><\/div><\/div><div id=\"balx\"><div class=\"abas\" id=\"abas\">\n    <button data-t=\"tiro\" class=\"ativo\">Tiro<\/button><button data-t=\"tabela\">Tabela<\/button><button data-t=\"grafico\">Gráfico<\/button><button data-t=\"reticulo\">Retículo<\/button><button data-t=\"cadastro\">Cadastro<\/button>\n  <\/div>\n  <div class=\"aviso\" style=\"margin-bottom:14px\"><b>Versão beta.<\/b> Novas funções estão a caminho. Confirme sempre os valores no estande.<\/div>\n  <!-- TIRO -->\n  <section class=\"tela ativa\" id=\"t-tiro\">\n    <div class=\"conjunto\">\n      <label>Rifle<select id=\"sel-rifle\"><\/select><\/label>\n      <label>Mira<select id=\"sel-mira\"><\/select><\/label>\n      <label>Munição<select id=\"sel-municao\"><\/select><\/label>\n    <\/div>\n    <button class=\"btn sec\" id=\"ir-cadastro\" style=\"width:100%;text-align:left\">Cadastrar ou editar rifle, mira e munição ›<\/button>\n    <div class=\"duas\">\n      <div>\n        <div class=\"card\" style=\"border-color:rgba(226,182,87,.35)\">\n          <div class=\"rotulo\">Munição em uso<\/div>\n          <div class=\"c2\" style=\"margin-top:10px\">\n            <label>Velocidade na boca (m/s)<input id=\"v0rapido\" inputmode=\"decimal\"><\/label>\n            <label>Coeficiente balístico<input id=\"cbrapido\" inputmode=\"decimal\"><\/label>\n          <\/div>\n          <p class=\"pequeno\" style=\"margin:10px 0 0\">Use a velocidade medida no cronógrafo. Ela muda a queda e os cliques; o valor fica salvo na munição selecionada.<\/p>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Alvo<\/div>\n          <div class=\"c2\" style=\"margin-top:10px\">\n            <label>Distância (m)<input id=\"distancia\" inputmode=\"decimal\"><\/label>\n            <label>Inclinação (graus)<input id=\"inclinacao\" inputmode=\"decimal\"><\/label>\n          <\/div>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Vento<\/div>\n          <div class=\"vento\" style=\"margin-top:10px\">\n            <svg class=\"rosa\" id=\"rosa\" viewBox=\"0 0 80 80\"><\/svg>\n            <div class=\"campos\">\n              <label>Velocidade<div class=\"junto\"><input id=\"ventoVel\" inputmode=\"decimal\"><select id=\"ventoUn\"><option value=\"ms\">m/s<\/option><option value=\"kmh\">km/h<\/option><\/select><\/div><\/label>\n              <label>Vem de<select id=\"ventoHora\"><\/select><\/label>\n            <\/div>\n          <\/div>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Clima<\/div>\n          <div class=\"chips\" id=\"clima-modo\" style=\"margin:10px 0\">\n            <button class=\"chip\" data-m=\"da\">Alt. de densidade<\/button><button class=\"chip\" data-m=\"pressao\">Pressão<\/button><button class=\"chip\" data-m=\"altitude\">Altitude<\/button>\n          <\/div>\n          <div class=\"campos\">\n            <label>Temperatura (°C)<input id=\"temperatura\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"da\">Alt. de densidade (m)<input id=\"altitudeDensidade\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"pressao\">Pressão no local (hPa)<input id=\"pressao\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"altitude\">Altitude (m)<input id=\"altitude\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"pressao altitude\">Umidade (%)<input id=\"umidade\" inputmode=\"decimal\"><\/label>\n          <\/div>\n        <\/div>\n      <\/div>\n      <div>\n        <div id=\"resultado\"><\/div>\n        <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Os valores são calculados a partir dos dados que você cadastrou e devem ser confirmados no estande antes de qualquer uso. Siga sempre as regras de segurança do clube e do seu instrutor.<\/div>\n      <\/div>\n    <\/div>\n  <\/section>\n\n  <!-- TABELA -->\n  <section class=\"tela\" id=\"t-tabela\">\n    <div class=\"card\">\n      <div class=\"rotulo\">Tabela balística<\/div>\n      <div class=\"campos\" style=\"margin-top:10px;grid-template-columns:repeat(3,minmax(0,1fr))\">\n        <label>Início (m)<input id=\"tabIni\" inputmode=\"decimal\"><\/label>\n        <label>Fim (m)<input id=\"tabFim\" inputmode=\"decimal\"><\/label>\n        <label>Passo (m)<input id=\"tabPasso\" inputmode=\"decimal\"><\/label>\n      <\/div>\n      <p class=\"pequeno\" id=\"tab-resumo\" style=\"margin:10px 0 0\"><\/p>\n    <\/div>\n    <div class=\"card\" style=\"padding-top:6px;padding-bottom:6px\"><div class=\"rolagem\" id=\"tabela\"><\/div><\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- GRÁFICO -->\n  <section class=\"tela\" id=\"t-grafico\">\n    <div class=\"card\">\n      <div class=\"rotulo\">Trajetória em relação à linha de visada<\/div>\n      <div class=\"leitura\" id=\"leitura\" style=\"margin:10px 0 6px\"><\/div>\n      <div id=\"grafico\"><\/div>\n      <p class=\"pequeno\" style=\"margin:10px 0 0\">Toque ou passe o dedo no gráfico para ler os valores em cada distância. O alcance do gráfico segue o fim da tabela.<\/p>\n    <\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- RETÍCULO -->\n  <section class=\"tela\" id=\"t-reticulo\">\n    <div class=\"card\">\n      <div class=\"rotulo\" id=\"ret-tit\">Retículo<\/div>\n      <div class=\"chips\" id=\"ret-zoom\" style=\"margin:10px 0\"><button class=\"chip ativo\" data-z=\"ponto\">Zoom no ponto<\/button><button class=\"chip\" data-z=\"inteiro\">Inteiro<\/button><\/div>\n      <div class=\"leitura\" id=\"ret-leitura\" style=\"margin:0 0 8px\"><\/div>\n      <div id=\"reticulo\"><\/div>\n      <p class=\"pequeno\" id=\"ret-nota\" style=\"margin:10px 0 0\"><\/p>\n    <\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- CADASTRO -->\n  <section class=\"tela\" id=\"t-cadastro\">\n    <p class=\"pequeno\" style=\"margin:0\">Os cadastros ficam salvos só neste aparelho. Cadastre os dados do seu próprio equipamento e da sua munição, medidos por você.<\/p>\n    <div class=\"card\" id=\"cad-rifle\"><\/div>\n    <div class=\"card\" id=\"cad-mira\"><\/div>\n    <div class=\"card\" id=\"cad-municao\"><\/div>\n  <\/section>\n\n<p class=\"pequeno\" style=\"margin:0\">Marcas, modelos de lunetas e nomes de retículos pertencem aos seus fabricantes e aparecem só para você identificar o seu equipamento. O Ática não tem vínculo com eles.<\/p><\/div>";
+const BALX_HTML = "<div class=\"topo\"><div><h2>Balística <span class=\"etiqueta at\" style=\"vertical-align:4px;margin-left:6px\">Beta<\/span><\/h2><p>Correções de elevação e vento, tabela, gráfico e retículo para o seu rifle, mira e munição.<\/p><\/div><\/div><div id=\"balx\"><div class=\"abas\" id=\"abas\">\n    <button data-t=\"tiro\" class=\"ativo\">Tiro<\/button><button data-t=\"tabela\">Tabela<\/button><button data-t=\"grafico\">Gráfico<\/button><button data-t=\"reticulo\">Retículo<\/button><button data-t=\"alvo\">Alvo<\/button><button data-t=\"cadastro\">Cadastro<\/button>\n  <\/div>\n  <div class=\"aviso\" style=\"margin-bottom:14px\"><b>Versão beta.<\/b> Novas funções estão a caminho. Confirme sempre os valores no estande.<\/div>\n  <!-- TIRO -->\n  <section class=\"tela ativa\" id=\"t-tiro\">\n    <div class=\"conjunto\">\n      <label>Rifle<select id=\"sel-rifle\"><\/select><\/label>\n      <label>Mira<select id=\"sel-mira\"><\/select><\/label>\n      <label>Munição<select id=\"sel-municao\"><\/select><\/label>\n    <\/div>\n    <button class=\"btn sec\" id=\"ir-cadastro\" style=\"width:100%;text-align:left\">Cadastrar ou editar rifle, mira e munição ›<\/button>\n    <div class=\"duas\">\n      <div>\n        <div class=\"card\" style=\"border-color:rgba(226,182,87,.35)\">\n          <div class=\"rotulo\">Munição em uso<\/div>\n          <div class=\"c2\" style=\"margin-top:10px\">\n            <label>Velocidade na boca (m/s)<input id=\"v0rapido\" inputmode=\"decimal\"><\/label>\n            <label>Coeficiente balístico<input id=\"cbrapido\" inputmode=\"decimal\"><\/label>\n          <\/div>\n          <p class=\"pequeno\" style=\"margin:10px 0 0\">Use a velocidade medida no cronógrafo. Ela muda a queda e os cliques; o valor fica salvo na munição selecionada.<\/p>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Alvo<\/div>\n          <div class=\"c2\" style=\"margin-top:10px\">\n            <label>Distância (m)<input id=\"distancia\" inputmode=\"decimal\"><\/label>\n            <label>Inclinação (graus)<input id=\"inclinacao\" inputmode=\"decimal\"><\/label>\n          <\/div>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Vento<\/div>\n          <div class=\"vento\" style=\"margin-top:10px\">\n            <svg class=\"rosa\" id=\"rosa\" viewBox=\"0 0 80 80\"><\/svg>\n            <div class=\"campos\">\n              <label>Velocidade<div class=\"junto\"><input id=\"ventoVel\" inputmode=\"decimal\"><select id=\"ventoUn\"><option value=\"ms\">m/s<\/option><option value=\"kmh\">km/h<\/option><\/select><\/div><\/label>\n              <label>Vem de<select id=\"ventoHora\"><\/select><\/label>\n            <\/div>\n          <\/div>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Clima<\/div>\n          <div class=\"chips\" id=\"clima-modo\" style=\"margin:10px 0\">\n            <button class=\"chip\" data-m=\"da\">Alt. de densidade<\/button><button class=\"chip\" data-m=\"pressao\">Pressão<\/button><button class=\"chip\" data-m=\"altitude\">Altitude<\/button>\n          <\/div>\n          <div class=\"campos\">\n            <label>Temperatura (°C)<input id=\"temperatura\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"da\">Alt. de densidade (m)<input id=\"altitudeDensidade\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"pressao\">Pressão no local (hPa)<input id=\"pressao\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"altitude\">Altitude (m)<input id=\"altitude\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"pressao altitude\">Umidade (%)<input id=\"umidade\" inputmode=\"decimal\"><\/label>\n          <\/div>\n        <\/div>\n      <\/div>\n      <div>\n        <div id=\"resultado\"><\/div>\n        <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Os valores são calculados a partir dos dados que você cadastrou e devem ser confirmados no estande antes de qualquer uso. Siga sempre as regras de segurança do clube e do seu instrutor.<\/div>\n      <\/div>\n    <\/div>\n  <\/section>\n\n  <!-- TABELA -->\n  <section class=\"tela\" id=\"t-tabela\">\n    <div class=\"card\">\n      <div class=\"rotulo\">Tabela balística<\/div>\n      <div class=\"campos\" style=\"margin-top:10px;grid-template-columns:repeat(3,minmax(0,1fr))\">\n        <label>Início (m)<input id=\"tabIni\" inputmode=\"decimal\"><\/label>\n        <label>Fim (m)<input id=\"tabFim\" inputmode=\"decimal\"><\/label>\n        <label>Passo (m)<input id=\"tabPasso\" inputmode=\"decimal\"><\/label>\n      <\/div>\n      <p class=\"pequeno\" id=\"tab-resumo\" style=\"margin:10px 0 0\"><\/p>\n    <\/div>\n    <div class=\"card\" style=\"padding-top:6px;padding-bottom:6px\"><div class=\"rolagem\" id=\"tabela\"><\/div><\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- GRÁFICO -->\n  <section class=\"tela\" id=\"t-grafico\">\n    <div class=\"card\">\n      <div class=\"rotulo\">Trajetória em relação à linha de visada<\/div>\n      <div class=\"leitura\" id=\"leitura\" style=\"margin:10px 0 6px\"><\/div>\n      <div id=\"grafico\"><\/div>\n      <p class=\"pequeno\" style=\"margin:10px 0 0\">Toque ou passe o dedo no gráfico para ler os valores em cada distância. O alcance do gráfico segue o fim da tabela.<\/p>\n    <\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- RETÍCULO -->\n  <section class=\"tela\" id=\"t-reticulo\">\n    <div class=\"card\">\n      <div class=\"rotulo\" id=\"ret-tit\">Retículo<\/div>\n      <div class=\"chips\" id=\"ret-zoom\" style=\"margin:10px 0\"><button class=\"chip ativo\" data-z=\"ponto\">Zoom no ponto<\/button><button class=\"chip\" data-z=\"inteiro\">Inteiro<\/button><\/div>\n      <div class=\"leitura\" id=\"ret-leitura\" style=\"margin:0 0 8px\"><\/div>\n      <div id=\"reticulo\"><\/div>\n      <p class=\"pequeno\" id=\"ret-nota\" style=\"margin:10px 0 0\"><\/p>\n    <\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- ALVO -->\n  <section class=\"tela\" id=\"t-alvo\">\n    <div class=\"card\">\n      <div class=\"rotulo\">Análise do alvo por foto <span class=\"etiqueta at\" style=\"margin-left:6px\">Beta<\/span><\/div>\n      <p class=\"pequeno\" style=\"margin:8px 0 10px\">Fotografe o alvo de frente, bem enquadrado. Marque a escala, confira os furos e veja o tamanho do grupo e a correção em cliques. A foto fica só neste aparelho.<\/p>\n      <label class=\"btn\" style=\"display:flex;align-items:center;justify-content:center;color:#0A0A0C;font-size:15px\">Tirar ou escolher a foto do alvo<input id=\"alvo-foto\" type=\"file\" accept=\"image/*\" style=\"display:none\"><\/label>\n    <\/div>\n    <div class=\"card\" id=\"alvo-area\" style=\"display:none\">\n      <div class=\"chips\" id=\"alvo-modo\" style=\"margin-bottom:10px\">\n        <button class=\"chip\" data-m=\"escala\">1 · Escala<\/button><button class=\"chip\" data-m=\"furos\">2 · Furos<\/button><button class=\"chip\" data-m=\"visado\">3 · Ponto visado<\/button>\n      <\/div>\n      <p class=\"pequeno\" id=\"alvo-dica\" style=\"margin:0 0 10px\"><\/p>\n      <div id=\"alvo-quadro\" style=\"position:relative;touch-action:none;line-height:0;border:1px solid var(--line)\"><canvas id=\"alvo-tela\" style=\"width:100%;height:auto;display:block\"><\/canvas><\/div>\n      <div class=\"acoes\" style=\"margin-top:10px\">\n        <button class=\"btn sec\" id=\"alvo-detectar\">Detectar furos<\/button><button class=\"btn sec\" id=\"alvo-desfazer\">Desfazer<\/button><button class=\"btn perigo\" id=\"alvo-limpar\">Limpar furos<\/button>\n      <\/div>\n      <div class=\"campos\" style=\"margin-top:12px\">\n        <label>Medida da escala (cm)<input id=\"alvo-ref\" inputmode=\"decimal\"><\/label>\n        <label>Distância do tiro (m)<input id=\"alvo-dist\" inputmode=\"decimal\"><\/label>\n        <label>Diâmetro do projétil (mm)<input id=\"alvo-diam\" inputmode=\"decimal\"><\/label>\n        <label>Arma usada<select id=\"alvo-arma\"><\/select><\/label>\n        <label>Tipo de arma<select id=\"alvo-tipo\"><option value=\"longa\">Arma longa<\/option><option value=\"curta\">Arma curta<\/option><\/select><\/label>\n        <label style=\"grid-column:1/-1\">Observação (opcional)<input id=\"alvo-obs\" maxlength=\"140\" placeholder=\"Munição, clima, posição, o que quiser lembrar\"><\/label>\n      <\/div>\n    <\/div>\n    <div id=\"alvo-res\"><\/div>\n    <div class=\"card\" id=\"alvo-hist-card\">\n      <div class=\"rotulo\">Meus alvos<\/div>\n      <div class=\"chips\" id=\"alvo-ordem\" style=\"margin:10px 0\"><button class=\"chip\" data-o=\"melhores\">Melhores (MOA)<\/button><button class=\"chip\" data-o=\"recentes\">Recentes<\/button><\/div>\n      <label style=\"margin-bottom:10px\">Filtrar por arma<select id=\"alvo-filtro\"><\/select><\/label>\n      <div id=\"alvo-hist\"><\/div>\n    <\/div>\n    <div class=\"card\">\n      <div class=\"rotulo\">Quadro de análise de tiro · arma curta<\/div>\n      <p class=\"pequeno\" style=\"margin:8px 0 10px\">Relaciona a região onde os tiros se concentram a possíveis erros do atirador. Vale para arma curta já regulada e para uma série de disparos. O alvo sugere, não comprova: quem confirma é o instrutor, observando o atirador.<\/p>\n      <div class=\"chips\" id=\"quadro-mao\" style=\"margin-bottom:10px\"><button class=\"chip\" data-m=\"destro\">Destro<\/button><button class=\"chip\" data-m=\"canhoto\">Canhoto<\/button><\/div>\n      <div id=\"quadro-svg\" style=\"max-width:340px;margin:0 auto\"><\/div>\n      <div id=\"quadro-det\" style=\"margin-top:12px\"><\/div>\n      <p class=\"pequeno\" style=\"margin:10px 0 0\">Baseado no quadro tradicional de análise de tiro de arma curta (revista O Tiro, CBTA, 1977). Desenho e textos do Ática.<\/p>\n    <\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> A medida depende da foto e da escala marcada. Confira com a régua quando o resultado for valer para algo.<\/div>\n  <\/section>\n\n  <!-- CADASTRO -->\n  <section class=\"tela\" id=\"t-cadastro\">\n    <p class=\"pequeno\" style=\"margin:0\">Os cadastros ficam salvos só neste aparelho. Cadastre os dados do seu próprio equipamento e da sua munição, medidos por você.<\/p>\n    <div class=\"card\" id=\"cad-rifle\"><\/div>\n    <div class=\"card\" id=\"cad-mira\"><\/div>\n    <div class=\"card\" id=\"cad-municao\"><\/div>\n  <\/section>\n\n<p class=\"pequeno\" style=\"margin:0\">Marcas, modelos de lunetas e nomes de retículos pertencem aos seus fabricantes e aparecem só para você identificar o seu equipamento. O Ática não tem vínculo com eles.<\/p><\/div>";
 function renderBalistica(c) {
   c.innerHTML = BALX_HTML;
   const raiz = c.querySelector("#balx");
@@ -812,6 +814,220 @@ document.querySelectorAll("#abas button").forEach((b) => b.onclick = () => {
 });
 { const ic = $("#ir-cadastro"); if (ic) ic.onclick = () => $('#abas button[data-t="cadastro"]').click(); }
 renderTudo();
+// ---------- ALVO: agrupamento por foto ----------
+const AL = { img: null, furos: [], ref: [], visado: null, modo: "escala", hist: [], k: 1 };
+E.alvo = E.alvo || { ref: "10", dist: "", diam: "" };
+// ---------- QUADRO DE ANÁLISE (arma curta) ----------
+const QUADRO = [
+  { s: "SOB", n: "Sobressalto", de: 11, ate: 13, d: "Reação involuntária do atirador no instante do disparo. O quadro tradicional descreve como quebrar o pulso para cima.", c: "Vizinho da antecipação do recuo (ANT) e do espalmar (ESP). Piscar e tremor também levam os tiros para esta região." },
+  { s: "ESP", n: "Espalmar", de: 1, ate: 2, d: "Aperto excessivo do punho da arma contra a palma da mão no momento do disparo.", c: "Faz fronteira com o sobressalto (SOB) em 1h. A mão de apoio e a estabilização também influenciam esta região." },
+  { s: "INC", n: "Inclinação da arma", de: 2, ate: 4, d: "A arma inclina ou se desloca para o lado durante o tiro, por pressão lateral desequilibrada na empunhadura.", c: "Uma condição do dedo no gatilho pode produzir o mesmo efeito. Diferenciar exige observar o atirador." },
+  { s: "EST", n: "Estrangulamento", de: 4, ate: 5, d: "Empunhadura com força excessiva, como se a mão fosse uma morsa.", c: "O mesmo setor também pode vir de acionamento abrupto do gatilho. Faz fronteira com a torção do pulso (TOR) em 5h." },
+  { s: "TOR", n: "Torção do pulso", de: 5, ate: 7, d: "Inclinar a arma para baixo ou flexionar o pulso no momento do disparo.", c: "Enquadramento errado do aparelho de pontaria também leva os tiros para baixo. Na antecipação (ANT) o movimento é para cima." },
+  { s: "GAT", n: "Gatilhada", de: 7, ate: 8, d: "Acionamento rápido, brusco e desuniforme do gatilho.", c: "Alguns materiais estendem este setor até 9h, onde ele se sobrepõe ao excesso de dedo (DED)." },
+  { s: "DED", n: "Excesso de dedo no gatilho", de: 8, ate: 10, d: "O dedo indicador entra demais sobre a tecla do gatilho.", c: "Varia com o tamanho da mão do atirador. Vizinho da gatilhada (GAT)." },
+  { s: "ANT", n: "Antecipação do recuo", de: 10, ate: 11, d: "Levantar o cano antes do disparo, como se ajudasse a arma a saltar.", c: "Vizinho do sobressalto (SOB); os dois aparecem misturados em vários materiais." },
+];
+E.alvo.mao = E.alvo.mao || "destro";
+let quadroSel = null;
+// hora (0–12) do centro do grupo em relação ao ponto visado; para canhoto o quadro é espelhado
+function quadroSetor(dx, dy) { const x = E.alvo.mao === "canhoto" ? -dx : dx; let h = (Math.atan2(x, dy) * 180 / Math.PI / 30 + 12) % 12; return QUADRO.find((q) => (h >= q.de && h < q.ate) || (h + 12 >= q.de && h + 12 < q.ate)); }
+function quadroHora(dx, dy) { let h = (Math.atan2(dx, dy) * 180 / Math.PI / 30 + 12) % 12; let hh = Math.floor(h), m = (h - hh) < 0.25 ? 0 : (h - hh) < 0.75 ? 30 : 60; if (m === 60) { hh = (hh + 1) % 12; m = 0; } return `${hh === 0 ? 12 : hh}h${m ? "30" : ""}`; }
+function quadroDesenhar() {
+  const el = $("#quadro-svg"); if (!el) return;
+  const esp = E.alvo.mao === "canhoto", P = (h, r) => { const a = (esp ? -h : h) * Math.PI / 6; return [150 + r * Math.sin(a), 150 - r * Math.cos(a)]; };
+  let g = "";
+  for (const q of QUADRO) {
+    const [x0, y0] = P(q.de, 118), [x1, y1] = P(q.ate, 118), [tx, ty] = P((q.de + q.ate) / 2, 80), at = quadroSel === q.s;
+    g += `<path data-s="${q.s}" d="M150 150L${x0.toFixed(1)} ${y0.toFixed(1)}A118 118 0 0 ${esp ? 0 : 1} ${x1.toFixed(1)} ${y1.toFixed(1)}Z" fill="${at ? "rgba(226,182,87,.28)" : "rgba(255,255,255,.03)"}" stroke="${at ? "#E2B657" : "rgba(255,255,255,.22)"}" stroke-width="${at ? 2 : 1}" style="cursor:pointer"/>
+      <text x="${tx.toFixed(1)}" y="${(ty + 4).toFixed(1)}" text-anchor="middle" font-family="Chakra Petch" font-weight="700" font-size="13" fill="${at ? "#E2B657" : "#ECECEF"}" pointer-events="none">${q.s}</text>`;
+  }
+  for (let h = 1; h <= 12; h++) { const [x, y] = P(h, 136); g += `<text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="middle" font-family="Inter" font-size="10" fill="#A9A9B2">${h}</text>`; }
+  el.innerHTML = `<svg viewBox="0 0 300 300" role="img" aria-label="Quadro de análise de tiro" style="width:100%;height:auto;display:block">${g}<circle cx="150" cy="150" r="9" fill="#0A0A0C" stroke="#3FCB7E" stroke-width="2"/></svg>`;
+  el.querySelectorAll("path").forEach((p) => p.onclick = () => { quadroSel = p.dataset.s; quadroDesenhar(); });
+  document.querySelectorAll("#quadro-mao .chip").forEach((b) => b.classList.toggle("ativo", b.dataset.m === E.alvo.mao));
+  const q = QUADRO.find((x) => x.s === quadroSel), hr = (h) => { const v = esp ? (12 - h + 12) % 12 : h % 12; return v === 0 ? 12 : v; };
+  $("#quadro-det").innerHTML = q ? `<div class="aviso" style="border-left-color:var(--ouro)"><b>${q.s} · ${q.n}</b> <span class="pequeno">(${esp ? `${hr(q.ate)}h–${hr(q.de)}h` : `${hr(q.de)}h–${hr(q.ate)}h`})</span><br>${q.d}<br><span class="pequeno">${q.c}</span></div>` : `<p class="pequeno" style="margin:0">Toque em um setor para ver o que ele sugere.</p>`;
+}
+// ---------- REGISTRO DOS ALVOS ----------
+const ALVOS_CHAVE = "atica_alvos_v1";
+let ALVOS = []; try { ALVOS = JSON.parse(localStorage.getItem(ALVOS_CHAVE)) || []; } catch { ALVOS = []; }
+function alvosGravar() { for (let t = 0; t < 40; t++) { try { localStorage.setItem(ALVOS_CHAVE, JSON.stringify(ALVOS)); return true; } catch { const v = ALVOS.slice().reverse().find((a) => a.img); if (!v) return false; delete v.img; } } return false; }
+function alvoArmas() {
+  const nomes = [];
+  const docs = (typeof D === "object" && D && Array.isArray(D.documentos)) ? D.documentos : [];
+  for (const d of docs) if (d.tipo === "CRAF" && d.arma) nomes.push(String(d.arma).replace(/[,;]?\s*(n[ºo°.]*\s*(de\s*)?s[ée]rie|s[ée]rie)[^,;]*/i, "").trim().slice(0, 60));
+  for (const r of E.rifles) if (!/\(exemplo\)/i.test(r.nome)) nomes.push(r.nome);
+  return [...new Set(nomes.filter(Boolean))];
+}
+E.alvo.ordem = E.alvo.ordem || "melhores";
+function alvoHistorico() {
+  const el = $("#alvo-hist"); if (!el) return;
+  const armas = [...new Set(ALVOS.map((a) => a.arma).filter(Boolean))], fs = $("#alvo-filtro");
+  fs.innerHTML = `<option value="">Todas as armas</option>` + armas.map((a) => `<option ${E.alvo.filtro === a ? "selected" : ""}>${esc(a)}</option>`).join("");
+  if (E.alvo.filtro && !armas.includes(E.alvo.filtro)) E.alvo.filtro = "";
+  document.querySelectorAll("#alvo-ordem .chip").forEach((b) => b.classList.toggle("ativo", b.dataset.o === E.alvo.ordem));
+  const melhor = {}; for (const a of ALVOS) if (!(a.arma in melhor) || a.moa < melhor[a.arma]) melhor[a.arma] = a.moa;
+  const L = ALVOS.filter((a) => !E.alvo.filtro || a.arma === E.alvo.filtro).sort((a, b) => E.alvo.ordem === "melhores" ? a.moa - b.moa : b.data.localeCompare(a.data));
+  if (!L.length) { el.innerHTML = `<p class="pequeno" style="margin:0">Nenhum alvo registrado ainda. Depois de medir um grupo, toque em "Registrar este alvo".</p>`; return; }
+  el.innerHTML = L.map((a) => `<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)">
+      ${a.img ? `<img src="${a.img}" alt="" style="width:72px;height:72px;object-fit:cover;border:1px solid var(--line);flex:none">` : `<div style="width:72px;height:72px;border:1px solid var(--line);flex:none"></div>`}
+      <div style="min-width:0;flex:1"><div style="font:700 17px 'Chakra Petch';color:var(--ouro)">${fmt(a.moa, 2)} MOA ${a.moa === melhor[a.arma] ? `<span class="etiqueta" style="margin-left:4px;color:var(--verde);border-color:var(--verde)">Melhor da arma</span>` : ""}</div>
+        <div class="pequeno">${a.n} tiros a ${fmt(a.dist, 0)} m · ${fmt(a.cm, 1)} cm · ${esc(a.arma || "Arma não informada")}</div>
+        <div class="pequeno">${new Date(a.data).toLocaleDateString("pt-BR")}${a.setor ? ` · ${a.setor}` : ""}${a.obs ? ` · ${esc(a.obs)}` : ""}</div></div>
+      <button class="btn perigo" data-apagar="${a.id}" style="padding:8px 10px;min-height:0;font-size:12px">Excluir</button></div>`).join("");
+  el.querySelectorAll("[data-apagar]").forEach((b) => b.onclick = () => {
+    if (b.dataset.conf !== "1") { b.dataset.conf = "1"; b.textContent = "Confirmar"; setTimeout(() => { b.dataset.conf = ""; b.textContent = "Excluir"; }, 3000); return; }
+    ALVOS = ALVOS.filter((a) => a.id !== b.dataset.apagar); alvosGravar(); alvoHistorico();
+  });
+}
+function alvoRegistrar(med) {
+  let img = null;
+  try { const cv = $("#alvo-tela"), F = AL.furos, mx = Math.min(...F.map((p) => p.x)), Mx = Math.max(...F.map((p) => p.x)), my = Math.min(...F.map((p) => p.y)), My = Math.max(...F.map((p) => p.y));
+    const lado = Math.min(Math.max(cv.width, cv.height), Math.max(Mx - mx, My - my) * 2.4 + alvoRaioPx() * 8), cx = (mx + Mx) / 2, cy = (my + My) / 2;
+    const c = globalThis.document.createElement("canvas"); c.width = c.height = 240; const g = c.getContext("2d"); g.fillStyle = "#141418"; g.fillRect(0, 0, 240, 240); g.drawImage(cv, cx - lado / 2, cy - lado / 2, lado, lado, 0, 0, 240, 240); img = c.toDataURL("image/jpeg", 0.62); } catch { img = null; }
+  ALVOS.unshift({ id: id(), data: new Date().toISOString(), arma: E.alvo.arma || "", tipo: E.alvo.tipo || "longa", dist: med.d, n: med.n, cm: med.cm, moa: med.moa, mrad: med.mrad, raio: med.raio, setor: med.setor || "", obs: String(E.alvo.obs || "").slice(0, 140), img });
+  ALVOS.filter((a) => a.img).slice(40).forEach((a) => delete a.img);
+  const ok = alvosGravar(); E.alvo.obs = ""; $("#alvo-obs").value = ""; salvar(); alvoHistorico();
+  return ok;
+}
+function alvoPxCm() { const r = num(E.alvo.ref); return AL.ref.length === 2 && r > 0 ? Math.hypot(AL.ref[0].x - AL.ref[1].x, AL.ref[0].y - AL.ref[1].y) / r : 0; }
+function alvoRaioPx() { const d = num(E.alvo.diam), s = alvoPxCm(); return d > 0 && s > 0 ? d / 10 * s / 2 : Math.max(6, (AL.img ? AL.img.width : 800) / 120); }
+function alvoDesenhar() {
+  const cv = $("#alvo-tela"); if (!cv || !AL.img) return;
+  const g = cv.getContext("2d"), L = Math.max(2, AL.img.width / 400), r = alvoRaioPx();
+  g.drawImage(AL.img, 0, 0);
+  g.lineWidth = L; g.font = `600 ${Math.round(L * 9)}px Inter, sans-serif`; g.textBaseline = "middle";
+  if (AL.ref.length) { g.strokeStyle = g.fillStyle = "#6E9BF5"; AL.ref.forEach((p) => { g.beginPath(); g.arc(p.x, p.y, L * 4, 0, 7); g.fill(); });
+    if (AL.ref.length === 2) { g.beginPath(); g.moveTo(AL.ref[0].x, AL.ref[0].y); g.lineTo(AL.ref[1].x, AL.ref[1].y); g.stroke(); } }
+  if (AL.visado) { const p = AL.visado, t = L * 14; g.strokeStyle = "#3FCB7E"; g.beginPath(); g.moveTo(p.x - t, p.y); g.lineTo(p.x + t, p.y); g.moveTo(p.x, p.y - t); g.lineTo(p.x, p.y + t); g.stroke(); g.beginPath(); g.arc(p.x, p.y, t * .6, 0, 7); g.stroke(); }
+  const m = alvoMedir();
+  if (m && m.par) { g.strokeStyle = "#F0524F"; g.setLineDash([L * 4, L * 3]); g.beginPath(); g.moveTo(m.par[0].x, m.par[0].y); g.lineTo(m.par[1].x, m.par[1].y); g.stroke(); g.setLineDash([]); }
+  AL.furos.forEach((p, i) => { g.strokeStyle = "#E2B657"; g.beginPath(); g.arc(p.x, p.y, r, 0, 7); g.stroke(); g.fillStyle = "#E2B657"; g.fillText(String(i + 1), p.x + r + L * 2, p.y); });
+  if (m && m.centro) { const c = m.centro, t = L * 7; g.strokeStyle = "#F0524F"; g.lineWidth = L * 1.5; g.beginPath(); g.moveTo(c.x - t, c.y - t); g.lineTo(c.x + t, c.y + t); g.moveTo(c.x + t, c.y - t); g.lineTo(c.x - t, c.y + t); g.stroke(); }
+}
+function alvoMedir() {
+  const F = AL.furos, n = F.length; if (!n) return null;
+  const centro = { x: F.reduce((s, p) => s + p.x, 0) / n, y: F.reduce((s, p) => s + p.y, 0) / n };
+  let max = 0, par = null;
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const d = Math.hypot(F[i].x - F[j].x, F[i].y - F[j].y); if (d > max) { max = d; par = [F[i], F[j]]; } }
+  const raio = F.reduce((s, p) => s + Math.hypot(p.x - centro.x, p.y - centro.y), 0) / n;
+  return { n, centro, par, max, raio };
+}
+function alvoResultado() {
+  const el = $("#alvo-res"); if (!el) return;
+  const DICAS = { escala: "Toque em dois pontos do alvo com distância conhecida entre eles (uma régua, a largura de um anel, o lado de um quadrado) e informe a medida em cm.", furos: "Toque no centro de cada furo para marcar. Toque em um furo marcado para apagar. Em furos encostados, marque um ponto para cada tiro.", visado: "Toque no ponto em que você mirou. É a partir dele que sai a correção em cliques." };
+  $("#alvo-dica").textContent = DICAS[AL.modo];
+  document.querySelectorAll("#alvo-modo .chip").forEach((b) => b.classList.toggle("ativo", b.dataset.m === AL.modo));
+  if (!AL.img) { el.innerHTML = ""; return; }
+  const s = alvoPxCm(), m = alvoMedir(), d = num(E.alvo.dist), falta = [];
+  if (!s) falta.push("marque a escala (2 pontos) e informe a medida em cm");
+  if (!m || m.n < 2) falta.push("marque pelo menos 2 furos");
+  if (!(d > 0)) falta.push("informe a distância do tiro");
+  if (falta.length) { el.innerHTML = `<div class="erro" style="color:var(--sub);border-color:var(--line)">Falta: ${falta.join("; ")}.</div>`; return; }
+  const ang = (cm) => { const mrad = cm * 10 / d; return { cm, mrad, moa: mrad * Balistica.MOA_POR_MRAD }; };
+  const grupo = ang(m.max / s), raio = ang(m.raio / s);
+  const lin = (t, a) => `<tr><td>${t}</td><td>${fmt(a.cm, 1)}</td><td>${fmt(a.moa, 2)}</td><td>${fmt(a.mrad, 2)}</td></tr>`;
+  let corr = "";
+  if (AL.visado) {
+    const dx = (m.centro.x - AL.visado.x) / s, dy = (AL.visado.y - m.centro.y) / s; // dx > 0: grupo à direita; dy > 0: grupo acima
+    const mira = atual("mira"), un = mira ? mira.unidade : "MRAD", emUn = (a) => un === "MOA" ? a.moa : a.mrad;
+    const cl = (a, c) => { const v = num(c); return E.alvo.tipo !== "curta" && v > 0 ? Math.round(Math.abs(emUn(a)) / v) : null; };
+    const ax = ang(Math.abs(dx)), ay = ang(Math.abs(dy)), cv = mira ? cl(ay, mira.cliqueV) : null, ch = mira ? cl(ax, mira.cliqueH) : null;
+    const bloco = (tit, a, onde, sentido, n) => `<div class="heroi"><div class="rotulo">${tit}</div><div class="n">${fmt(a.cm, 1)}<small>cm ${onde}</small></div><div class="s"><span class="sentido ${a.cm < 0.05 || n === 0 ? "neutro" : ""}">${a.cm < 0.05 || n === 0 ? "No ponto" : sentido}</span>${a.cm < 0.05 ? "" : n === 0 ? "menos de meio clique" : n === null ? `${fmt(emUn(a), 2)} ${un}` : `${n} ${n === 1 ? "clique" : "cliques"} · ${fmt(emUn(a), 2)} ${un}`}</div></div>`;
+    corr = `<div class="herois">${bloco("Altura do grupo", ay, dy >= 0 ? "acima" : "abaixo", dy >= 0 ? "Descer" : "Subir", cv)}${bloco("Lateral do grupo", ax, dx >= 0 ? "à direita" : "à esquerda", dx >= 0 ? "Esquerda" : "Direita", ch)}</div>
+      <p class="pequeno" style="margin:0">Correção para levar o centro do grupo ao ponto visado${mira && E.alvo.tipo !== "curta" ? `, com os cliques de ${esc(mira.nome)}` : ""}.</p>`;
+  } else corr = `<div class="erro" style="color:var(--sub);border-color:var(--line)">Marque o ponto visado (passo 3) para ver a correção em cliques.</div>`;
+  let hip = "", setor = "";
+  if (E.alvo.tipo === "curta" && AL.visado) {
+    const dx = (m.centro.x - AL.visado.x) / s, dy = (AL.visado.y - m.centro.y) / s, fora = Math.hypot(dx, dy);
+    if (m.n >= 3 && fora >= Math.max(raio.cm * 0.6, (num(E.alvo.diam) || 9) / 10)) {
+      const q = quadroSetor(dx, dy); setor = q.s; quadroSel = q.s;
+      hip = `<div class="aviso" style="border-left-color:var(--ouro)"><b>Centro do grupo às ${quadroHora(dx, dy)} do ponto visado: compatível com ${q.s} · ${q.n}.</b><span>${q.d} ${q.c}</span><span class="pequeno">É um indício, não um diagnóstico. Vale para arma curta já regulada; a confirmação é do instrutor, observando o atirador.</span></div>`;
+    } else hip = `<div class="aviso"><b>Sem setor predominante.</b> ${m.n < 3 ? "Com menos de 3 tiros o quadro de análise não se aplica." : "O grupo está centrado no ponto visado em relação à sua dispersão."}</div>`;
+    quadroDesenhar();
+  }
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:14px">
+    <div class="card" style="padding-top:8px;padding-bottom:8px"><div class="rolagem"><table>
+      <tr><th>${m.n} tiros a ${fmt(d, 0)} m</th><th>cm</th><th>MOA</th><th>MRAD</th></tr>
+      ${lin("Grupo (centro a centro)", grupo)}${lin("Raio médio", raio)}</table></div></div>${corr}${hip}
+    <button class="btn" id="alvo-salvar">Registrar este alvo</button><p class="pequeno" id="alvo-salvo" style="margin:0"></p></div>`;
+  $("#alvo-salvar").onclick = () => { const ok = alvoRegistrar({ d, n: m.n, cm: grupo.cm, moa: grupo.moa, mrad: grupo.mrad, raio: raio.cm, setor }); $("#alvo-salvo").textContent = ok ? "Alvo registrado em Meus alvos, neste aparelho." : "Não consegui gravar: o armazenamento deste aparelho está cheio."; };
+}
+function alvoTudo() { alvoDesenhar(); alvoResultado(); }
+function alvoDetectar() {
+  const s = alvoPxCm(), dm = num(E.alvo.diam);
+  if (!s || !(dm > 0)) { $("#alvo-dica").textContent = "Para detectar, marque antes a escala e informe o diâmetro do projétil."; return; }
+  const k = Math.min(1, 1000 / Math.max(AL.img.width, AL.img.height)), W = Math.round(AL.img.width * k), H = Math.round(AL.img.height * k);
+  const c = globalThis.document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d"); g.drawImage(AL.img, 0, 0, W, H);
+  const px = g.getImageData(0, 0, W, H).data, cz = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) cz[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+  const I = new Float64Array((W + 1) * (H + 1));
+  for (let y = 0; y < H; y++) { let l = 0; for (let x = 0; x < W; x++) { l += cz[y * W + x]; I[(y + 1) * (W + 1) + x + 1] = I[y * (W + 1) + x + 1] + l; } }
+  const r = dm / 10 * s / 2 * k, jan = Math.max(8, Math.round(r * 5)), esc2 = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const x0 = Math.max(0, x - jan), x1 = Math.min(W, x + jan + 1), y0 = Math.max(0, y - jan), y1 = Math.min(H, y + jan + 1);
+    const med = (I[y1 * (W + 1) + x1] - I[y0 * (W + 1) + x1] - I[y1 * (W + 1) + x0] + I[y0 * (W + 1) + x0]) / ((x1 - x0) * (y1 - y0));
+    if (cz[y * W + x] < med * 0.62 && cz[y * W + x] < 120) esc2[y * W + x] = 1;
+  }
+  // erosão: tira linhas impressas (anéis, cruz) mais finas que o furo e separa furos encostados
+  const er = Math.max(1, Math.floor(r * 0.45)), J = new Int32Array((W + 1) * (H + 1)), lado = 2 * er + 1;
+  for (let y = 0; y < H; y++) { let l = 0; for (let x = 0; x < W; x++) { l += esc2[y * W + x]; J[(y + 1) * (W + 1) + x + 1] = J[y * (W + 1) + x + 1] + l; } }
+  const fino = new Uint8Array(W * H);
+  for (let y = er; y < H - er; y++) for (let x = er; x < W - er; x++) {
+    const x0 = x - er, x1 = x + er + 1, y0 = y - er, y1 = y + er + 1;
+    if (J[y1 * (W + 1) + x1] - J[y0 * (W + 1) + x1] - J[y1 * (W + 1) + x0] + J[y0 * (W + 1) + x0] >= lado * lado * 0.92) fino[y * W + x] = 1;
+  }
+  esc2.set(fino);
+  const A0 = Math.PI * Math.max(1, r - er) ** 2, achados = [], pilha = new Int32Array(W * H); let juntos = 0;
+  for (let i0 = 0; i0 < W * H; i0++) {
+    if (esc2[i0] !== 1) continue;
+    let t = 0, n = 0, sx = 0, sy = 0, xa = W, xb = 0, ya = H, yb = 0; pilha[t++] = i0; esc2[i0] = 2;
+    while (t) { const i = pilha[--t], x = i % W, y = (i - x) / W; n++; sx += x; sy += y; if (x < xa) xa = x; if (x > xb) xb = x; if (y < ya) ya = y; if (y > yb) yb = y;
+      if (x > 0 && esc2[i - 1] === 1) { esc2[i - 1] = 2; pilha[t++] = i - 1; } if (x < W - 1 && esc2[i + 1] === 1) { esc2[i + 1] = 2; pilha[t++] = i + 1; }
+      if (y > 0 && esc2[i - W] === 1) { esc2[i - W] = 2; pilha[t++] = i - W; } if (y < H - 1 && esc2[i + W] === 1) { esc2[i + W] = 2; pilha[t++] = i + W; } }
+    const lw = xb - xa + 1, lh = yb - ya + 1, prop = Math.max(lw, lh) / Math.min(lw, lh), cheio = n / (lw * lh);
+    if (n < A0 * 0.2 || n > A0 * 9 || prop > 2.8 || cheio < 0.3) continue;
+    if (n > A0 * 2.6) juntos++;
+    achados.push({ x: sx / n / k, y: sy / n / k });
+  }
+  if (!achados.length) { $("#alvo-dica").textContent = "Não encontrei furos sozinho nesta foto. Marque tocando em cada um (passo 2)."; return; }
+  AL.hist.push(AL.furos.slice()); AL.furos = achados.slice(0, 60); AL.modo = "furos"; alvoTudo();
+  $("#alvo-dica").textContent = `Encontrei ${AL.furos.length} ${AL.furos.length === 1 ? "marca" : "marcas"}. Confira: toque para apagar o que não é furo e para marcar o que faltou.` + (juntos ? ` Em ${juntos} ${juntos === 1 ? "ponto parece" : "pontos parecem"} haver furos encostados: marque um ponto por tiro.` : "");
+}
+{
+  const foto = $("#alvo-foto"), cv = $("#alvo-tela");
+  E.alvo.dist = E.alvo.dist || E.tiro.distancia || ""; E.alvo.diam = E.alvo.diam || (atual("municao") || {}).diametro || "";
+  for (const [i, k] of [["alvo-ref", "ref"], ["alvo-dist", "dist"], ["alvo-diam", "diam"]]) { const inp = $("#" + i); inp.value = E.alvo[k] ?? ""; inp.oninput = () => { E.alvo[k] = inp.value; salvar(); alvoTudo(); }; }
+  foto.onchange = () => { const f = foto.files && foto.files[0]; if (!f) return; const im = new Image(); im.onload = () => {
+    const k = Math.min(1, 1800 / Math.max(im.width, im.height)), c = globalThis.document.createElement("canvas"); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k); c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+    AL.img = c; AL.furos = []; AL.ref = []; AL.visado = null; AL.hist = []; AL.modo = "escala"; cv.width = c.width; cv.height = c.height; $("#alvo-area").style.display = ""; URL.revokeObjectURL(im.src); alvoTudo(); }; im.src = URL.createObjectURL(f); };
+  cv.addEventListener("pointerdown", (ev) => {
+    if (!AL.img) return; ev.preventDefault();
+    const b = cv.getBoundingClientRect(), p = { x: (ev.clientX - b.left) / b.width * cv.width, y: (ev.clientY - b.top) / b.height * cv.height };
+    if (AL.modo === "escala") { if (AL.ref.length >= 2) AL.ref = []; AL.ref.push(p); if (AL.ref.length === 2 && num(E.alvo.ref) > 0) AL.modo = "furos"; }
+    else if (AL.modo === "visado") AL.visado = p;
+    else { AL.hist.push(AL.furos.slice()); const tol = Math.max(alvoRaioPx() * 1.2, cv.width / b.width * 14), i = AL.furos.findIndex((q) => Math.hypot(q.x - p.x, q.y - p.y) < tol); if (i >= 0) AL.furos.splice(i, 1); else AL.furos.push(p); }
+    alvoTudo();
+  });
+  document.querySelectorAll("#alvo-modo .chip").forEach((b) => b.onclick = () => { AL.modo = b.dataset.m; alvoTudo(); });
+  $("#alvo-detectar").onclick = alvoDetectar;
+  $("#alvo-desfazer").onclick = () => { if (AL.hist.length) { AL.furos = AL.hist.pop(); alvoTudo(); } };
+  $("#alvo-limpar").onclick = () => { AL.hist.push(AL.furos.slice()); AL.furos = []; alvoTudo(); };
+  { const sa = $("#alvo-arma"), st = $("#alvo-tipo"), so = $("#alvo-obs"), nomes = alvoArmas();
+    if (E.alvo.arma && !nomes.includes(E.alvo.arma)) nomes.push(E.alvo.arma);
+    sa.innerHTML = `<option value="">Não informada</option>` + nomes.map((n) => `<option ${E.alvo.arma === n ? "selected" : ""}>${esc(n)}</option>`).join("");
+    const curta = (n) => /pistola|rev[oó]lver/i.test(n || "");
+    E.alvo.tipo = E.alvo.tipo || (curta(E.alvo.arma) ? "curta" : "longa"); st.value = E.alvo.tipo; so.value = E.alvo.obs || "";
+    sa.onchange = () => { E.alvo.arma = sa.value; E.alvo.tipo = curta(sa.value) ? "curta" : "longa"; st.value = E.alvo.tipo; salvar(); alvoResultado(); };
+    st.onchange = () => { E.alvo.tipo = st.value; salvar(); alvoResultado(); };
+    so.oninput = () => { E.alvo.obs = so.value; salvar(); };
+    document.querySelectorAll("#alvo-ordem .chip").forEach((b) => b.onclick = () => { E.alvo.ordem = b.dataset.o; salvar(); alvoHistorico(); });
+    $("#alvo-filtro").onchange = (e) => { E.alvo.filtro = e.target.value; salvar(); alvoHistorico(); };
+    document.querySelectorAll("#quadro-mao .chip").forEach((b) => b.onclick = () => { E.alvo.mao = b.dataset.m; salvar(); quadroDesenhar(); alvoResultado(); }); }
+  alvoResultado(); alvoHistorico(); quadroDesenhar();
+}
 }
 
 function render() {
