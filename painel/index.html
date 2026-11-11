@@ -1233,7 +1233,7 @@ ICON.propriedades = '<path d="M3 20V10l6-4 6 4v10M9 20v-5h0M15 12l6 3v5H3"/><pat
 ICON.manejo = '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>';
 ICON.saidas = '<path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h3"/>';
 HUBS.caca = { titulo: "Manejo de javali", sub: "Propriedades, autorizações do SIMAF e registro das saídas.", itens: [
-  ["propriedades", "Propriedades e autorizações", "Prazo de cada autorização do SIMAF, declaração do dono e relatório.", "propriedades"],
+  ["propriedades", "Propriedades (CAR) e autorizações", "CAR de cada propriedade, autorização do SIMAF, declaração do dono e relatório.", "propriedades"],
   ["autorizacoes", "Autorizações e documentos", "Autorizações de manejo, declarações de proprietário, SIMAF, CTF e CAR que você enviou.", "documentos"],
   ["ctf", "CTF do Ibama", "Certificado de Regularidade do Cadastro Técnico Federal: validade e arquivo.", "calendario"],
   ["manejo", "Manejo em andamento", "Inicie e encerre a saída; o proprietário pode ser avisado.", "manejo"],
@@ -1258,7 +1258,7 @@ function cacaForm(p) {
     <div class="caca-campos">
       <label>Nome da propriedade<input id="cp-nome" maxlength="60" value="${esc(p.nome || "")}"></label>
       <label>Município / UF<input id="cp-mun" maxlength="50" value="${esc(p.mun || "")}"></label>
-      <label>Nº do CAR (opcional)<input id="cp-car" maxlength="60" value="${esc(p.car || "")}"></label>
+      <label>Nº do CAR da propriedade<input id="cp-car" maxlength="60" placeholder="O mesmo informado no SIMAF" value="${esc(p.car || "")}"></label>
       <label>Autorização do SIMAF: início<input id="cp-ini" type="date" value="${esc(p.ini || "")}"></label>
       <label>Autorização do SIMAF: validade<input id="cp-fim" type="date" value="${esc(p.fim || "")}"></label>
       <label>Equipe na autorização (nomes)<input id="cp-eq" maxlength="160" value="${esc(p.equipe || "")}"></label>
@@ -1899,14 +1899,14 @@ function renderCaca(c, sub) {
   const nomeProp = (id) => (C.props.find((p) => p.id === id) || {}).nome || "Propriedade removida";
   if (sub === "propriedades") {
     const dc = cacaDias(C.ctf);
-    c.innerHTML = topo("Propriedades e autorizações", "Uma autorização do SIMAF por propriedade. O app acompanha cada prazo.") +
+    c.innerHTML = topo("Propriedades (CAR) e autorizações", "Cada propriedade entra pelo número do CAR e tem a sua autorização do SIMAF. O app acompanha cada prazo.") +
       `<div class="card" style="margin-bottom:14px"><div class="rotulo">Certificado de Regularidade do CTF/Ibama</div>
         <div class="caca-campos" style="margin-top:8px"><label>Validade (vale 3 meses)<input id="caca-ctf" type="date" value="${esc(C.ctf)}"></label>
         <div class="pequeno ${dc === null ? "at" : dc < 0 ? "cr" : dc <= 15 ? "at" : "ok"}" style="align-self:end;padding-bottom:12px">${dc === null ? "Informe a validade: ele precisa estar em dia no dia do manejo." : dc < 0 ? "Vencido: renove no site do Ibama antes de sair." : "Vence " + prazo(dc) + "."}</div></div></div>
       ${cacaPasta && C.props.find((p) => p.id === cacaPasta) ? cacaPastaHtml(C, C.props.find((p) => p.id === cacaPasta)) : ""}
       ${cacaEdit ? cacaForm(cacaEdit) : '<button class="btn" id="caca-nova" style="margin:14px 0">+ Adicionar propriedade</button>'}
       <div class="lista">${C.props.map((p) => { const s = cacaSituacao(C, p); return `<div class="card caca-prop">
-        <div class="caca-topo"><div><div class="tit" style="font-size:17px">${esc(p.nome)}</div><div class="pequeno">${esc([p.mun, p.dono ? "Proprietário: " + p.dono : ""].filter(Boolean).join(" · "))}</div></div>
+        <div class="caca-topo"><div><div class="tit" style="font-size:17px">${esc(p.nome)}</div><div class="pequeno">${esc([p.mun, p.car ? "CAR " + p.car : "CAR a informar", p.dono ? "Proprietário: " + p.dono : ""].filter(Boolean).join(" · "))}</div></div>
           <span class="etiqueta ${s.cor}">${s.pode ? (s.cor === "at" ? "Atenção ao prazo" : "Liberada") : "Pendente"}</span></div>
         <div class="dados-caca"><div><span>Autorização SIMAF</span><b class="${s.da === null ? "at" : cor(s.da)}">${p.fim ? br(p.fim) : "a informar"}</b><em>${p.fim ? prazo(s.da) : ""}</em></div>
           <div><span>Declaração do dono</span><b class="${p.decl ? "ok" : "cr"}">${p.decl ? "Em mãos" : "Falta"}</b></div>
