@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Painel do Atirador · Acompanhamento CAC · Everton Barbosa</title>
+<title>Ática · Painel do Atirador</title>
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -203,24 +203,40 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 <link rel="manifest" href="/app/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/data/app/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Everton CAC">
+<meta name="apple-mobile-web-app-title" content="Ática">
 <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
 
 <section id="login">
   <div class="caixa">
-    <div class="marca"><svg width="30" height="30" viewBox="0 0 34 34" fill="none" stroke="#E2B657" stroke-width="2"><circle cx="17" cy="17" r="13"/><circle cx="17" cy="17" r="5"/><path d="M17 1v8M17 25v8M1 17h8M25 17h8"/></svg><div>EVERTON BARBOSA<small>ACOMPANHAMENTO CAC</small></div></div>
+    <div class="marca"><svg width="30" height="30" viewBox="0 0 34 34" fill="none" stroke="#E2B657" stroke-width="2"><circle cx="17" cy="17" r="13"/><circle cx="17" cy="17" r="5"/><path d="M17 1v8M17 25v8M1 17h8M25 17h8"/></svg><div>ÁTICA<small>ACOMPANHAMENTO CAC</small></div></div>
     <h1>Área do atirador</h1>
-    <p class="pequeno" style="margin:-8px 0 0">Sem senha: você recebe um código no WhatsApp cadastrado.</p>
-    <div id="passo1" style="display:flex;flex-direction:column;gap:14px">
+    <p class="pequeno" style="margin:-8px 0 0">Entre com seu WhatsApp e sua senha.</p>
+    <div id="passo0" style="display:flex;flex-direction:column;gap:14px">
+      <label>Seu WhatsApp (com DDD)<input id="fone0" inputmode="tel" autocomplete="username" placeholder="(17) 99999-9999"></label>
+      <label>Senha<input id="senha0" type="password" autocomplete="current-password" maxlength="72"></label>
+      <button class="btn" id="bt-entrar0">Entrar</button>
+      <button class="btn sec" id="bt-primeiro">Primeiro acesso</button>
+      <button class="btn sec" id="bt-esqueci" style="border:0;min-height:0;padding:6px;color:var(--ouro)">Esqueci a senha</button>
+    </div>
+    <div id="passo1" style="display:none;flex-direction:column;gap:14px">
+      <p class="pequeno" id="passo1-txt" style="margin:0"></p>
       <label>Seu WhatsApp (com DDD)<input id="fone" inputmode="tel" autocomplete="tel" placeholder="(17) 99999-9999"></label>
       <button class="btn" id="bt-codigo">Receber código no WhatsApp</button>
+      <button class="btn sec" id="bt-tenho">Já tenho senha</button>
     </div>
     <div id="passo2" style="display:none;flex-direction:column;gap:14px">
       <label>Código de 6 dígitos<input id="codigo" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000"></label>
-      <button class="btn" id="bt-entrar">Entrar</button>
+      <button class="btn" id="bt-entrar">Continuar</button>
       <button class="btn sec" id="bt-voltar">Trocar número</button>
+    </div>
+    <div id="passo3" style="display:none;flex-direction:column;gap:14px">
+      <p class="pequeno" style="margin:0">Código confirmado. Crie a senha que você vai usar nos próximos acessos (mínimo de 6 caracteres).</p>
+      <label>Nova senha<input id="senha1" type="password" autocomplete="new-password" maxlength="72"></label>
+      <label>Repita a senha<input id="senha2" type="password" autocomplete="new-password" maxlength="72"></label>
+      <button class="btn" id="bt-salvar-senha">Salvar senha e entrar</button>
+      <button class="btn sec" id="bt-pular-senha" style="border:0;min-height:0;padding:6px">Agora não</button>
     </div>
     <div class="msg" id="msg"></div>
     <a href="/" class="pequeno" style="text-align:center">← Voltar ao site</a>
@@ -237,7 +253,7 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 
 <div id="app">
   <aside>
-    <div class="marca"><svg width="28" height="28" viewBox="0 0 34 34" fill="none" stroke="#E2B657" stroke-width="2"><circle cx="17" cy="17" r="13"/><circle cx="17" cy="17" r="5"/><path d="M17 1v8M17 25v8M1 17h8M25 17h8"/></svg><div>EVERTON<small>ACOMPANHAMENTO CAC</small></div></div>
+    <div class="marca"><svg width="28" height="28" viewBox="0 0 34 34" fill="none" stroke="#E2B657" stroke-width="2"><circle cx="17" cy="17" r="13"/><circle cx="17" cy="17" r="5"/><path d="M17 1v8M17 25v8M1 17h8M25 17h8"/></svg><div>ÁTICA<small>ACOMPANHAMENTO CAC</small></div></div>
     <nav id="menu"></nav>
     <div class="rodape" style="margin-top:auto;display:flex;flex-direction:column;gap:10px">
       <a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">Falar no WhatsApp</a>
@@ -270,7 +286,7 @@ const prazo = (d) => d === null || d === undefined ? "" : d < 0 ? `venceu há ${
 const cor = (d) => d === null || d === undefined ? "" : d < 0 ? "cr" : d <= 60 ? "at" : "ok";
 
 // ---------- login ----------
-function mostrarLogin() { $("#app").style.display = "none"; $("#login").style.display = "grid"; }
+function mostrarLogin() { $("#app").style.display = "none"; $("#login").style.display = "grid"; passo(0); }
 $("#bt-codigo").onclick = async () => {
   const fone = $("#fone").value.replace(/\D/g, "");
   if (fone.length < 10) return msg("Digite o WhatsApp com DDD.", true);
@@ -285,13 +301,39 @@ $("#bt-entrar").onclick = async () => {
   msg("Conferindo…");
   const r = await api("entrar", { whatsapp: $("#fone").value.replace(/\D/g, ""), codigo: $("#codigo").value });
   if (!r.ok) return msg(r.erro || "Código inválido.", true);
-  guardar.set("cac_token", r.token); msg(""); carregar();
+  guardar.set("cac_token", r.token); $("#codigo").value = ""; passo(3);
 };
 $("#bt-voltar").onclick = () => { $("#passo2").style.display = "none"; $("#passo1").style.display = "flex"; msg(""); };
 $("#codigo").addEventListener("keydown", (e) => e.key === "Enter" && $("#bt-entrar").click());
 $("#fone").addEventListener("keydown", (e) => e.key === "Enter" && $("#bt-codigo").click());
 async function sair() { await api("sair").catch(() => {}); guardar.del("cac_token"); guardar.del("cac_cache"); if (NATIVO) { NATIVO.cancelarLembretes(); D = null; mostrarLogin(); } else location.href = "/"; }
 $("#bt-sair").onclick = sair;
+// ---------- senha ----------
+function passo(n) { for (const i of [0, 1, 2, 3]) $("#passo" + i).style.display = i === n ? "flex" : "none"; msg(""); }
+function pedirPorCodigo(txt) { $("#passo1-txt").textContent = txt; $("#fone").value = $("#fone0").value; passo(1); }
+$("#bt-primeiro").onclick = () => pedirPorCodigo("No primeiro acesso você recebe um código no WhatsApp cadastrado e cria a sua senha.");
+$("#bt-esqueci").onclick = () => pedirPorCodigo("Enviamos um código para o WhatsApp cadastrado. Com ele você cria uma senha nova.");
+$("#bt-tenho").onclick = () => passo(0);
+$("#bt-entrar0").onclick = async () => {
+  const fone = $("#fone0").value.replace(/\D/g, ""), senha = $("#senha0").value;
+  if (fone.length < 10) return msg("Digite o WhatsApp com DDD.", true);
+  if (!senha) return msg("Digite a senha. No primeiro acesso, toque em Primeiro acesso.", true);
+  msg("Conferindo…");
+  const r = await api("entrar_senha", { whatsapp: fone, senha });
+  if (!r.ok) return msg(r.erro || "WhatsApp ou senha incorretos.", true);
+  $("#senha0").value = ""; guardar.set("cac_token", r.token); msg(""); carregar();
+};
+$("#senha0").addEventListener("keydown", (e) => e.key === "Enter" && $("#bt-entrar0").click());
+function senhaValida(a, b) { return a.length < 6 ? "A senha precisa ter pelo menos 6 caracteres." : a !== b ? "As duas senhas não são iguais." : ""; }
+$("#bt-salvar-senha").onclick = async () => {
+  const s1 = $("#senha1").value, erro = senhaValida(s1, $("#senha2").value);
+  if (erro) return msg(erro, true);
+  msg("Salvando…");
+  const r = await api("definir_senha", { senha: s1 });
+  if (!r.ok) return msg(r.erro || "Não foi possível salvar a senha.", true);
+  $("#senha1").value = $("#senha2").value = ""; passo(0); carregar();
+};
+$("#bt-pular-senha").onclick = () => { passo(0); carregar(); };
 function msg(t, erro) { $("#msg").textContent = t; $("#msg").className = "msg" + (erro ? " erro" : ""); }
 
 // ---------- app ----------
@@ -1267,7 +1309,7 @@ function renderTela0(c, a, primeiro, docs) {
     const ordem = ["CR", "EXAME_PSICOLOGICO", "EXAME_TECNICO", "CRAF", "AUTORIZACAO", "GT", "OUTRO"];
     const nomes = { CR: "Certificado de Registro", EXAME_PSICOLOGICO: "Laudo psicológico", EXAME_TECNICO: "Capacidade técnica", CRAF: "CRAFs", AUTORIZACAO: "Autorizações de aquisição", GT: "Guias de tráfego", OUTRO: "Outros" };
     const temLaudo = (t) => docs.some((d) => d.tipo === t);
-    c.innerHTML = `<div class="topo"><div><h2>Documentos</h2><p>Fotografe ou envie o documento: a gente lê, guarda e o Everton confere. Se preferir, mande pelo WhatsApp.</p></div>
+    c.innerHTML = `<div class="topo"><div><h2>Documentos</h2><p>Fotografe ou envie o documento: a gente lê, guarda e a nossa equipe confere. Se preferir, mande pelo WhatsApp.</p></div>
         <div class="acoes"><button class="btn" id="bt-foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></svg>Fotografar documento</button><button class="btn sec" id="bt-arquivo">Enviar arquivo ou PDF</button></div></div>
       <div id="envio"></div>
       ${!temLaudo("EXAME_TECNICO") || !temLaudo("EXAME_PSICOLOGICO") ? `<div class="aviso atencao" style="margin-bottom:12px"><b>Laudos para o CR</b><span class="pequeno">Exigidos na revalidação do CR (pedir até 30 dias antes do vencimento). ${!temLaudo("EXAME_PSICOLOGICO") ? "Falta o laudo psicológico. " : ""}${!temLaudo("EXAME_TECNICO") ? "Falta o comprovante de capacidade técnica." : ""}</span></div>` : ""}
@@ -1280,9 +1322,11 @@ function renderTela0(c, a, primeiro, docs) {
       <div class="lista">
         ${NATIVO ? `<div class="opcao" id="op-trava" style="display:none"><div><div class="t">Trava com digital ou Face ID</div><div class="pequeno">Pede sua biometria ao abrir o app.</div></div><input type="checkbox" class="chave" id="ck-trava" ${guardar.get("cac_trava") === "1" ? "checked" : ""}></div>
         <div class="opcao"><div><div class="t">Lembretes no celular</div><div class="pequeno">Aviso 30 dias, 7 dias e no dia de cada vencimento, às 9h.</div></div><input type="checkbox" class="chave" id="ck-lembretes" ${guardar.get("cac_lembretes") !== "0" ? "checked" : ""}></div>` : ""}
-        <div class="opcao"><div><div class="t">Falar com o Everton</div><div class="pequeno">Dúvidas, documentos e atendimento pelo WhatsApp.</div></div><a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">WhatsApp</a></div>
+        <div class="opcao"><div><div class="t">Falar com o Ática</div><div class="pequeno">Dúvidas, documentos e atendimento pelo WhatsApp.</div></div><a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">WhatsApp</a></div>
         <div class="opcao"><div><div class="t">Política de privacidade</div><div class="pequeno">Como seus dados e documentos são guardados.</div></div><a href="${SITE}/privacidade/" target="_blank" rel="noopener">Abrir</a></div>
-        <div class="opcao"><div><div class="t">Sair desta conta</div><div class="pequeno">Para entrar de novo, basta pedir um novo código.</div></div><button class="btn sec" id="bt-sair2">Sair</button></div>
+        <div class="opcao" style="flex-wrap:wrap"><div><div class="t">Senha de acesso</div><div class="pequeno">Crie ou troque a senha usada para entrar.</div></div><button class="btn sec" id="bt-senha">Alterar</button>
+          <div id="cx-senha" style="display:none;flex-basis:100%;flex-direction:column;gap:12px"><label>Nova senha<input id="ns1" type="password" autocomplete="new-password" maxlength="72"></label><label>Repita a senha<input id="ns2" type="password" autocomplete="new-password" maxlength="72"></label><button class="btn" id="bt-ns">Salvar senha</button><div class="msg" id="ns-msg"></div></div></div>
+        <div class="opcao"><div><div class="t">Sair desta conta</div><div class="pequeno">Para entrar de novo, use seu WhatsApp e sua senha.</div></div><button class="btn sec" id="bt-sair2">Sair</button></div>
       </div>
       <h3 class="sec-tit">Excluir conta</h3>
       <div class="card perigo">
@@ -1290,6 +1334,15 @@ function renderTela0(c, a, primeiro, docs) {
         <div class="acoes" style="align-items:end"><label style="flex:1;min-width:200px">Para confirmar, digite EXCLUIR<input id="ex-conf" autocomplete="off" placeholder="EXCLUIR"></label><button class="btn vermelho" id="bt-excluir">Excluir minha conta</button></div>
         <div class="msg" id="ex-msg"></div>
       </div>`;
+    $("#bt-senha").onclick = () => { const x = $("#cx-senha"); x.style.display = x.style.display === "flex" ? "none" : "flex"; };
+    $("#bt-ns").onclick = async () => {
+      const m = $("#ns-msg"), s1 = $("#ns1").value, erro = senhaValida(s1, $("#ns2").value);
+      if (erro) { m.textContent = erro; m.className = "msg erro"; return; }
+      m.textContent = "Salvando…"; m.className = "msg";
+      const r = await api("definir_senha", { senha: s1 });
+      m.textContent = r.ok ? "Senha salva. Os outros aparelhos conectados foram desconectados." : (r.erro || "Não foi possível salvar."); m.className = "msg" + (r.ok ? "" : " erro");
+      if (r.ok) $("#ns1").value = $("#ns2").value = "";
+    };
     $("#bt-sair2").onclick = sair;
     $("#bt-excluir").onclick = async () => {
       if ($("#ex-conf").value.trim().toUpperCase() !== "EXCLUIR") { $("#ex-msg").textContent = "Digite EXCLUIR para confirmar."; $("#ex-msg").className = "msg erro"; return; }
@@ -1307,7 +1360,7 @@ function renderTela0(c, a, primeiro, docs) {
         else guardar.del("cac_trava");
       };
       $("#ck-lembretes").onchange = async (e) => {
-        if (e.target.checked) { guardar.del("cac_lembretes"); const r = await NATIVO.agendarLembretes(D.calendario); if (!r.ok) { e.target.checked = false; guardar.set("cac_lembretes", "0"); alert("Permita as notificações do Everton CAC nas configurações do celular."); } }
+        if (e.target.checked) { guardar.del("cac_lembretes"); const r = await NATIVO.agendarLembretes(D.calendario); if (!r.ok) { e.target.checked = false; guardar.set("cac_lembretes", "0"); alert("Permita as notificações do Ática nas configurações do celular."); } }
         else { guardar.set("cac_lembretes", "0"); NATIVO.cancelarLembretes(); }
       };
     }
@@ -1342,7 +1395,7 @@ async function enviarDocumento(base64, mime) {
   if (!r.ok) { statusEnvio(`<div class="aviso critico"><b>Não deu certo</b><span class="pequeno">${esc(r.erro || "Tente de novo.")}</span></div>`); return; }
   await carregar();
   tela = "documentos"; montarMenu(); render();
-  statusEnvio(`<div class="aviso ${r.vencido ? "atencao" : "info"}"><b>${esc(r.nome_tipo[0].toUpperCase() + r.nome_tipo.slice(1))} recebido ✓</b><span class="pequeno">${r.arma ? esc(r.arma) + " · " : ""}${r.validade ? (r.vencido ? "venceu em " : "válido até ") + br(r.validade) : "sem validade lida"} · o Everton vai conferir.</span></div>`);
+  statusEnvio(`<div class="aviso ${r.vencido ? "atencao" : "info"}"><b>${esc(r.nome_tipo[0].toUpperCase() + r.nome_tipo.slice(1))} recebido ✓</b><span class="pequeno">${r.arma ? esc(r.arma) + " · " : ""}${r.validade ? (r.vencido ? "venceu em " : "válido até ") + br(r.validade) : "sem validade lida"} · a nossa equipe vai conferir.</span></div>`);
 }
 async function fotografar() {
   if (!NATIVO) return $("#arq-camera").click();
