@@ -221,6 +221,10 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 .ip-cont{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:12px}.ip-cont>div{background:var(--card2);padding:10px 12px}.ip-cont span{display:block;font:600 10px 'Chakra Petch';letter-spacing:.12em;text-transform:uppercase;color:var(--sub)}.ip-cont>div>div{display:flex;align-items:center;justify-content:space-between;margin-top:6px}.ip-cont b{font:700 22px 'Chakra Petch'}.ip-cont button{width:44px;height:44px;background:var(--bg);border:1px solid var(--line);color:var(--txt);font-size:22px;cursor:pointer}
 .ip-fator{display:flex}.ip-fator button{background:none;border:1px solid var(--line);color:var(--sub);padding:8px 14px;font:600 12px 'Chakra Petch';letter-spacing:.08em;text-transform:uppercase;cursor:pointer}.ip-fator button.on{background:var(--ouro);color:#0A0A0C;border-color:var(--ouro)}
 .caca-campos input[type=range]{padding:0;min-height:36px;accent-color:var(--ouro)}
+
+.ds-card{margin-bottom:14px}.ds-placar em a{color:var(--ouro)}.ds-placar div{background:var(--card2)}.ds-abas{margin-top:14px}.ds-rank{margin-top:10px}.ds-rank .linha{align-items:center;gap:12px}.ds-rank b{font:700 16px 'Chakra Petch';white-space:nowrap}
+.ds-pos{font:700 16px 'Chakra Petch';color:var(--ouro);min-width:34px}.ds-eu{border-color:var(--ouro)!important}
+.ds-foto{display:block;width:100%;max-width:320px;margin-top:8px;border:1px solid var(--line)}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -1491,6 +1495,154 @@ function renderIpsc(c) {
   q("#ip-ini").onclick = ipscIniciar;
   c.querySelectorAll("[data-ab]").forEach((b) => b.onclick = () => { const s = ipscLer().series.find((x) => x.id === b.dataset.ab); if (s) { ipsc = { fase: "resultado", novo: false, serie: s }; render(); window.scrollTo(0, 0); } });
 }
+ICON.desafio = '<path d="M7 4h10v5a5 5 0 01-10 0zM7 6H4a3 3 0 003 4M17 6h3a3 3 0 01-3 4M12 14v4M8 20h8"/>';
+HUBS.caderneta.itens.push(["desafios", "Desafios", "Dispute o exercício do mês com outros atiradores.", "desafio"]);
+let DSF = { carregando: false, dados: null, erro: "", form: null, aba: {}, novo: null, criado: null, convite: null, codigo: "" };
+try { const mh = /duelo=([A-Za-z0-9]{6,12})/.exec(location.hash || ""); if (mh) { DSF.codigo = mh[1].toUpperCase(); tela = "caderneta"; subTela = "desafios"; history.replaceState(null, "", location.pathname); } } catch (e) {}
+const dsfLink = (cod) => "https://evertoninstrutordetiro.com.br/painel/#duelo=" + cod;
+const dsfConviteTexto = (cod, mod, prazo) => `Te desafio para um duelo de ${mod === "velocidade" ? "velocidade" : "precisão"} no Ática, até ${br(prazo)}. Aceite por aqui: ${dsfLink(cod)}\nSe abrir pelo app, use o código ${cod} em Caderneta › Desafios.`;
+async function dsfVerConvite(cod) {
+  let r = null; try { r = await api("duelo_ver", { codigo: cod }); } catch (e) {}
+  DSF.convite = r && r.ok ? { codigo: cod, ...r.convite } : { codigo: cod, erro: (r && r.erro) || "Não foi possível abrir o convite agora." };
+  if (tela === "caderneta" && subTela === "desafios") render();
+}
+async function dsfCarregar() {
+  DSF.carregando = true; let r = null; try { r = await api("desafios"); } catch (e) {}
+  DSF.carregando = false; if (r && r.ok && Array.isArray(r.desafios)) { DSF.dados = r; DSF.erro = ""; } else DSF.erro = (r && r.erro) || "Não foi possível carregar os desafios agora.";
+  if (tela === "caderneta" && subTela === "desafios") render();
+}
+const dsfValor = (d, v) => d.modalidade === "velocidade" ? Number(v).toFixed(4).replace(".", ",") : Number(v).toFixed(2).replace(".", ",") + " MOA";
+function dsfOpcoes(d) {
+  const cf = d.config || {};
+  if (d.modalidade === "velocidade") return ipscLer().series.filter((s) => (!cf.tiros || s.tiros.length === cf.tiros) && s.A + s.C + s.D + s.M === s.tiros.length)
+    .map((s) => ({ id: s.id, rot: `${ipscSeg(ipscTempo(s))} s · ${ipscPontos(s)} pts · fator ${ipscHf(s)}`, data: s.data, valor: +ipscFator(s).toFixed(4), foto: (s.fotos || [])[0] || "", detalhe: { tempo: ipscTempo(s), pontos: ipscPontos(s), tiros: s.tiros.length, fator: s.fator, A: s.A, C: s.C, D: s.D, M: s.M, NS: s.NS, P: s.P } }));
+  let al = []; try { al = JSON.parse(localStorage.getItem("atica_alvos_v1") || "[]"); } catch (e) {}
+  return al.filter((a) => a.moa > 0 && (!cf.tiros || a.n >= cf.tiros) && (!cf.dist_min || a.dist >= cf.dist_min))
+    .map((a) => ({ id: a.id, rot: `${Number(a.moa).toFixed(2).replace(".", ",")} MOA · ${a.n} tiros a ${a.dist} m${a.arma ? " · " + a.arma : ""}`, data: a.data, valor: +Number(a.moa).toFixed(2), foto: String(a.img || "").startsWith("data:image/jpeg") ? a.img : "", detalhe: { moa: +Number(a.moa).toFixed(2), cm: a.cm, tiros: a.n, dist: a.dist, arma: String(a.arma || "").slice(0, 60) } }));
+}
+function dsfDetalhe(d, t) { return d.modalidade === "velocidade" ? `${ipscSeg(Number(t.tempo) || 0)} s · ${t.pontos} pts · ${t.tiros} tiros · A${t.A} C${t.C} D${t.D} M${t.M}${t.NS ? " NS" + t.NS : ""}${t.P ? " P" + t.P : ""} · ${t.fator === "major" ? "Major" : "Minor"}` : `${t.tiros} tiros a ${t.dist} m · ${t.cm ? Number(t.cm).toFixed(1).replace(".", ",") + " cm" : ""}${t.arma ? " · " + esc(t.arma) : ""}`; }
+function dsfDuelosHtml(R) {
+  const P = R.padroes || {}, L = R.duelos || [], N = DSF.novo, K = DSF.criado;
+  if (DSF.codigo && !DSF.convite) { const cod = DSF.codigo; DSF.codigo = ""; DSF.convite = { codigo: cod, carregando: true }; dsfVerConvite(cod); }
+  const V = DSF.convite;
+  const nomeMod = (m) => m === "velocidade" ? "Velocidade" : "Precisão";
+  const lado = (d, x, rot) => `<div><span>${rot}</span><b>${x && x.valor !== null && x.valor !== undefined ? dsfValor(d, x.valor) : "—"}</b><em>${x && x.enviou ? (x.foto ? `<a href="${x.foto}" target="_blank" rel="noopener">ver foto do alvo</a>` : "enviado") : "ainda não enviou"}</em></div>`;
+  return `<h3 class="sec-tit">Duelos</h3>
+    ${DSF.convite ? (V.carregando ? '<div class="card"><span class="carregando"></span>Abrindo o convite…</div>' : V.erro ? `<div class="aviso atencao"><b>Convite</b><span class="pequeno">${esc(V.erro)}</span></div>` :
+      `<div class="card ds-card" id="ds-convite"><div class="rotulo">Você foi desafiado</div><div class="tit" style="font-size:18px;margin-top:4px">${esc(V.de)} te chamou para um duelo de ${nomeMod(V.modalidade).toLowerCase()}</div>
+        <p style="margin:10px 0 0">${esc(V.regra)}</p><div class="pequeno" style="margin-top:6px">Prazo para enviar o resultado: ${br(V.prazo)}.</div>
+        <div class="caca-campos" style="grid-template-columns:1fr"><label>Seu apelido no duelo<input id="dv-ap" maxlength="20" value="${esc(R.apelido || "")}" placeholder="Como você quer aparecer"></label></div>
+        <div class="acoes" style="margin-top:12px"><button class="btn" id="dv-sim">Aceitar o duelo</button><button class="btn sec" id="dv-nao">Recusar</button></div><div class="msg" id="dv-msg"></div></div>`) : ""}
+    ${K ? `<div class="card ds-card" id="ds-criado"><div class="rotulo">Convite criado</div><div class="tit" style="font-size:18px;margin-top:4px">Código ${esc(K.codigo)}</div>
+        <p class="pequeno" style="margin:8px 0 0">Mande o convite para quem você quer desafiar. O duelo começa quando a pessoa aceitar; o prazo vai até ${br(K.prazo)}.</p>
+        <div class="acoes" style="margin-top:12px"><button class="btn" id="dk-comp">Enviar convite</button><button class="btn sec" id="dk-ok">Fechar</button></div><div class="msg" id="dk-msg"></div></div>` : ""}
+    ${N ? `<div class="card ds-card" id="ds-novo"><div class="rotulo">Desafiar alguém</div>
+        <div class="caca-campos"><label>Exercício<select id="dn-mod">${["velocidade", "precisao"].map((m) => `<option value="${m}"${N.modalidade === m ? " selected" : ""}>${nomeMod(m)}</option>`).join("")}</select></label>
+          <label>Prazo<select id="dn-dias">${[[3, "3 dias"], [7, "7 dias"], [14, "14 dias"]].map(([v, t]) => `<option value="${v}"${N.dias === v ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+          <label>Seu apelido no duelo<input id="dn-ap" maxlength="20" value="${esc(N.apelido)}" placeholder="Como você quer aparecer"></label></div>
+        <p style="margin:10px 0 0">${esc((P[N.modalidade] || {}).regra || "")}</p>
+        <div class="acoes" style="margin-top:12px"><button class="btn" id="dn-criar">Criar convite</button><button class="btn sec" id="dn-x">Cancelar</button></div><div class="msg" id="dn-msg"></div></div>`
+      : `<div class="acoes" style="margin-bottom:14px"><button class="btn" id="dn-abrir">Desafiar alguém</button><button class="btn sec" id="dc-abrir">Tenho um código de convite</button></div>
+        <div class="caca-campos" id="dc-box" style="display:none;margin-bottom:14px"><label>Código do convite<input id="dc-cod" maxlength="12" autocapitalize="characters" placeholder="Ex.: K7M2PQ4X"></label><button class="btn sec" id="dc-ver" style="align-self:end">Abrir convite</button></div>`}
+    ${L.length ? L.map((d) => {
+      const tag = d.status === "convite" ? (d.encerrado ? ["", "Convite vencido"] : ["at", "Aguardando aceite"]) : !d.encerrado ? ["ok", "Em andamento"] : d.vencedor === "eu" ? ["ok", "Você venceu"] : d.vencedor === "outro" ? ["cr", "Você perdeu"] : d.vencedor === "empate" ? ["at", "Empate"] : ["", "Sem resultado"];
+      return `<div class="card ds-card"><div class="caca-topo"><div><div class="rotulo">Duelo de ${nomeMod(d.modalidade).toLowerCase()} · até ${br(d.prazo)}</div><div class="tit" style="font-size:17px;margin-top:4px">${esc(d.eu.apelido || "Você")} × ${d.outro && d.outro.apelido ? esc(d.outro.apelido) : "aguardando adversário"}</div></div><span class="etiqueta ${tag[0]}">${tag[1]}</span></div>
+        ${d.status === "ativo" ? `<div class="dados-caca ds-placar">${lado(d, d.eu, "Você")}${lado(d, d.outro && (d.outro.enviou || d.outro.valor !== null) ? d.outro : { enviou: d.outro_enviou, valor: null }, esc((d.outro && d.outro.apelido) || "Adversário"))}</div>
+          ${!d.encerrado && d.eu.enviou && !d.outro_enviou ? '<div class="pequeno" style="margin-top:8px">Você já enviou. Falta o adversário.</div>' : ""}
+          ${!d.eu.enviou && d.outro_enviou && !d.encerrado ? '<div class="pequeno" style="margin-top:8px">O adversário já enviou. O resultado dele aparece depois que você enviar o seu.</div>' : ""}
+          ${d.encerrado && d.vencedor !== "empate" && (!d.eu.enviou || !d.outro_enviou) ? '<div class="pequeno" style="margin-top:8px">Encerrado pelo prazo: quem não enviou perde por ausência.</div>' : ""}` : ""}
+        ${d.pode_enviar ? `<button class="btn" data-duelo="${d.id}" style="margin-top:12px">Enviar meu resultado</button>` : ""}
+        ${d.status === "convite" && !d.encerrado && d.codigo ? `<div class="pequeno" style="margin-top:8px">Código ${esc(d.codigo)}. O duelo começa quando a pessoa aceitar.</div><button class="btn sec" data-reenv="${d.id}" style="margin-top:10px">Enviar o convite de novo</button>` : ""}</div>`; }).join("")
+      : '<div class="vazio" style="margin-bottom:14px">Você ainda não tem duelos. Desafie um colega de clube: ele recebe um link e decide se aceita.</div>'}
+    <div class="msg" id="dl-msg"></div>`;
+}
+function dsfDuelosLigar(c, R) {
+  const q = (x) => c.querySelector(x), L = R.duelos || [];
+  const enviar = async (cod, mod, prazo, msg) => { const text = dsfConviteTexto(cod, mod, prazo); try { if (navigator.share) { await navigator.share({ title: "Duelo no Ática", text }); return; } } catch (e) { if (e && e.name === "AbortError") return; } try { await navigator.clipboard.writeText(text); msg.textContent = "Convite copiado. Cole no WhatsApp de quem você quer desafiar."; } catch (e) { msg.textContent = "Copie o código e mande para a pessoa: " + cod; } };
+  if (q("#dn-abrir")) q("#dn-abrir").onclick = () => { DSF.novo = { modalidade: "velocidade", dias: 7, apelido: R.apelido || "" }; DSF.criado = null; render(); };
+  if (q("#dc-abrir")) q("#dc-abrir").onclick = () => { q("#dc-box").style.display = ""; q("#dc-cod").focus(); };
+  if (q("#dc-ver")) q("#dc-ver").onclick = () => { const cod = q("#dc-cod").value.trim().toUpperCase(); if (cod.length < 6) return; DSF.convite = { codigo: cod, carregando: true }; render(); dsfVerConvite(cod); };
+  if (q("#dn-x")) q("#dn-x").onclick = () => { DSF.novo = null; render(); };
+  if (q("#dn-mod")) { q("#dn-mod").onchange = (e) => { DSF.novo.modalidade = e.target.value; DSF.novo.apelido = q("#dn-ap").value; render(); }; q("#dn-dias").onchange = (e) => { DSF.novo.dias = +e.target.value; }; q("#dn-ap").oninput = (e) => { DSF.novo.apelido = e.target.value; };
+    q("#dn-criar").onclick = async () => { const m = q("#dn-msg"), N = DSF.novo; m.className = "msg erro"; if (N.apelido.trim().length < 2) return void (m.textContent = "Escolha um apelido com pelo menos 2 letras.");
+      q("#dn-criar").disabled = true; let r = null; try { r = await api("duelo_criar", { modalidade: N.modalidade, dias: N.dias, apelido: N.apelido.trim() }); } catch (e) {}
+      if (r && r.ok) { DSF.criado = { codigo: r.codigo, prazo: r.prazo, modalidade: N.modalidade }; DSF.novo = null; DSF.dados = null; render(); } else { q("#dn-criar").disabled = false; m.textContent = (r && r.erro) || "Não foi possível criar o duelo agora."; } }; }
+  if (q("#dk-comp")) { q("#dk-comp").onclick = () => enviar(DSF.criado.codigo, DSF.criado.modalidade, DSF.criado.prazo, q("#dk-msg")); q("#dk-ok").onclick = () => { DSF.criado = null; render(); }; }
+  if (q("#dv-sim")) { const resp = async (aceitar) => { const m = q("#dv-msg"), ap = q("#dv-ap").value.trim(); m.className = "msg erro"; if (aceitar && ap.length < 2) return void (m.textContent = "Escolha um apelido com pelo menos 2 letras.");
+      let r = null; try { r = await api("duelo_responder", { codigo: DSF.convite.codigo, aceitar, apelido: ap }); } catch (e) {}
+      if (r && r.ok) { DSF.convite = null; DSF.dados = null; DSF.aviso = aceitar ? "Duelo aceito. Envie o seu resultado até o prazo." : "Convite recusado."; render(); } else m.textContent = (r && r.erro) || "Não foi possível responder agora."; };
+    q("#dv-sim").onclick = () => resp(true); q("#dv-nao").onclick = () => resp(false); }
+  c.querySelectorAll("[data-duelo]").forEach((b) => b.onclick = () => { DSF.form = { tipo: "duelo", id: b.dataset.duelo, apelido: "", res: "", foto: "", ok: false }; render(); window.scrollTo(0, 0); });
+  c.querySelectorAll("[data-reenv]").forEach((b) => b.onclick = () => { const d = L.find((x) => x.id === b.dataset.reenv); if (d) enviar(d.codigo, d.modalidade, d.prazo, q("#dl-msg")); });
+}
+function renderDesafios(c) {
+  const q = (x) => c.querySelector(x), topo = `<div class="topo"><div><h2>Desafios <span class="etiqueta at">beta</span></h2><p>O mesmo exercício para todos. Participa quem quiser, com apelido.</p></div></div>`;
+  if (!DSF.dados && !DSF.erro) { if (!DSF.carregando) dsfCarregar(); c.innerHTML = topo + '<div class="card"><span class="carregando"></span>Carregando os desafios…</div>'; return; }
+  if (DSF.erro && !DSF.dados) { c.innerHTML = topo + `<div class="aviso critico"><b>Não carregou</b><span class="pequeno">${esc(DSF.erro)}</span></div><button class="btn sec" id="ds-de-novo">Tentar de novo</button>`; q("#ds-de-novo").onclick = () => { DSF.erro = ""; render(); }; return; }
+  const R = DSF.dados;
+  if (DSF.form) {
+    const F = DSF.form, du = F.tipo === "duelo" ? (R.duelos || []).find((x) => x.id === F.id) : null;
+    const d = F.tipo === "duelo" ? (du ? { id: du.id, titulo: "Duelo com " + ((du.outro && du.outro.apelido) || "seu convidado"), regra: du.regra, modalidade: du.modalidade, config: du.config } : null) : R.desafios.find((x) => x.id === F.id), ops = d ? dsfOpcoes(d) : [];
+    if (!d) { DSF.form = null; return renderDesafios(c); }
+    const sel = ops.find((o) => o.id === F.res) || ops[0], foto = F.foto || (sel && sel.foto) || "";
+    c.innerHTML = `<div class="topo"><div><h2>Participar</h2><p>${esc(d.titulo)}</p></div></div>
+      <div class="card"><div class="rotulo">Regra</div><p style="margin:8px 0 0">${esc(d.regra)}</p></div>
+      <div class="card" style="margin-top:14px">${ops.length ? `<div class="caca-campos" style="grid-template-columns:1fr">
+          ${du ? "" : `<label>Seu apelido no ranking<input id="ds-ap" maxlength="20" value="${esc(F.apelido)}" placeholder="Como você quer aparecer"></label>`}
+          <label>${d.modalidade === "velocidade" ? "Série do cronômetro" : "Alvo da Caderneta"}<select id="ds-res">${ops.map((o) => `<option value="${o.id}"${sel && o.id === sel.id ? " selected" : ""}>${new Date(o.data).toLocaleDateString("pt-BR")} · ${esc(o.rot)}</option>`).join("")}</select></label></div>
+        <div class="rotulo" style="margin-top:14px">Foto do alvo</div>
+        ${foto ? `<img src="${foto}" alt="Foto do alvo" class="ds-foto">` : '<div class="vazio" style="margin-top:8px">Este registro não tem foto. Fotografe o alvo para enviar.</div>'}
+        <button class="btn sec" id="ds-foto" style="margin-top:10px">${foto ? "Trocar a foto" : "Fotografar alvo"}</button><input type="file" id="ds-arq" accept="image/*" capture="environment" hidden>
+        <label class="caca-check"><input type="checkbox" id="ds-ok"${F.ok ? " checked" : ""}> Declaro que o resultado é meu, feito em estande, seguindo as regras de segurança do clube${du ? "" : ", e aceito aparecer no ranking com o apelido acima"}.</label>
+        <div class="acoes" style="margin-top:14px"><button class="btn" id="ds-enviar">Enviar resultado</button><button class="btn sec" id="ds-cancela">Cancelar</button></div><div class="msg" id="ds-msg"></div>
+        <p class="pequeno" style="margin:10px 0 0">${du ? "No duelo vale um envio só. O resultado e a foto do adversário aparecem para você depois que você enviar o seu." : 'Vale o seu melhor resultado. Ele entra no ranking como "aguardando conferência" até a nossa equipe conferir a foto.'}</p>`
+        : `<div class="vazio">${d.modalidade === "velocidade" ? `Você ainda não tem uma série salva no Cronômetro IPSC que sirva para este desafio${(d.config || {}).tiros ? " (" + d.config.tiros + " tiros, com todos os tiros lançados na pontuação)" : ""}.` : `Você ainda não tem um alvo registrado na Caderneta que sirva para este desafio${(d.config || {}).dist_min ? " (" + d.config.tiros + " tiros ou mais, a " + d.config.dist_min + " m ou mais)" : ""}.`}</div>
+        <div class="acoes" style="margin-top:14px"><button class="btn" id="ds-ir">${d.modalidade === "velocidade" ? "Abrir o cronômetro" : "Registrar um alvo"}</button><button class="btn sec" id="ds-cancela">Voltar</button></div>`}</div>`;
+    q("#ds-cancela").onclick = () => { DSF.form = null; render(); window.scrollTo(0, 0); };
+    if (q("#ds-ir")) q("#ds-ir").onclick = () => { DSF.form = null; irPara("caderneta", d.modalidade === "velocidade" ? "ipsc" : "novo"); };
+    if (!ops.length) return;
+    if (q("#ds-ap")) q("#ds-ap").oninput = (e) => { F.apelido = e.target.value; };
+    q("#ds-res").onchange = (e) => { F.res = e.target.value; F.foto = ""; render(); };
+    q("#ds-ok").onchange = (e) => { F.ok = e.target.checked; };
+    q("#ds-foto").onclick = () => q("#ds-arq").click();
+    q("#ds-arq").onchange = async (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; try { F.foto = await ipscFoto(f); render(); } catch (x) { q("#ds-msg").textContent = "Não consegui abrir a foto."; } };
+    q("#ds-enviar").onclick = async () => {
+      const m = q("#ds-msg"), ap = du ? "duelo" : q("#ds-ap").value.trim(); m.className = "msg erro";
+      if (ap.length < 2) return void (m.textContent = "Escolha um apelido com pelo menos 2 letras.");
+      if (!foto) return void (m.textContent = "Fotografe o alvo para enviar.");
+      if (!q("#ds-ok").checked) return void (m.textContent = "Marque a declaração para participar.");
+      q("#ds-enviar").disabled = true; m.className = "msg"; m.textContent = "Enviando…";
+      let r = null; try { r = du ? await api("duelo_enviar", { duelo_id: d.id, valor: sel.valor, detalhe: sel.detalhe, foto, aceite: true }) : await api("desafio_enviar", { desafio_id: d.id, apelido: ap, valor: sel.valor, detalhe: sel.detalhe, foto, aceite: true }); } catch (x) {}
+      if (r && r.ok) { DSF.form = null; DSF.dados = null; DSF.aviso = du ? "Resultado enviado. Quando o adversário enviar o dele, o placar aparece aqui." : "Resultado enviado. Ele aparece no ranking como aguardando conferência."; render(); window.scrollTo(0, 0); }
+      else { q("#ds-enviar").disabled = false; m.className = "msg erro"; m.textContent = (r && r.erro) || "Não foi possível enviar agora. Tente de novo."; }
+    };
+    return;
+  }
+  const aviso = DSF.aviso ? `<div class="aviso info"><b>Pronto ✓</b><span class="pequeno">${esc(DSF.aviso)}</span></div>` : ""; DSF.aviso = "";
+  c.innerHTML = topo + aviso + (R.desafios.length ? R.desafios.map((d) => {
+    const aba = DSF.aba[d.id] || "geral", clubes = {}; d.ranking.forEach((r) => { const k = r.clube || "Sem clube informado"; (clubes[k] = clubes[k] || { n: 0, v: r.valor }).n++; });
+    const lc = Object.entries(clubes).sort((a, b) => d.modalidade === "velocidade" ? b[1].v - a[1].v : a[1].v - b[1].v);
+    return `<div class="card ds-card"><div class="caca-topo"><div><div class="rotulo">${d.modalidade === "velocidade" ? "Velocidade · maior fator de acerto" : "Precisão · menor grupo"}</div><div class="tit" style="font-size:18px;margin-top:4px">${esc(d.titulo)}</div></div><span class="etiqueta ${d.status === "aberto" ? "ok" : d.status === "rascunho" ? "at" : ""}">${d.status === "aberto" ? "Aberto" : d.status === "rascunho" ? "Rascunho" : "Encerrado"}</span></div>
+      <div class="pequeno" style="margin-top:6px">De ${br(d.inicio)} a ${br(d.fim)} · ${d.participantes} participante(s)</div>
+      <p style="margin:10px 0 0">${esc(d.regra)}</p>
+      ${d.aberto ? `<button class="btn" data-part="${d.id}" style="margin-top:12px">Participar</button>` : ""}
+      ${R.admin && d.status === "rascunho" ? `<div class="aviso atencao" style="margin-top:12px"><b>Rascunho: só administradores veem</b><span class="pequeno">Confira a regra e as datas. Ao abrir, o desafio aparece para todos os assinantes.</span></div><button class="btn sec" data-st="aberto" data-id="${d.id}">Abrir o desafio para todos</button>` : ""}
+      ${R.admin && d.status === "aberto" ? `<button class="btn sec" data-st="encerrado" data-id="${d.id}" style="margin-top:10px">Encerrar o desafio</button>` : ""}
+      <div class="ip-fator ds-abas"><button data-aba="geral" data-id="${d.id}" class="${aba === "geral" ? "on" : ""}">Geral</button><button data-aba="clube" data-id="${d.id}" class="${aba === "clube" ? "on" : ""}">Por clube</button></div>
+      ${!d.ranking.length ? '<div class="vazio" style="margin-top:10px">Ninguém enviou resultado ainda. Seja o primeiro.</div>' : aba === "geral"
+        ? `<div class="lista ds-rank">${d.ranking.map((r, i) => `<div class="linha${r.meu ? " ds-eu" : ""}"><div class="ds-pos">${i + 1}º</div><div style="flex:1"><div class="t">${esc(r.apelido)}${r.meu ? ' <span class="pequeno">(você)</span>' : ""}</div><div class="pequeno">${esc(r.clube || "Sem clube informado")}${r.status === "pendente" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><b>${dsfValor(d, r.valor)}</b></div>`).join("")}</div>`
+        : `<div class="lista ds-rank">${lc.map(([k, x], i) => `<div class="linha"><div class="ds-pos">${i + 1}º</div><div style="flex:1"><div class="t">${esc(k)}</div><div class="pequeno">${x.n} participante(s) · melhor resultado do clube</div></div><b>${dsfValor(d, x.v)}</b></div>`).join("")}</div>`}
+      ${R.admin && (d.pendentes || []).length ? `<h3 class="sec-tit" style="margin-top:18px">Conferir (${d.pendentes.length})</h3><div class="lista">${d.pendentes.map((p) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(p.apelido)} · ${dsfValor(d, p.valor)}</div><div class="pequeno">${esc(p.clube || "Sem clube")} · ${new Date(p.criado_em).toLocaleDateString("pt-BR")} · ${dsfDetalhe(d, p.detalhe || {})}</div></div>${p.foto ? `<a href="${p.foto}" target="_blank" rel="noopener">Ver foto</a>` : ""}</div><div class="caca-envia"><button class="btn sec" data-val="validado" data-id="${p.id}">Validar</button><button class="btn sec" data-val="recusado" data-id="${p.id}">Recusar</button></div></div>`).join("")}</div>` : ""}</div>`;
+  }).join("") : '<div class="vazio">Nenhum desafio aberto no momento. Quando abrir um, ele aparece aqui.</div>') +
+    dsfDuelosHtml(R) +
+    `<p class="pequeno" style="margin-top:14px">Só em estande e seguindo as regras de segurança do clube. O ranking mostra apenas o apelido e o clube. Resultados passam pela conferência da nossa equipe; os que não seguirem a regra saem do ranking.</p><div class="msg" id="ds-amsg"></div>`;
+  dsfDuelosLigar(c, R);
+  c.querySelectorAll("[data-part]").forEach((b) => b.onclick = () => { DSF.form = { tipo: "desafio", id: b.dataset.part, apelido: R.apelido || "", res: "", foto: "", ok: false }; render(); window.scrollTo(0, 0); });
+  c.querySelectorAll("[data-aba]").forEach((b) => b.onclick = () => { DSF.aba[b.dataset.id] = b.dataset.aba; render(); });
+  const adm = async (corpo) => { let r = null; try { r = await api("desafio_admin", corpo); } catch (x) {} if (r && r.ok) { DSF.dados = null; render(); } else q("#ds-amsg").textContent = (r && r.erro) || "Não foi possível atualizar."; };
+  c.querySelectorAll("[data-val]").forEach((b) => b.onclick = () => adm({ op: "validar", id: b.dataset.id, status: b.dataset.val }));
+  c.querySelectorAll("[data-st]").forEach((b) => b.onclick = () => adm({ op: "status", id: b.dataset.id, status: b.dataset.st }));
+}
 function renderCaca(c, sub) {
   const C = cacaLer(), topo = (t, s) => `<div class="topo"><div><h2>${t}</h2><p>${s}</p></div></div>`;
   const nomeProp = (id) => (C.props.find((p) => p.id === id) || {}).nome || "Propriedade removida";
@@ -1640,6 +1792,7 @@ function renderTela(c, a, primeiro, docs) {
   }
   const item = hub.itens.find((i) => i[0] === subTela);
   if (tela === "caderneta" && subTela === "ipsc") renderIpsc(c);
+  else if (tela === "caderneta" && subTela === "desafios") renderDesafios(c);
   else if (tela === "caca") { if (subTela === "acervo") { acervoFiltro = "cacador"; tela = "acervo"; try { renderTela0(c, a, primeiro, docs); } finally { tela = "caca"; } } else renderCaca(c, subTela); }
   else if (tela === "documentos") { tela = subTela; try { renderTela0(c, a, primeiro, docs); } finally { tela = "documentos"; } }
   else {
