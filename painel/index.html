@@ -229,6 +229,15 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 .ad-barras{margin-top:10px;display:grid;gap:10px}.ad-linha{display:flex;justify-content:space-between;gap:10px;font-size:14px}.ad-linha b{font:600 12px 'Chakra Petch';color:var(--sub);white-space:nowrap}
 .ad-barra{height:6px;background:var(--card2);margin-top:4px}.ad-barra i{display:block;height:100%;background:var(--ouro)}
 .ad-filtros{margin-top:10px;flex-wrap:wrap}.ad-filtros button{flex:1;white-space:nowrap}
+
+.rel-folha{background:#fff;color:#111;padding:22px 18px;font:13px/1.45 Inter,Arial,sans-serif;overflow-x:auto}.rel-folha h1{font:700 20px Inter,Arial;margin:0;color:#111;text-transform:none;letter-spacing:0}.rel-folha h2{font:700 14px Inter,Arial;margin:18px 0 6px;color:#111;text-transform:none;letter-spacing:0}
+.rel-folha p{margin:4px 0;color:#222}.rel-sub{color:#555!important}.rel-nota{margin-top:16px!important;font-size:11px;color:#555!important}
+.rel-folha table{width:100%;border-collapse:collapse;margin-top:6px}.rel-folha th,.rel-folha td{border:1px solid #bbb;padding:5px 7px;text-align:left;font-size:12px;color:#111;vertical-align:top}.rel-folha th{background:#eee;font-weight:600}
+@media print{body *{visibility:hidden!important}#rel-folha,#rel-folha *{visibility:visible!important}#rel-folha{position:absolute;left:0;top:0;width:100%;padding:0}nav,header{display:none!important}}
+.ab-card{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--sub);padding:16px 18px;margin-top:14px}.ab-card.ok{border-left-color:var(--verde)}.ab-card.at{border-left-color:var(--amarelo)}.ab-card.cr{border-left-color:var(--vermelho)}
+.ab-tit{font:700 20px 'Chakra Petch';margin-top:6px;color:var(--txt)}.ab-linha{font-size:16px;margin-top:4px;color:var(--txt)}.ab-arq{display:inline-block;margin-top:10px}
+.med-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}.med{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);padding:12px 14px;opacity:.55}.med.tem{opacity:1;border-color:var(--ouro)}
+.med-ic{width:38px;height:38px;flex:none;display:grid;place-items:center;border:1px solid var(--line);color:var(--sub)}.med.tem .med-ic{color:var(--ouro);border-color:var(--ouro)}.med-ic svg{width:20px;height:20px}.med b{display:block;font:600 14px 'Chakra Petch'}.med .pequeno{display:block}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -1170,7 +1179,7 @@ function render() {
   const docs = D.documentos;
   renderTela(c, a, primeiro, docs);
   c.querySelectorAll("[data-doc]").forEach((b) => b.onclick = () => (b.dataset.doc === "foto" ? fotografar() : $("#arq").click()));
-  nivelLigar(c);
+  nivelLigar(c); maisInicio(c);
   const atalho = c.querySelector("#ir-balistica"); if (atalho) atalho.onclick = () => irPara("balistica", "tiro");
   if (D._offline) c.insertAdjacentHTML("afterbegin", `<div class="offline">Sem internet: mostrando seus dados salvos em ${new Date(D._offline).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}.</div>`);
 }
@@ -1696,6 +1705,195 @@ function renderAdmin(c) {
   c.querySelector("#ad-atualizar").onclick = () => { ADM.dados = null; render(); };
   c.querySelectorAll("[data-fil]").forEach((b) => b.onclick = () => { ADM.filtro = b.dataset.fil; render(); });
 }
+// ---------- relatório de habitualidade, modo abordagem, treino em seco, conquistas e agenda ----------
+HUBS.documentos.itens.push(["abordagem", "Modo abordagem", "CR, CRAF e guia da arma que você está levando, numa tela só.", "guias"]);
+HUBS.documentos.itens.push(["relatorio", "Relatório de habitualidade", "Seus treinos e competições dos últimos 12 meses, para imprimir ou salvar em PDF.", "documentos"]);
+HUBS.caderneta.itens.push(["seco", "Treino em seco", "Par time com repetições, para treinar em casa com a arma descarregada.", "ipsc"]);
+HUBS.caderneta.itens.push(["agenda", "Agenda de treinos", "Seus próximos treinos e provas, e há quantos dias você não treina.", "calendario"]);
+HUBS.caderneta.itens.push(["conquistas", "Conquistas", "Medalhas pelo que você já fez no app.", "desafio"]);
+const maisLer = (k, pad) => { try { const v = JSON.parse(localStorage.getItem(k)); return v || pad; } catch (e) { return pad; } };
+const maisGravar = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
+const maisTopo = (t, s) => `<div class="topo"><div><h2>${t}</h2><p>${s}</p></div></div>`;
+const maisUltimoTreino = () => { const r = (D.habitualidade && D.habitualidade.registros) || []; return r.length ? r.map((x) => x.data).sort().pop() : null; };
+const maisDiasDesde = (iso) => iso ? Math.round((new Date(D.hoje + "T12:00:00") - new Date(iso + "T12:00:00")) / 864e5) : null;
+
+// ---- relatório de habitualidade
+function renderRelatorio(c) {
+  const a = D.assinante, cr = D.resumo.cr, H = D.habitualidade || {}, S = H.situacao || {}, R = (H.registros || []).slice().sort((x, y) => x.data < y.data ? 1 : -1), G = H.grupos_nomes || {};
+  const eventos = new Set(R.map((r) => r.data + "|" + (r.clube || ""))).size;
+  c.innerHTML = maisTopo("Relatório de habitualidade", "Resumo dos seus registros dos últimos 12 meses.") +
+    `<div class="acoes" style="margin-bottom:14px"><button class="btn" id="rl-pdf">Imprimir ou salvar em PDF</button><button class="btn sec" id="rl-comp">Compartilhar resumo</button></div><div class="msg" id="rl-msg"></div>
+    ${NATIVO ? '<div class="aviso info"><b>No app instalado</b><span class="pequeno">Se o botão de PDF não abrir a impressão, use "Compartilhar resumo" ou abra o painel pelo navegador para salvar em PDF.</span></div>' : ""}
+    <div class="rel-folha" id="rel-folha">
+      <h1>Relatório de habitualidade</h1>
+      <p class="rel-sub">Emitido pelo Ática em ${br(D.hoje)} · período de 12 meses até esta data</p>
+      <table class="rel-dados"><tr><th>Atirador</th><td>${esc(a.nome || "")}</td><th>Nível</th><td>${esc(String((D.nivel && D.nivel.declarado) || a.nivel || "—"))}</td></tr>
+        <tr><th>CR nº</th><td>${esc((cr && cr.numero) || "—")}</td><th>Validade do CR</th><td>${cr && cr.validade ? br(cr.validade) : "—"}</td></tr>
+        <tr><th>Clube</th><td>${esc(a.clube || "—")}</td><th>Registros</th><td>${R.length} em ${eventos} evento(s)</td></tr></table>
+      <h2>Situação por grupo de arma</h2>
+      <p>${esc(S.exigencia || "")}${S.dispensado ? " · dispensado da exigência" : ""}</p>
+      ${(S.grupos || []).length ? `<table><tr><th>Grupo</th><th>Eventos</th><th>Treinos</th><th>Competições</th><th>Falta</th></tr>${S.grupos.map((g) => `<tr><td>${esc(g.nome)}</td><td>${(g.feitos || {}).eventos ?? 0}</td><td>${(g.feitos || {}).treinos ?? 0}</td><td>${(g.feitos || {}).competicoes ?? 0}</td><td>${g.total ? g.total : "nada"}</td></tr>`).join("")}</table>` : "<p>Sem grupos de arma registrados.</p>"}
+      <h2>Registros</h2>
+      ${R.length ? `<table><tr><th>Data</th><th>Tipo</th><th>Clube ou evento</th><th>Arma</th><th>Calibre</th><th>Grupo</th></tr>${R.map((r) => `<tr><td>${br(r.data)}</td><td>${r.tipo === "competicao" ? "Competição" + (r.ambito ? " (" + esc(r.ambito) + ")" : "") : "Treino"}</td><td>${esc(r.clube || "—")}</td><td>${esc(r.arma || "—")}</td><td>${esc(r.calibre || "—")}</td><td>${esc(G[r.grupo_arma] || r.grupo_arma || "—")}</td></tr>`).join("")}</table>` : "<p>Nenhum registro no período.</p>"}
+      <p class="rel-nota">Este relatório é um resumo dos registros guardados no Ática para conferência do atirador. Não substitui a declaração de habitualidade emitida pela entidade de tiro nem os documentos exigidos pela Polícia Federal.${R.length >= 50 ? " Lista limitada aos 50 registros mais recentes." : ""}</p>
+    </div>`;
+  c.querySelector("#rl-pdf").onclick = () => { try { window.print(); } catch (e) { c.querySelector("#rl-msg").textContent = "Este aparelho não abriu a impressão. Use Compartilhar resumo."; } };
+  c.querySelector("#rl-comp").onclick = async () => {
+    const text = [`Habitualidade de ${a.nome || ""} · ${br(D.hoje)}`, `CR ${(cr && cr.numero) || "—"} · validade ${cr && cr.validade ? br(cr.validade) : "—"}`, S.exigencia || "", ...(S.grupos || []).map((g) => `${g.nome}: ${(g.feitos || {}).eventos ?? 0} evento(s)${g.total ? ", falta " + g.total : ", em dia"}`), "", ...R.map((r) => `${br(r.data)} · ${r.tipo === "competicao" ? "competição" : "treino"} · ${r.clube || "—"} · ${r.arma || "—"} ${r.calibre || ""}`), "", "Resumo gerado no Ática; não substitui a declaração da entidade de tiro."].join("\n"), m = c.querySelector("#rl-msg");
+    try { if (navigator.share) { await navigator.share({ title: "Relatório de habitualidade", text }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+    try { await navigator.clipboard.writeText(text); m.textContent = "Resumo copiado."; } catch (e) { m.textContent = "Não foi possível compartilhar neste aparelho."; }
+  };
+}
+
+// ---- modo abordagem
+let abArma = "";
+const abChave = (s) => (String(s || "").toUpperCase().match(/[A-Z0-9]{5,}/g) || []).filter((t) => /\d/.test(t));
+const abMesma = (x, y) => { const a = String(x || "").trim().toLowerCase(), b = String(y || "").trim().toLowerCase(); if (!a || !b) return false; if (a === b) return true; const ka = abChave(x), kb = abChave(y); return ka.some((t) => kb.includes(t)); };
+function renderAbordagem(c) {
+  const cr = D.resumo.cr, crafs = D.documentos.filter((d) => d.tipo === "CRAF"), gts = D.documentos.filter((d) => d.tipo === "GT");
+  if (!crafs.some((d) => d.id === abArma)) abArma = crafs.length ? crafs[0].id : "";
+  const sel = crafs.find((d) => d.id === abArma), guias = sel ? gts.filter((g) => abMesma(g.arma, sel.arma)) : [];
+  const sit = (d) => d === null || d === undefined ? ["", "sem data"] : d < 0 ? ["cr", "VENCIDO"] : d <= 30 ? ["at", "vence em " + d + " dias"] : ["ok", "em dia"];
+  const cart = (rot, tit, linhas, dias, link) => { const s = sit(dias); return `<div class="ab-card ${s[0]}"><div class="caca-topo"><div class="rotulo">${rot}</div><span class="etiqueta ${s[0]}">${s[1]}</span></div><div class="ab-tit">${tit}</div>${linhas.filter(Boolean).map((l) => `<div class="ab-linha">${l}</div>`).join("")}${link ? `<a href="${link}" target="_blank" rel="noopener" class="ab-arq">Abrir o arquivo do documento</a>` : ""}</div>`; };
+  c.innerHTML = maisTopo("Modo abordagem", "O que apresentar da arma que você está transportando.") +
+    (D._offline ? "" : "") +
+    `<div class="card"><div class="rotulo">Atirador</div><div class="ab-tit">${esc(D.assinante.nome || "")}</div>
+      ${crafs.length ? `<div class="caca-campos" style="grid-template-columns:1fr"><label>Arma que está com você<select id="ab-arma">${crafs.map((d) => `<option value="${d.id}"${d.id === abArma ? " selected" : ""}>${esc(d.arma || d.descricao || "Arma")}</option>`).join("")}</select></label></div>` : ""}</div>
+    ${cart("Certificado de Registro (CR)", cr ? "CR nº " + esc(cr.numero || "—") : "CR não cadastrado", [cr && cr.validade ? "Validade: " + br(cr.validade) : "Envie o seu CR em Documentos."], cr ? cr.dias : null, (D.documentos.find((d) => d.tipo === "CR") || {}).link)}
+    ${sel ? cart("Registro da arma (CRAF)", esc(sel.arma || sel.descricao || "Arma"), [sel.numero ? "Nº " + esc(sel.numero) : "", sel.validade ? "Validade: " + br(sel.validade) : "Sem validade lida"], sel.dias, sel.link) : '<div class="aviso atencao"><b>Nenhum CRAF cadastrado</b><span class="pequeno">Envie o registro das suas armas em Documentos.</span></div>'}
+    ${sel ? (guias.length ? guias.map((g) => cart("Guia de tráfego", g.numero ? "GT nº " + esc(g.numero) : "Guia de tráfego", [g.destino ? "Destino: " + esc(g.destino) : "", g.descricao ? esc(g.descricao) : "", g.validade ? "Validade: " + br(g.validade) : "Sem validade lida"], g.dias, g.link)).join("")
+      : `<div class="aviso critico"><b>Nenhuma guia de tráfego encontrada para esta arma</b><span class="pequeno">${gts.length ? "Você tem " + gts.length + " guia(s) no app, mas nenhuma bate com esta arma. Confira em Documentos › Guias de tráfego." : "Não há guias de tráfego no app."}</span></div>`) : ""}
+    <p class="pequeno" style="margin-top:14px">Os dados desta tela ficam salvos no aparelho e aparecem mesmo sem internet. O arquivo do documento só abre com internet; leve sempre o original ou a versão oficial. Esta tela é um apoio e não substitui os documentos.</p>`;
+  const s = c.querySelector("#ab-arma"); if (s) s.onchange = () => { abArma = s.value; render(); };
+}
+
+// ---- treino em seco (par time)
+const SECO_K = "atica_seco_v1";
+const SECO_LIB = [
+  ["visada", "Apresentação e visada", 1.5, "Da posição de pronto até a mira alinhada no alvo."],
+  ["saque", "Saque e primeira visada", 2.0, "Do coldre até a mira alinhada no alvo."],
+  ["dois", "Dois acionamentos no mesmo alvo", 2.5, "Do pronto: dois acionamentos mantendo a mira no alvo."],
+  ["transicao", "Transição entre dois alvos", 3.0, "Um acionamento em cada alvo."],
+  ["troca", "Troca de carregador", 3.5, "Um acionamento, troca de carregador (vazio) e novo acionamento."],
+  ["livre", "Livre", 2.0, "Você define o exercício e o tempo."],
+];
+let seco = { fase: "idle" };
+function secoParar(salvar) {
+  clearTimeout(seco.tm); try { if (seco.ctx) seco.ctx.close(); } catch (e) {} try { if (seco.trava) seco.trava.release(); } catch (e) {}
+  if (salvar && seco.feitas > 0) { const S = maisLer(SECO_K, { sessoes: [] }); S.sessoes.unshift({ data: new Date().toISOString(), ex: seco.cfg.ex, par: seco.cfg.par, reps: seco.feitas }); S.sessoes = S.sessoes.slice(0, 200); maisGravar(SECO_K, S); }
+  seco = { fase: "idle" }; render();
+}
+async function secoIniciar(cfg) {
+  const AC = window.AudioContext || window.webkitAudioContext, eu = seco = { fase: "rodando", cfg, feitas: 0, ctx: new AC() };
+  try { await eu.ctx.resume(); } catch (e) {} try { eu.trava = await navigator.wakeLock.request("screen"); } catch (e) {}
+  const bip = (f, dur) => { const o = eu.ctx.createOscillator(), g = eu.ctx.createGain(); o.type = "square"; o.frequency.value = f; g.gain.value = 0.9; o.connect(g); g.connect(eu.ctx.destination); o.start(); o.stop(eu.ctx.currentTime + dur); };
+  const el = (t) => { const x = document.querySelector("#sc-fase"); if (x) x.textContent = t; const n = document.querySelector("#sc-n"); if (n) n.textContent = eu.feitas + " de " + cfg.reps; };
+  const rep = () => { if (seco !== eu) return; if (!document.querySelector("#sc-fase")) return secoParar(true);
+    if (eu.feitas >= cfg.reps) return secoParar(true);
+    el("Prepare-se");
+    eu.tm = setTimeout(() => { if (seco !== eu) return; bip(2400, 0.25); el("Valendo");
+      eu.tm = setTimeout(() => { if (seco !== eu) return; bip(1400, 0.4); eu.feitas++; el("Tempo"); eu.tm = setTimeout(rep, cfg.desc * 1000); }, cfg.par * 1000);
+    }, 1500 + Math.random() * 2000); };
+  render(); rep();
+}
+function renderSeco(c) {
+  const S = maisLer(SECO_K, { sessoes: [] }), q = (x) => c.querySelector(x);
+  if (seco.fase === "rodando") {
+    const ex = SECO_LIB.find((x) => x[0] === seco.cfg.ex) || SECO_LIB[0];
+    c.innerHTML = maisTopo("Treino em seco", esc(ex[1]) + " · par time de " + String(seco.cfg.par).replace(".", ",") + " s") +
+      `<div class="card ip-caixa"><div class="rotulo" id="sc-fase">Prepare-se</div><div class="ip-tempo" id="sc-n">${seco.feitas} de ${seco.cfg.reps}</div><div class="pequeno">Bip agudo: começa. Bip grave: acabou o tempo.</div><button class="btn ip-parar" id="sc-parar">Parar</button></div>`;
+    q("#sc-parar").onclick = () => secoParar(true); return;
+  }
+  const cf = Object.assign({ ex: "visada", par: 1.5, reps: 10, desc: 4 }, S.cfg || {}), ex = SECO_LIB.find((x) => x[0] === cf.ex) || SECO_LIB[0], tot = S.sessoes.reduce((n, s) => n + s.reps, 0);
+  c.innerHTML = maisTopo("Treino em seco", "Par time com repetições, sem munição.") +
+    `<div class="aviso critico"><b>Segurança primeiro</b><span class="pequeno">Arma descarregada e conferida duas vezes, sem munição no ambiente, apontada para uma direção segura. Em caso de dúvida, não treine.</span></div>
+    <div class="card"><div class="rotulo">Exercício</div>
+      <div class="caca-campos"><label>Exercício<select id="sc-ex">${SECO_LIB.map((x) => `<option value="${x[0]}"${x[0] === cf.ex ? " selected" : ""}>${x[1]}</option>`).join("")}</select></label>
+        <label>Par time (segundos)<input id="sc-par" type="number" min="0.5" max="30" step="0.1" value="${cf.par}"></label>
+        <label>Repetições<input id="sc-reps" type="number" min="1" max="100" step="1" value="${cf.reps}"></label>
+        <label>Descanso entre repetições (s)<input id="sc-desc" type="number" min="2" max="60" step="1" value="${cf.desc}"></label></div>
+      <p style="margin:10px 0 0">${esc(ex[3])}</p>
+      <label class="caca-check"><input type="checkbox" id="sc-ok"> Conferi: a arma está descarregada e não há munição no ambiente.</label>
+      <button class="btn ip-parar" id="sc-ini">Iniciar</button><div class="msg" id="sc-msg"></div>
+      <p class="pequeno" style="margin:10px 0 0">Os tempos sugeridos são ponto de partida; ajuste ao seu nível. Em cada repetição o app espera um tempo aleatório, dá o bip de início e, no fim do par time, o bip de encerramento.</p></div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Histórico</div>
+      <div class="dados-caca"><div><span>Sessões</span><b>${S.sessoes.length}</b></div><div><span>Repetições</span><b>${tot}</b></div></div>
+      ${S.sessoes.length ? `<div class="lista" style="margin-top:10px">${S.sessoes.slice(0, 15).map((s) => `<div class="linha"><div><div class="t">${esc((SECO_LIB.find((x) => x[0] === s.ex) || ["", "Exercício"])[1])}</div><div class="pequeno">${new Date(s.data).toLocaleDateString("pt-BR")} · ${s.reps} repetição(ões) · par time ${String(s.par).replace(".", ",")} s</div></div></div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nenhuma sessão ainda.</div>'}</div>`;
+  const ler = () => ({ ex: q("#sc-ex").value, par: Math.min(30, Math.max(0.5, +q("#sc-par").value || 1.5)), reps: Math.min(100, Math.max(1, Math.round(+q("#sc-reps").value) || 10)), desc: Math.min(60, Math.max(2, +q("#sc-desc").value || 4)) });
+  q("#sc-ex").onchange = () => { const n = ler(), l = SECO_LIB.find((x) => x[0] === n.ex); n.par = l[2]; const S2 = maisLer(SECO_K, { sessoes: [] }); S2.cfg = n; maisGravar(SECO_K, S2); render(); };
+  q("#sc-ini").onclick = () => { if (!q("#sc-ok").checked) { q("#sc-msg").className = "msg erro"; q("#sc-msg").textContent = "Marque a conferência de segurança para começar."; return; } const n = ler(), S2 = maisLer(SECO_K, { sessoes: [] }); S2.cfg = n; maisGravar(SECO_K, S2); secoIniciar(n); };
+}
+
+// ---- agenda de treinos
+const AGENDA_K = "atica_agenda_v1";
+function renderAgenda(c) {
+  const A = maisLer(AGENDA_K, { itens: [] }), ult = maisUltimoTreino(), dias = maisDiasDesde(ult), q = (x) => c.querySelector(x);
+  const fut = A.itens.filter((i) => i.data >= D.hoje).sort((x, y) => x.data < y.data ? -1 : 1), pas = A.itens.filter((i) => i.data < D.hoje).sort((x, y) => x.data < y.data ? 1 : -1).slice(0, 10);
+  const venc = (D.calendario || []).filter((v) => v.dias !== null && v.dias >= 0 && v.dias <= 90).slice(0, 4), TP = { treino: "Treino", prova: "Prova", curso: "Curso" };
+  const cls = dias === null ? "at" : dias <= 30 ? "ok" : dias <= 60 ? "at" : "cr";
+  c.innerHTML = maisTopo("Agenda de treinos", "Planeje os próximos treinos e provas.") +
+    `<div class="caca-ctf-card ${cls}" style="cursor:default"><span><span class="rotulo">Último treino registrado</span><b>${dias === null ? "Nenhum" : dias === 0 ? "Hoje" : "Há " + dias + " dia(s)"}</b><span class="pequeno">${ult ? "Em " + br(ult) + ". " : ""}${dias === null ? "Registre seus treinos para o app acompanhar." : dias > 30 ? "Que tal marcar o próximo?" : "Você está em ritmo."}</span></span></div>
+    <div class="card"><div class="rotulo">Marcar treino ou prova</div>
+      <div class="caca-campos"><label>Data<input id="ag-data" type="date" min="${D.hoje}"></label><label>Tipo<select id="ag-tipo"><option value="treino">Treino</option><option value="prova">Prova</option><option value="curso">Curso</option></select></label>
+        <label>O quê<input id="ag-tit" maxlength="60" placeholder="Ex.: treino de precisão"></label><label>Onde<input id="ag-local" maxlength="60" value="${esc(D.assinante.clube || "")}"></label></div>
+      <button class="btn" id="ag-add" style="margin-top:12px">Adicionar à agenda</button><div class="msg" id="ag-msg"></div></div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Próximos</div>
+      ${fut.length ? `<div class="lista" style="margin-top:10px">${fut.map((i) => `<div class="linha"><div><div class="t">${br(i.data)} · ${TP[i.tipo] || "Treino"}${i.titulo ? " · " + esc(i.titulo) : ""}</div><div class="pequeno">${esc(i.local || "")} · ${maisDiasDesde(i.data) === 0 ? "hoje" : "em " + (-maisDiasDesde(i.data)) + " dia(s)"}</div></div><button class="btn sec" data-rm="${i.id}" style="min-height:36px;padding:6px 12px">Remover</button></div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nada marcado.</div>'}
+      ${venc.length ? `<h3 class="sec-tit" style="margin-top:18px">Vencimentos nos próximos 90 dias</h3><div class="lista">${venc.map((v) => `<div class="linha"><div><div class="t">${esc(v.titulo || v.tipo)}</div><div class="pequeno">${esc(v.tipo)}</div></div><div class="${cor(v.dias)}">${br(v.data)}</div></div>`).join("")}</div>` : ""}</div>
+    ${pas.length ? `<div class="card" style="margin-top:14px"><div class="rotulo">Passados</div><div class="lista" style="margin-top:10px">${pas.map((i) => `<div class="linha"><div><div class="t">${br(i.data)} · ${TP[i.tipo] || "Treino"}${i.titulo ? " · " + esc(i.titulo) : ""}</div><div class="pequeno">${esc(i.local || "")}</div></div><button class="btn sec" data-rm="${i.id}" style="min-height:36px;padding:6px 12px">Remover</button></div>`).join("")}</div><p class="pequeno" style="margin:10px 0 0">A agenda é o seu planejamento. Para contar como habitualidade, o treino precisa ser registrado com a declaração do clube.</p></div>` : ""}
+    <p class="pequeno" style="margin-top:14px">A agenda fica guardada neste aparelho.</p>`;
+  q("#ag-add").onclick = () => { const d = q("#ag-data").value, m = q("#ag-msg"); if (!d) { m.className = "msg erro"; m.textContent = "Escolha a data."; return; } const A2 = maisLer(AGENDA_K, { itens: [] }); A2.itens.push({ id: "a" + Date.now().toString(36), data: d, tipo: q("#ag-tipo").value, titulo: q("#ag-tit").value.trim(), local: q("#ag-local").value.trim() }); A2.itens = A2.itens.slice(-200); maisGravar(AGENDA_K, A2); render(); };
+  c.querySelectorAll("[data-rm]").forEach((b) => b.onclick = () => { const A2 = maisLer(AGENDA_K, { itens: [] }); A2.itens = A2.itens.filter((i) => i.id !== b.dataset.rm); maisGravar(AGENDA_K, A2); render(); });
+}
+function maisInicio(c) {
+  try { if (tela !== "painel" || c.querySelector("#mais-treino")) return; const dias = maisDiasDesde(maisUltimoTreino()), A = maisLer(AGENDA_K, { itens: [] }), prox = A.itens.filter((i) => i.data >= D.hoje).sort((x, y) => x.data < y.data ? -1 : 1)[0];
+    if (!prox && (dias === null || dias <= 30)) return;
+    const t = prox ? `Próximo na agenda: ${br(prox.data)}${prox.titulo ? " · " + esc(prox.titulo) : ""}` : `Seu último treino registrado foi há ${dias} dias`;
+    const alvo = c.querySelector(".bal-atalho"); const html = `<button class="bal-atalho" id="mais-treino" style="margin:14px 0 0"><span><b>${t}</b><span class="pequeno" style="display:block">${prox ? "Abrir a agenda de treinos" : "Marque o próximo na agenda"}</span></span><span>›</span></button>`;
+    if (alvo) alvo.insertAdjacentHTML("afterend", html); else c.insertAdjacentHTML("beforeend", html);
+    c.querySelector("#mais-treino").onclick = () => irPara("caderneta", "agenda"); } catch (e) {}
+}
+
+// ---- conquistas
+function maisConquistas() {
+  const H = D.habitualidade || {}, R = H.registros || [], ev = new Set(R.map((r) => r.data + "|" + (r.clube || ""))).size, comp = R.filter((r) => r.tipo === "competicao").length;
+  const docs = D.documentos, venc = docs.filter((d) => d.dias !== null && d.dias !== undefined && d.dias < 0).length, cr = D.resumo.cr;
+  const alvos = maisLer("atica_alvos_v1", []), sub = alvos.filter((a) => a.moa > 0 && a.moa < 1).length, ser = ipscLer().series, pont = ser.filter((s) => s.A + s.C + s.D + s.M > 0).length;
+  const S = maisLer(SECO_K, { sessoes: [] }), reps = S.sessoes.reduce((n, s) => n + s.reps, 0), C = cacaLer(), nv = Number((D.nivel && D.nivel.comprovado) || 1);
+  const ds = (DSF.dados && DSF.dados.desafios) || [], part = ds.filter((d) => d.ranking.some((r) => r.meu)).length, podio = ds.filter((d) => d.ranking.slice(0, 3).some((r) => r.meu && r.status === "validado")).length, duelos = ((DSF.dados && DSF.dados.duelos) || []).filter((d) => d.vencedor === "eu").length;
+  const m = (grupo, nome, desc, tem, prog) => ({ grupo, nome, desc, tem: !!tem, prog });
+  return [
+    m("Documentos", "CR em dia", "Certificado de Registro cadastrado e válido.", cr && cr.dias >= 0),
+    m("Documentos", "Tudo em ordem", "Nenhum documento vencido no app.", docs.length > 0 && venc === 0, docs.length ? venc + " vencido(s)" : "envie seus documentos"),
+    m("Documentos", "Acervo completo", "CRAF de pelo menos uma arma cadastrado.", D.resumo.armas > 0),
+    m("Habitualidade", "Primeiro registro", "Um treino ou competição registrado.", ev >= 1),
+    m("Habitualidade", "Em dia", "Exigência de habitualidade do seu nível cumprida.", (H.situacao || {}).completo),
+    m("Habitualidade", "Frequente", "20 eventos em 12 meses.", ev >= 20, ev + " de 20"),
+    m("Habitualidade", "Competidor", "Uma competição registrada.", comp >= 1),
+    m("Nível", "Nível 2", "Nível 2 comprovado.", nv >= 2),
+    m("Nível", "Nível 3", "Nível 3 comprovado.", nv >= 3),
+    m("Caderneta", "Primeiro alvo", "Um alvo medido na Caderneta.", alvos.length >= 1),
+    m("Caderneta", "Dez alvos", "Dez alvos registrados.", alvos.length >= 10, alvos.length + " de 10"),
+    m("Caderneta", "Sub-MOA", "Um grupo menor que 1 MOA.", sub >= 1),
+    m("Cronômetro", "Primeira série", "Uma série salva no cronômetro.", ser.length >= 1),
+    m("Cronômetro", "Dez séries pontuadas", "Dez séries com a pontuação lançada.", pont >= 10, pont + " de 10"),
+    m("Treino em seco", "Primeira sessão", "Uma sessão de treino em seco.", S.sessoes.length >= 1),
+    m("Treino em seco", "500 repetições", "Quinhentas repetições somadas.", reps >= 500, reps + " de 500"),
+    m("Desafios", "Entrou na disputa", "Participou de um desafio do mês.", part >= 1),
+    m("Desafios", "Pódio", "Entre os três primeiros, com resultado conferido.", podio >= 1),
+    m("Desafios", "Venceu um duelo", "Ganhou um duelo contra outro atirador.", duelos >= 1),
+    m("Manejo", "Primeira saída", "Uma saída de manejo registrada.", C.saidas.length >= 1),
+    m("Manejo", "CTF em dia", "Certificado do CTF válido.", C.ctf && cacaDias(C.ctf) >= 0),
+  ];
+}
+function renderConquistas(c) {
+  if (!DSF.dados && !DSF.erro && !DSF.carregando) dsfCarregar().then(() => { if (tela === "caderneta" && subTela === "conquistas") render(); });
+  const L = maisConquistas(), tem = L.filter((x) => x.tem).length, grupos = [...new Set(L.map((x) => x.grupo))];
+  c.innerHTML = maisTopo("Conquistas", "Medalhas pelo que você já fez no app.") +
+    `<div class="caca-ctf-card ok" style="cursor:default"><span><span class="rotulo">Suas medalhas</span><b>${tem} de ${L.length}</b><span class="pequeno">${tem === L.length ? "Você completou todas." : "Faltam " + (L.length - tem) + "."}</span></span></div>
+    ${grupos.map((g) => `<h3 class="sec-tit">${g}</h3><div class="med-grade">${L.filter((x) => x.grupo === g).map((x) => `<div class="med ${x.tem ? "tem" : ""}"><div class="med-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON.desafio}</svg></div><div><b>${x.nome}</b><span class="pequeno">${x.desc}${!x.tem && x.prog ? " · " + x.prog : ""}</span></div></div>`).join("")}</div>`).join("")}
+    <p class="pequeno" style="margin-top:14px">As medalhas são calculadas neste aparelho, com os seus dados do app. Só você vê.${DSF.carregando ? " Carregando os desafios…" : ""}</p>`;
+}
 function renderCaca(c, sub) {
   const C = cacaLer(), topo = (t, s) => `<div class="topo"><div><h2>${t}</h2><p>${s}</p></div></div>`;
   const nomeProp = (id) => (C.props.find((p) => p.id === id) || {}).nome || "Propriedade removida";
@@ -1799,10 +1997,10 @@ function renderCaca(c, sub) {
   if (sub === "autorizacoes") {
     const docs = cacaDocsConta();
     c.innerHTML = topo("Autorizações e documentos", "Tudo o que você enviou sobre manejo: autorização do dono ou arrendatário, SIMAF, CTF, CAR e guias para o manejo.") +
-      `<div class="envio-doc"><button class="btn" data-doc="foto">Fotografar documento</button><button class="btn sec" data-doc="arq">Enviar arquivo ou PDF</button></div><div id="envio"></div>
+      `<div class="envio-doc"><button class="btn" data-ldoc="foto">Fotografar documento</button><button class="btn sec" data-ldoc="arq">Enviar arquivo ou PDF</button></div><div id="envio"></div>
       ${docs.length ? `<div class="lista">${docs.map(cacaDocLinha).join("")}</div>` : '<div class="vazio">Nenhum documento de manejo na sua conta ainda. Envie a autorização do proprietário, a do SIMAF, o certificado do CTF ou o CAR.</div>'}
       <p class="pequeno" style="margin-top:12px">O app reconhece a autorização do proprietário, a do SIMAF, o certificado do CTF e o CAR e guarda aqui. Se algum não apareceu, veja em Documentos › Meus documentos › Outros e avise a nossa equipe.</p>`;
-    c.querySelectorAll("[data-doc]").forEach((b) => b.onclick = () => { cacaDocAlvo = { lista: true }; b.dataset.doc === "foto" ? fotografar() : $("#arq").click(); });
+    c.querySelectorAll("[data-ldoc]").forEach((b) => b.onclick = () => { cacaDocAlvo = { lista: true }; b.dataset.ldoc === "foto" ? fotografar() : $("#arq").click(); });
     return;
   }
   if (sub === "saidas") {
@@ -1846,7 +2044,12 @@ function renderTela(c, a, primeiro, docs) {
     return;
   }
   const item = hub.itens.find((i) => i[0] === subTela);
-  if (tela === "caderneta" && subTela === "ipsc") renderIpsc(c);
+  if (tela === "documentos" && subTela === "abordagem") renderAbordagem(c);
+  else if (tela === "documentos" && subTela === "relatorio") renderRelatorio(c);
+  else if (tela === "caderneta" && subTela === "seco") renderSeco(c);
+  else if (tela === "caderneta" && subTela === "agenda") renderAgenda(c);
+  else if (tela === "caderneta" && subTela === "conquistas") renderConquistas(c);
+  else if (tela === "caderneta" && subTela === "ipsc") renderIpsc(c);
   else if (tela === "caderneta" && subTela === "desafios") renderDesafios(c);
   else if (tela === "caca") { if (subTela === "acervo") { acervoFiltro = "cacador"; tela = "acervo"; try { renderTela0(c, a, primeiro, docs); } finally { tela = "caca"; } } else renderCaca(c, subTela); }
   else if (tela === "documentos") { tela = subTela; try { renderTela0(c, a, primeiro, docs); } finally { tela = "documentos"; } }
