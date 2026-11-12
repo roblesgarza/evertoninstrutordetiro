@@ -245,6 +245,14 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 .dsp-resp{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.dsp-resp input{flex:1 1 220px;min-width:0;background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:10px 12px;font:inherit;min-height:44px}.dsp-resp .btn{min-height:44px;padding:8px 12px;font-size:13px}
 .dsp-editor{margin-top:10px;padding:12px;border:1px solid var(--line)}.dsp-editor .caca-campos{margin-top:0}
 .dsp-docs{margin-top:10px;display:grid;gap:6px}.dsp-doc{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card2);padding:8px 12px;font-size:14px}
+
+.comp-eq{border:1px solid var(--line);padding:12px;margin-bottom:12px}.comp-lista{display:grid;gap:8px;margin-top:8px}.comp-m{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--card2);padding:8px 12px;font-size:14px}
+.linha.comp-aberto{flex-direction:column;align-items:stretch}.linha.comp-aberto>div:last-child{text-align:left!important}
+.comp-eq .caca-campos label{display:flex;flex-direction:column;gap:6px}
+.comp-cands{display:grid;gap:4px;margin-top:6px}
+.comp-visor{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column}.comp-vtopo,.comp-vrod{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;font:600 13px 'Chakra Petch';color:var(--txt)}.comp-vrod{font:500 12px Inter,sans-serif;color:var(--sub);justify-content:center;text-align:center}
+.comp-vcorpo{position:relative;flex:1;overflow:auto;-webkit-user-select:none;user-select:none}.comp-vcorpo img{display:block;max-width:100%;margin:0 auto}.comp-vcorpo iframe{width:100%;height:100%;border:0;background:#fff}
+.comp-marca{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-around;align-items:center;overflow:hidden}.comp-marca span{transform:rotate(-24deg);white-space:nowrap;font:700 14px Inter,sans-serif;color:rgba(200,30,30,.28)}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -1375,22 +1383,91 @@ function cacaRelSimaf(C, p) {
 let cacaRel = null;
 const cacaZap = (v) => { const n = String(v || "").replace(/\D/g, ""); return n.length === 10 || n.length === 11 ? "55" + n : n.length === 12 || n.length === 13 ? n : ""; };
 function cacaContatos() { const L = []; cacaLer().props.forEach((p) => { if (cacaZap(p.zap)) L.push({ nome: (p.dono || "Proprietário ou arrendatário") + " · " + p.nome, zap: cacaZap(p.zap) }); (p.contatos || []).forEach((c) => { if (cacaZap(c.zap)) L.push({ nome: (c.nome || "Contato") + " · " + p.nome, zap: cacaZap(c.zap) }); }); }); return L; }
+// ---------- equipe com acesso pelo app (compartilhamento que dá para tirar) ----------
+const COMP = { comigo: null, carregando: false, erro: "" };
+const compQuando = (iso) => iso ? new Date(iso).toLocaleDateString("pt-BR") + " " + new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+const compFone = (z) => { const d = String(z || "").replace(/\D/g, "").replace(/^55/, ""); return d.length >= 10 ? "(" + d.slice(0, 2) + ") " + d.slice(2, -4) + "-" + d.slice(-4) : d; };
+async function compEquipe(el, docId, aviso) {
+  if (!el) return;
+  el.innerHTML = '<div class="msg">Carregando a equipe…</div>';
+  let r = null; try { r = await api("comp_listar", { documento_id: docId }); } catch (e) {}
+  if (!r || !r.ok || !Array.isArray(r.membros)) { el.innerHTML = '<div class="msg erro">' + esc((r && r.erro) || "Sem conexão para carregar a equipe.") + "</div>"; return; }
+  const C = cacaLer(), ja = new Set(r.membros.map((m) => cacaZap(m.whatsapp))), extras = el.__extras || [];
+  const cands = []; const vistos = new Set();
+  extras.concat(cacaContatos()).forEach((c) => { const z = cacaZap(c.zap); if (z && !ja.has(z) && !vistos.has(z)) { vistos.add(z); cands.push({ nome: c.nome, zap: z, marcado: !!c.marcado }); } });
+  el.innerHTML = `<div class="comp-eq"><div class="rotulo">Equipe com acesso pelo app</div>
+    ${aviso || ""}
+    ${r.membros.length ? `<div class="comp-lista">${r.membros.map((m) => `<div class="comp-m"><div><b>${esc(m.nome || compFone(m.whatsapp))}</b><div class="pequeno">${esc(compFone(m.whatsapp))} · ${m.vistas ? "abriu " + m.vistas + " vez(es), a última em " + compQuando(m.ultima_vista) : "ainda não abriu"}</div></div><button class="btn sec dsp-mini" data-crem="${m.id}" data-cnm="${esc(m.nome || "")}">Remover</button></div>`).join("")}</div>` : '<p class="pequeno" style="margin:8px 0 0">Ninguém tem acesso pelo app ainda.</p>'}
+    <div class="pequeno" style="margin-top:12px"><b>Marque quem pode ver esta autorização:</b></div>
+    ${cands.length ? `<div class="comp-cands">${cands.map((c, i) => `<label class="caca-check"><input type="checkbox" data-cc="${i}" ${c.marcado ? "checked" : ""}><span>${esc(c.nome)} · ${esc(compFone(c.zap))}</span></label>`).join("")}</div>` : '<p class="pequeno" style="margin:6px 0 0">Nenhum contato salvo ainda. Adicione abaixo.</p>'}
+    <div class="caca-campos" style="margin-top:8px"><label>Nome<input data-cxn maxlength="40"></label><label>WhatsApp com DDD<input data-cxz inputmode="tel" maxlength="20" placeholder="(17) 99999-9999"></label></div>
+    <div class="acoes" style="margin-top:8px"><button class="btn sec" data-cxadd>Adicionar à lista</button></div>
+    ${C.props.length ? `<label style="margin-top:10px">Propriedade desta autorização<select data-cprop><option value="">Não informar</option>${C.props.map((p, i) => `<option value="${p.id}" ${C.props.length === 1 && i === 0 ? "selected" : ""}>${esc(p.nome)}</option>`).join("")}</select></label>` : ""}
+    <div class="acoes" style="margin-top:10px"><button class="btn" data-cdar>Dar acesso aos marcados</button></div><div class="msg" data-cmsg></div>
+    <p class="pequeno" style="margin:6px 0 0">Só quem tem conta no Ática recebe acesso pelo app. Quem você remover perde o acesso na hora e é avisado. Se o proprietário não quer mais alguém, peça a ele uma autorização nova sem o nome dessa pessoa.</p></div>`;
+  const q = (s) => el.querySelector(s), msg = q("[data-cmsg]");
+  q("[data-cxadd]").onclick = () => { const z = cacaZap(q("[data-cxz]").value); if (!z) { msg.className = "msg erro"; msg.textContent = "Digite o WhatsApp com DDD."; return; }
+    el.__extras = (el.__extras || []).filter((x) => x.zap !== z).concat([{ nome: q("[data-cxn]").value.trim().slice(0, 40) || "Contato", zap: z, marcado: true }]);
+    const sel = q("[data-cprop]"); if (sel && sel.value) { const A = cacaLer(), pp = A.props.find((x) => x.id === sel.value); if (pp) { pp.contatos = (pp.contatos || []).filter((c) => cacaZap(c.zap) !== z).concat([{ nome: q("[data-cxn]").value.trim().slice(0, 40), zap: z }]).slice(-20); cacaGravar(A); } }
+    compEquipe(el, docId); };
+  el.querySelectorAll("[data-crem]").forEach((b) => b.onclick = async () => {
+    if (b.dataset.ok !== "1") { b.dataset.ok = "1"; b.textContent = "Confirmar remoção"; b.classList.remove("sec"); return; }
+    b.disabled = true; let x = null; try { x = await api("comp_remover", { id: b.dataset.crem }); } catch (e) {}
+    if (!x || !x.ok) { b.disabled = false; msg.className = "msg erro"; msg.textContent = (x && x.erro) || "Sem conexão. Tente de novo."; return; }
+    compEquipe(el, docId, `<div class="aviso info" style="margin-top:8px"><b>Acesso removido</b><span class="pequeno">${esc(b.dataset.cnm || "A pessoa")} não vê mais esta autorização e recebeu um aviso. Se o proprietário não quer mais essa pessoa, peça uma autorização nova sem o nome dela.</span></div>`);
+  });
+  q("[data-cdar]").onclick = async () => {
+    const itens = cands.filter((c, i) => { const k = q('[data-cc="' + i + '"]'); return k && k.checked; }).map((c) => ({ nome: c.nome.split(" · ")[0], whatsapp: c.zap }));
+    if (!itens.length) { msg.className = "msg erro"; msg.textContent = "Marque pelo menos uma pessoa."; return; }
+    const sel = q("[data-cprop]"), pp = sel && sel.value ? C.props.find((p) => p.id === sel.value) : null;
+    msg.className = "msg"; msg.textContent = "Liberando o acesso…"; q("[data-cdar]").disabled = true;
+    let x = null; try { x = await api("comp_adicionar", { documento_id: docId, itens, prop_nome: pp ? pp.nome : "", prop_mun: pp ? pp.mun : "", prop_car: pp ? pp.car : "" }); } catch (e) {}
+    if (!x || !x.ok) { q("[data-cdar]").disabled = false; msg.className = "msg erro"; msg.textContent = (x && x.erro) || "Sem conexão. Tente de novo."; return; }
+    const T = { ok: "acesso liberado e avisado pelo WhatsApp", sem_conta: "não tem conta no Ática; mande o link abaixo ou convide a pessoa", ja: "já tinha acesso", voce: "é o seu próprio número", numero: "número inválido", erro: "não deu certo, tente de novo" };
+    el.__extras = (el.__extras || []).map((e) => ({ ...e, marcado: false }));
+    compEquipe(el, docId, `<div class="aviso info" style="margin-top:8px"><b>Resultado</b><span class="pequeno">${x.res.map((y) => esc(y.nome || compFone(y.whatsapp)) + ": " + T[y.r]).join("<br>")}</span></div>`);
+  };
+}
+function compComigoMontar(c) {
+  const el = c.querySelector("#caca-comigo"); if (!el) return;
+  if (COMP.comigo === null) { if (!COMP.carregando) { COMP.carregando = true; api("comp_comigo").then((r) => { COMP.carregando = false; COMP.comigo = r && r.ok && Array.isArray(r.itens) ? r.itens : []; const e2 = document.querySelector("#caca-comigo"); if (e2) compComigoMontar(e2.parentElement); }).catch(() => { COMP.carregando = false; COMP.comigo = []; }); } return; }
+  if (!COMP.comigo.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="card" style="margin-bottom:14px"><div class="rotulo">Compartilhadas comigo</div><div class="lista" style="margin-top:10px">${COMP.comigo.map((x) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(x.prop_nome || x.nome_tipo || "Autorização de manejo")}</div><div class="pequeno">${x.prop_mun ? esc(x.prop_mun) + " · " : ""}${x.prop_car ? "CAR " + esc(x.prop_car) + " · " : ""}compartilhada por ${esc(x.de)}</div></div>${x.validade ? `<span class="etiqueta ${x.validade < new Date().toISOString().slice(0, 10) ? "cr" : "ok"}" style="white-space:nowrap">${br(x.validade)}</span>` : ""}</div>
+    ${x.ativo ? `<div class="acoes" style="margin-top:8px"><button class="btn sec dsp-mini" data-cver="${x.id}">Ver autorização</button></div>` : '<div class="pequeno at" style="margin-top:6px">Autorização substituída. Peça a quem compartilhou para enviar a nova.</div>'}</div>`).join("")}</div>
+    <p class="pequeno" style="margin:10px 0 0">Você vê estas autorizações enquanto quem compartilhou mantiver o seu acesso. Cada abertura fica registrada com o seu nome.</p><div class="msg" id="comp-vmsg"></div></div>`;
+  el.querySelectorAll("[data-cver]").forEach((b) => b.onclick = async () => {
+    const m = el.querySelector("#comp-vmsg"); m.className = "msg"; m.textContent = "Abrindo…";
+    let r = null; try { r = await api("comp_ver", { id: b.dataset.cver }); } catch (e) {}
+    if (!r || !r.ok) { m.className = "msg erro"; m.textContent = (r && r.erro) || "Sem conexão."; if (r && /encerrado/.test(r.erro || "")) { COMP.comigo = null; } return; }
+    m.textContent = ""; const x = COMP.comigo.find((y) => y.id === b.dataset.cver) || {};
+    if (r.pdf && typeof NATIVO !== "undefined" && NATIVO) { window.open(r.url, "_blank", "noopener"); return; }
+    compVisor(r, x);
+  });
+}
+function compVisor(r, x) {
+  document.querySelectorAll(".comp-visor").forEach((v) => v.remove());
+  const marca = "Visto por " + ((D.assinante && D.assinante.nome) || "") + " · " + compQuando(r.em) + " · compartilhado por " + (x.de || "");
+  const v = document.createElement("div"); v.className = "comp-visor";
+  v.innerHTML = `<div class="comp-vtopo"><span>${esc(x.prop_nome || "Autorização")}</span><button class="btn sec dsp-mini" data-vx>Fechar</button></div><div class="comp-vcorpo">${r.pdf ? `<iframe src="${esc(r.url)}#toolbar=0" title="Autorização"></iframe>` : `<img src="${esc(r.url)}" alt="Autorização">`}<div class="comp-marca">${Array(12).fill('<span>' + esc(marca) + '</span>').join("")}</div></div><div class="comp-vrod">${esc(marca)}</div>`;
+  document.body.appendChild(v); v.querySelector("[data-vx]").onclick = () => v.remove();
+}
 async function cacaCompAbrir(id) {
-  const box = document.querySelector('[data-compp="' + id + '"]'); if (!box) return; if (box.innerHTML) { box.innerHTML = ""; return; }
-  document.querySelectorAll("[data-compp]").forEach((x) => x.innerHTML = "");
+  const box = document.querySelector('[data-compp="' + id + '"]'); if (!box) return; const lin = box.closest(".linha"); if (box.innerHTML) { box.innerHTML = ""; if (lin) lin.classList.remove("comp-aberto"); return; }
+  document.querySelectorAll("[data-compp]").forEach((x) => { x.innerHTML = ""; const l = x.closest(".linha"); if (l) l.classList.remove("comp-aberto"); }); if (lin) lin.classList.add("comp-aberto");
   box.innerHTML = '<div class="msg">Gerando o link…</div>';
   const d = (D.documentos || []).find((x) => String(x.id) === String(id)) || {};
   let r = null; try { r = await api("doc_link", { id }); } catch (e) {}
   if (!r || !r.ok) { box.innerHTML = '<div class="msg erro">' + esc((r && r.erro) || "Sem conexão para gerar o link.") + "</div>"; return; }
   const texto = "Documento de manejo de javali" + (CACA_TIPOS[d.tipo] ? " (" + CACA_TIPOS[d.tipo] + ")" : "") + ": " + String(d.descricao || d.nome_tipo || "").slice(0, 140) + "\nArquivo (link válido por " + r.dias + " dias): " + r.url;
   const wa = (z) => "https://wa.me/" + z + "?text=" + encodeURIComponent(texto), C = cacaLer(), cts = cacaContatos();
-  box.innerHTML = `<div class="rotulo" style="margin-top:4px">Compartilhar com</div>
+  box.innerHTML = `<div data-ceq></div><div class="rotulo" style="margin-top:4px">Ou mandar um link</div>
     <div class="acoes" style="margin-top:8px"><button class="btn" data-cg>Grupo ou outro app</button>${cts.map((c) => `<a class="btn sec" href="${wa(c.zap)}" target="_blank" rel="noopener">${esc(c.nome)}</a>`).join("")}</div>
     <div class="caca-campos" style="margin-top:10px"><label>Outro contato (WhatsApp com DDD)<input data-cn inputmode="tel" maxlength="20" placeholder="(17) 99999-9999"></label><label>Nome (opcional)<input data-cnome maxlength="40"></label></div>
     ${C.props.length ? `<label>Salvar este contato na propriedade<select data-cs><option value="">Não salvar</option>${C.props.map((p) => `<option value="${p.id}">${esc(p.nome)}</option>`).join("")}</select></label>` : ""}
     <div class="acoes" style="margin-top:10px"><button class="btn sec" data-co>Abrir conversa no WhatsApp</button></div><div class="msg" data-cm></div>
-    <p class="pequeno" style="margin:6px 0 0">O documento sai do seu WhatsApp, para quem você escolher. O link para de funcionar em ${r.dias} dias. Se o arquivo traz dados de outras pessoas, envie só a quem precisa.</p>`;
+    <p class="pequeno" style="margin:6px 0 0">O documento sai do seu WhatsApp, para quem você escolher. Quem recebe o link fica com o arquivo até ele expirar em ${r.dias} dias, e esse acesso não dá para tirar; para quem tem Ática, prefira a equipe com acesso pelo app. Se o arquivo traz dados de outras pessoas, envie só a quem precisa.</p>`;
   const q = (x) => box.querySelector(x), m = q("[data-cm]");
+  compEquipe(q("[data-ceq]"), id);
   q("[data-cg]").onclick = () => cacaEnviarTexto("Documento de manejo", texto, m);
   q("[data-co]").onclick = () => { const z = cacaZap(q("[data-cn]").value); m.className = "msg erro"; if (!z) return void (m.textContent = "Digite o WhatsApp com DDD.");
     const sel = q("[data-cs]"); if (sel && sel.value) { const A = cacaLer(), pp = A.props.find((x) => x.id === sel.value); if (pp) { pp.contatos = (pp.contatos || []).filter((c) => cacaZap(c.zap) !== z).concat([{ nome: q("[data-cnome]").value.trim().slice(0, 40), zap: z }]).slice(-20); cacaGravar(A); } }
@@ -2187,7 +2264,7 @@ function renderCaca(c, sub) {
   if (sub === "propriedades") {
     const dc = cacaDias(C.ctf);
     c.innerHTML = topo("Propriedades (CAR) e autorizações", "Cada propriedade entra pelo número do CAR, com a autorização do proprietário ou arrendatário. A autorização do Ibama fica em SIMAF.") +
-      `<div class="card" style="margin-bottom:14px"><div class="rotulo">Certificado de Regularidade do CTF/Ibama</div>
+      `<div id="caca-comigo"></div><div class="card" style="margin-bottom:14px"><div class="rotulo">Certificado de Regularidade do CTF/Ibama</div>
         <div class="caca-campos" style="margin-top:8px"><label>Validade (vale 3 meses)<input id="caca-ctf" type="date" value="${esc(C.ctf)}"></label>
         <div class="pequeno ${dc === null ? "at" : dc < 0 ? "cr" : dc <= 15 ? "at" : "ok"}" style="align-self:end;padding-bottom:12px">${dc === null ? "Informe a validade: ele precisa estar em dia no dia do manejo." : dc < 0 ? "Vencido: renove no site do Ibama antes de sair." : "Vence " + prazo(dc) + "."}</div></div></div>
       ${cacaPasta && C.props.find((p) => p.id === cacaPasta) ? cacaPastaHtml(C, C.props.find((p) => p.id === cacaPasta)) : ""}
@@ -2213,6 +2290,7 @@ function renderCaca(c, sub) {
     c.querySelectorAll("[data-lim]").forEach((b) => b.onclick = async () => { const m = c.querySelector('[data-lmsg="' + b.dataset.lim + '"]'), pp = C.props.find((x) => x.id === b.dataset.lim); m.className = "msg"; m.textContent = "Consultando o CAR…"; b.disabled = true;
       const r = await cacaBuscarLimite(pp.car); if (r.erro) { m.className = "msg erro"; m.textContent = r.erro; b.disabled = false; return; }
       const A = cacaLer(), q = A.props.find((x) => x.id === pp.id); if (q) { q.limite = r.limite; q.carInfo = r.info; cacaGravar(A); } render(); });
+    compComigoMontar(c);
     c.querySelectorAll("[data-ldoc]").forEach((b) => b.onclick = () => { cacaDocAlvo = { lista: true, volta: "propriedades" }; b.dataset.ldoc === "foto" ? fotografar() : $("#arq").click(); });
     c.querySelectorAll("[data-pasta]").forEach((b) => b.onclick = () => { cacaPasta = b.dataset.pasta; cacaEdit = null; render(); window.scrollTo(0, 0); });
     c.querySelectorAll("[data-cdoc]").forEach((b) => b.onclick = () => { cacaDocAlvo = { prop: cacaPasta, k: b.dataset.k }; b.dataset.cdoc === "foto" ? fotografar() : $("#arq").click(); });
