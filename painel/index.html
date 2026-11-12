@@ -1483,7 +1483,7 @@ const ENVIO_DOC = `<div class="envio-doc"><button class="btn" data-doc="foto"><s
 const HUBS = {
   documentos: { titulo: "Documentos", sub: "Seu CR, armas, guias e prazos em um só lugar.", itens: [
     ["acervo", "Acervo e CRAFs", "Suas armas, registros e validades.", "acervo"],
-    ["guias", "Guias de tráfego", "O que pode ser transportado hoje e para onde.", "guias"],
+    ["guias", "Guias de trânsito", "O que pode ser transportado hoje e para onde.", "guias"],
     ["calendario", "Prazos", "Vencimentos de CR, CRAFs e guias.", "calendario"],
     ["habitualidade", "Habitualidade", "Treinos e competições por grupo de arma.", "habitualidade"],
     ["documentos", "Meus documentos", "Tudo que você enviou, para abrir quando precisar.", "documentos"]] },
@@ -1565,7 +1565,7 @@ function cacaCtfCartao() {
 }
 const CACA_RX = /manejo|javali|simaf|ibama|cadastro t[ée]cnico federal|\bctf\b|cadastro ambiental rural|\bcar\b|ca[çc]ador|ca[çc]a\b|abate|fauna|arrendat|propriet[áa]rio (rural|da (terra|fazenda|propriedade|área))|propriedade rural/i;
 const cacaDocsConta = () => { try { return D.documentos.filter((d) => d.status !== "substituido" && (CACA_TIPOS[d.tipo] || (d.tipo === "OUTRO" || d.tipo === "GT") && CACA_RX.test((d.descricao || "") + " " + (d.destino || "")))); } catch (e) { return []; } };
-const cacaDocLinha = (d) => `<div class="linha"><div><div class="t">${esc(d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.tipo === "GT" ? "Guia de tráfego · " : CACA_TIPOS[d.tipo] ? CACA_TIPOS[d.tipo] + " · " : ""}${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div>${d.id && d.link ? `<button class="btn sec caca-comp" data-comp="${d.id}">Compartilhar</button><div class="caca-comp-p" data-compp="${d.id}"></div>` : ""}</div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`;
+const cacaDocLinha = (d) => `<div class="linha"><div><div class="t">${esc(d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.tipo === "GT" ? "Guia de trânsito · " : CACA_TIPOS[d.tipo] ? CACA_TIPOS[d.tipo] + " · " : ""}${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div>${d.id && d.link ? `<button class="btn sec caca-comp" data-comp="${d.id}">Compartilhar</button><div class="caca-comp-p" data-compp="${d.id}"></div>` : ""}</div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`;
 let cacaEdit = null, cacaWatch = null, cacaVer = null, cacaPasta = null;
 const cacaDist = (a, b) => { const R = 6371000, r = Math.PI / 180, x = Math.sin((b[0] - a[0]) * r / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin((b[1] - a[1]) * r / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
 const cacaKm = (t) => (t || []).reduce((s, p, i) => i ? s + cacaDist(t[i - 1], p) : 0, 0);
@@ -1833,7 +1833,7 @@ function cacaPastaHtml(C, p) {
     ["id", "Documento de identidade com foto", "De todos os que participam do manejo.", null, "Leve o original"],
     ["cr", "CR com a atividade de caça", cr && cr.validade ? "Válido até " + br(cr.validade) + " (" + prazo(cr.dias) + ")." : "Envie o CR para o app acompanhar a validade.", cr && cr.validade ? cr.dias >= 0 : false, cr && cr.validade ? (cr.dias >= 0 ? "Em dia" : "Vencido") : "A informar"],
     ["craf", "CRAF das armas do acervo de caça", armas.length ? armas.length + " arma(s) no acervo de caçador." : "Nenhuma arma marcada como acervo de caçador. Ajuste em Acervo de caça.", armas.length > 0, armas.length ? armas.length + " arma(s)" : "Falta"],
-    ["gt", "Guia de tráfego para o manejo", guias.length ? guias.length + " guia(s) vigente(s) no app. Confira se cobre esta propriedade." : "Nenhuma guia vigente no app.", guias.length > 0, guias.length ? "Conferir destino" : "Falta"],
+    ["gt", "Guia de trânsito para o manejo", guias.length ? guias.length + " guia(s) vigente(s) no app. Confira se cobre esta propriedade." : "Nenhuma guia vigente no app.", guias.length > 0, guias.length ? "Conferir destino" : "Falta"],
     ["ctf", "Certificado de Regularidade do CTF/Ibama", C.ctf ? "Válido até " + br(C.ctf) + " (" + prazo(s.dc) + ")." : "Informe a validade. Vale 3 meses.", C.ctf ? s.dc >= 0 : false, C.ctf ? (s.dc >= 0 ? "Em dia" : "Vencido") : "A informar"],
     ["simaf", "Autorização de manejo do SIMAF", p.fim ? "Desta propriedade, válida até " + br(p.fim) + " (" + prazo(s.da) + ")." : "Informe a validade da autorização desta propriedade.", p.fim ? s.da >= 0 : false, p.fim ? (s.da >= 0 ? "Em dia" : "Vencida") : "A informar"],
     ["decl", "Autorização do proprietário ou arrendatário", "Assinada por quem responde pela área, com nome e CPF de toda a equipe.", !!p.decl, p.decl ? "Em mãos" : "Falta"],
@@ -2241,6 +2241,116 @@ function renderRelatorio(c) {
 let abArma = "";
 const abChave = (s) => (String(s || "").toUpperCase().match(/[A-Z0-9]{5,}/g) || []).filter((t) => /\d/.test(t));
 const abMesma = (x, y) => { const a = String(x || "").trim().toLowerCase(), b = String(y || "").trim().toLowerCase(); if (!a || !b) return false; if (a === b) return true; const ka = abChave(x), kb = abChave(y); return ka.some((t) => kb.includes(t)); };
+// ---- documentos do Sinarm-CAC (tipos novos e checklist de pedidos)
+HUBS.documentos.itens.push(["checklist", "Checklist de pedidos", "Comprar arma, renovar o CR, pedir guia: veja o que está em dia e o que falta.", "documentos"]);
+const ANTEC_J = [
+  ["ANTEC_FEDERAL", "Justiça Federal", /justi[çc]a federal|\btrf\b|federal/i],
+  ["ANTEC_ESTADUAL", "Justiça Estadual", /justi[çc]a estadual|tribunal de justi[çc]a|\btj[a-z]{2}\b|estadual/i],
+  ["ANTEC_MILITAR", "Justiça Militar", /militar|\bstm\b/i],
+  ["ANTEC_ELEITORAL", "Justiça Eleitoral", /eleitora|\btse\b|\btre\b/i]];
+const ehAntec = (d) => d.tipo === "ANTECEDENTES" || /^ANTEC_/.test(d.tipo || "");
+function antecJustica(d) {
+  if (/^ANTEC_/.test(d.tipo || "")) return d.tipo;
+  const s = [d.descricao, d.nome_tipo, d.arma].join(" ");
+  for (const j of ANTEC_J) if (j[2].test(s)) return j[0];
+  return null;
+}
+const RESID_RX = /comprovante de (resid[êe]ncia|endere[çc]o)|conta de (luz|[áa]gua|energia|g[áa]s|telefone)/i;
+function docsCarteira() {
+  const ANTEC_RX = /antecedente|certid[ãa]o[^.]{0,60}(criminal|criminais|distribui|negativa|execu[çc])|justi[çc]a (federal|estadual|militar|eleitoral)|crimes eleitorais/i;
+  return (D.documentos || []).map((d) => {
+    const s = [d.arma, d.descricao, d.nome_tipo].join(" ");
+    if (d.tipo === "OUTRO" && ANTEC_RX.test(s)) return Object.assign({}, d, { tipo: "ANTECEDENTES" });
+    if (d.tipo === "OUTRO" && RESID_RX.test(s)) return Object.assign({}, d, { tipo: "RESIDENCIA" });
+    return d;
+  });
+}
+// melhor documento de um tipo (o de validade mais longa; sem validade conta como em dia)
+function docMelhor(docs, f) {
+  const ds = docs.filter(f);
+  if (!ds.length) return null;
+  return ds.slice().sort((a, b) => (b.dias === null || b.dias === undefined ? 1e6 : b.dias) - (a.dias === null || a.dias === undefined ? 1e6 : a.dias))[0];
+}
+const docSit = (d) => !d ? ["cr", "falta"] : d.dias === null || d.dias === undefined ? ["ok", "enviado"] : d.dias < 0 ? ["cr", "vencido"] : d.dias <= 15 ? ["at", "vence em " + d.dias + " dias"] : ["ok", "em dia"];
+function antecGrade(docs) {
+  return `<div class="lista" style="margin:0 0 10px">${ANTEC_J.map(([k, n]) => {
+    const d = docMelhor(docs, (x) => ehAntec(x) && antecJustica(x) === k), s = docSit(d);
+    return `<div class="linha"><div><div class="t">${n}</div><div class="pequeno">${d ? (d.validade ? "válida até " + br(d.validade) : "sem data lida") : "Nenhuma certidão desta justiça"}</div></div><span class="etiqueta ${s[0]}">${s[1] === "vencido" ? "vencida" : s[1]}</span></div>`;
+  }).join("")}</div>${docs.some((x) => x.tipo === "ANTECEDENTES" && !antecJustica(x)) ? '<p class="pequeno" style="margin:0 0 8px">Há certidão sem a justiça identificada: ela aparece na lista abaixo, mas não conta na grade.</p>' : ""}`;
+}
+
+// ---- checklist de pedidos
+const CK_SERV = {
+  comprar: ["Comprar arma (autorização)", "Etapa 1 no Sinarm-CAC. Depois da autorização, a loja tem 180 dias para a nota fiscal e o registro.",
+    ["IDENTIDADE", "CR", "ANTEC", "DECL_IDONEIDADE", "OCUPACAO", "RESIDENCIA", "DSA", "EXAME_PSICOLOGICO", "EXAME_TECNICO", "FILIACAO", "HABITUALIDADE", "TAXA"]],
+  registrar: ["Registrar a arma comprada (CRAF)", "Etapa 2: com a autorização emitida e a nota fiscal da loja.",
+    ["IDENTIDADE", "CR", "AUTORIZACAO", "NOTA_FISCAL", "TAXA"]],
+  renovar: ["Renovar o CR", "Peça até 30 dias antes do vencimento do CR.",
+    ["IDENTIDADE", "ANTEC", "DECL_IDONEIDADE", "OCUPACAO", "RESIDENCIA", "DSA", "EXAME_PSICOLOGICO", "EXAME_TECNICO", "FILIACAO", "HABITUALIDADE", "CRAF", "TAXA"]],
+  guia: ["Pedir guia de trânsito", "Para levar a arma a treinos, competições ou ao manejo de javali.",
+    ["IDENTIDADE", "CR", "CRAF", "HABITUALIDADE", "FILIACAO", "TAXA"]],
+  cr: ["Tirar o primeiro CR", "Todos os itens comuns do Sinarm-CAC, mais a filiação à entidade.",
+    ["IDENTIDADE", "ANTEC", "DECL_IDONEIDADE", "OCUPACAO", "RESIDENCIA", "DSA", "EXAME_PSICOLOGICO", "EXAME_TECNICO", "FILIACAO", "TAXA"]],
+  endereco: ["Mudar de endereço (apostilamento)", "Comprovante do endereço novo e a taxa.",
+    ["CR", "IDENTIDADE", "RESIDENCIA", "TAXA"]],
+};
+const CK_ITENS = {
+  IDENTIDADE: ["Documento de identificação", "RG ou CNH, com CPF."],
+  CR: ["Certificado de Registro (CR)", "Precisa estar válido."],
+  DECL_IDONEIDADE: ["Declaração de idoneidade", "Que não responde a inquérito nem a processo criminal. Normalmente assinada no próprio pedido."],
+  OCUPACAO: ["Ocupação lícita", "Imposto de renda, holerite, pró-labore ou DECORE."],
+  RESIDENCIA: ["Comprovante de residência", "Em seu nome e recente. Em nome de outra pessoa, vai com a declaração e o documento do titular."],
+  DSA: ["Declaração de segurança do acervo (DSA)", "Cofre ou lugar trancado para guardar as armas."],
+  EXAME_PSICOLOGICO: ["Laudo psicológico", "Psicólogo credenciado pela PF."],
+  EXAME_TECNICO: ["Capacidade técnica", "Instrutor de armamento e tiro credenciado pela PF."],
+  FILIACAO: ["Filiação ao clube ou entidade", "Declaração ou comprovante de filiação em dia."],
+  AUTORIZACAO: ["Autorização de aquisição", "Emitida pelo Sinarm-CAC na etapa 1."],
+  NOTA_FISCAL: ["Nota fiscal da arma", "Com o código de autenticidade."],
+  TAXA: ["Comprovante da taxa", "Pago no próprio pedido (GRU/PagTesouro)."],
+  CRAF: ["CRAFs das armas", "Registros válidos das armas do acervo."],
+};
+let ckServ = "comprar";
+function ckLinha(nome, nota, s, extra) {
+  return `<div class="linha"><div><div class="t">${nome}</div><div class="pequeno">${nota}${extra ? " · " + extra : ""}</div></div><span class="etiqueta ${s[0]}">${s[1]}</span></div>`;
+}
+function ckItem(k, docs) {
+  if (k === "ANTEC") {
+    return ANTEC_J.map(([j, n]) => { const d = docMelhor(docs, (x) => ehAntec(x) && antecJustica(x) === j); return ckLinha("Antecedentes · " + n, "Certidão de 1ª instância, vale 90 dias.", docSit(d), d && d.validade ? "até " + br(d.validade) : ""); }).join("");
+  }
+  if (k === "HABITUALIDADE") {
+    const S = (D.habitualidade && D.habitualidade.situacao) || {}, G = S.grupos || [];
+    const falta = G.filter((g) => g.total > 0);
+    const s = !G.length ? ["cr", "sem registros"] : falta.length ? ["at", "falta " + falta.reduce((t, g) => t + g.total, 0)] : ["ok", "em dia"];
+    return ckLinha("Habitualidade", S.exigencia || "Treinos e competições declarados pelo clube.", s, "");
+  }
+  if (k === "CR") {
+    const cr = D.resumo && D.resumo.cr, d = cr ? { dias: cr.dias, validade: cr.validade } : docMelhor(docs, (x) => x.tipo === "CR");
+    return ckLinha(CK_ITENS.CR[0], CK_ITENS.CR[1], docSit(d), d && d.validade ? "até " + br(d.validade) : "");
+  }
+  if (k === "CRAF") {
+    const cs = docs.filter((x) => x.tipo === "CRAF"), venc = cs.filter((x) => x.dias !== null && x.dias !== undefined && x.dias < 0);
+    return ckLinha(CK_ITENS.CRAF[0], CK_ITENS.CRAF[1], !cs.length ? ["cr", "falta"] : venc.length ? ["cr", venc.length + " vencido(s)"] : ["ok", cs.length + " em dia"], "");
+  }
+  const it = CK_ITENS[k], d = docMelhor(docs, (x) => x.tipo === k);
+  let s = docSit(d);
+  if (!d && k === "TAXA") s = ["", "no pedido"];
+  if (!d && k === "DECL_IDONEIDADE") s = ["", "assinar no pedido"];
+  return ckLinha(it[0], it[1], s, d && d.validade ? "até " + br(d.validade) : "");
+}
+function renderChecklist(c) {
+  const docs = docsCarteira(), sv = CK_SERV[ckServ];
+  const linhas = sv[2].map((k) => ckItem(k, docs)).join("");
+  const nFalta = (linhas.match(/etiqueta cr"/g) || []).length, nAt = (linhas.match(/etiqueta at"/g) || []).length;
+  c.innerHTML = maisTopo("Checklist de pedidos", "O que o Sinarm-CAC costuma pedir e o que você já tem no Ática.") +
+    `<div class="caca-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">${Object.entries(CK_SERV).map(([k, v]) => `<button class="btn ${k === ckServ ? "" : "sec"}" data-ck="${k}" style="min-height:36px;padding:6px 12px">${v[0]}</button>`).join("")}</div>
+    <div class="card"><div class="rotulo">${sv[0]}</div><p class="pequeno" style="margin:6px 0 0">${sv[1]}</p></div>
+    ${nFalta || nAt ? `<div class="aviso ${nFalta ? "critico" : "atencao"}" style="margin:12px 0"><b>${nFalta ? nFalta + " item(ns) faltando ou vencido(s)" : "Tudo enviado, com prazo perto"}</b><span class="pequeno">Envie pelo botão abaixo ou pelo WhatsApp do Ática.</span></div>` : `<div class="aviso info" style="margin:12px 0"><b>Tudo em dia no Ática</b><span class="pequeno">Confira as datas antes de protocolar.</span></div>`}
+    <div class="lista">${linhas}</div>
+    <div class="acoes" style="margin-top:14px"><button class="btn" id="ck-enviar">Enviar documento</button></div>
+    <p class="pequeno" style="margin-top:14px">Lista de referência montada a partir das normas da Polícia Federal (IN 311/2025 e Decreto 11.615/2023). A PF ou o despachante podem pedir outros itens conforme o caso; confira sempre a lista do serviço no gov.br. Não é orientação jurídica.</p>`;
+  c.querySelectorAll("[data-ck]").forEach((b) => b.onclick = () => { ckServ = b.dataset.ck; render(); });
+  c.querySelector("#ck-enviar").onclick = () => irPara("documentos", "documentos");
+}
 function renderAbordagem(c) {
   const cr = D.resumo.cr, crafs = D.documentos.filter((d) => d.tipo === "CRAF"), gts = D.documentos.filter((d) => d.tipo === "GT");
   if (!crafs.some((d) => d.id === abArma)) abArma = crafs.length ? crafs[0].id : "";
@@ -2253,8 +2363,8 @@ function renderAbordagem(c) {
       ${crafs.length ? `<div class="caca-campos" style="grid-template-columns:1fr"><label>Arma que está com você<select id="ab-arma">${crafs.map((d) => `<option value="${d.id}"${d.id === abArma ? " selected" : ""}>${esc(d.arma || d.descricao || "Arma")}</option>`).join("")}</select></label></div>` : ""}</div>
     ${cart("Certificado de Registro (CR)", cr ? "CR nº " + esc(cr.numero || "—") : "CR não cadastrado", [cr && cr.validade ? "Validade: " + br(cr.validade) : "Envie o seu CR em Documentos."], cr ? cr.dias : null, (D.documentos.find((d) => d.tipo === "CR") || {}).link)}
     ${sel ? cart("Registro da arma (CRAF)", esc(sel.arma || sel.descricao || "Arma"), [sel.numero ? "Nº " + esc(sel.numero) : "", sel.validade ? "Validade: " + br(sel.validade) : "Sem validade lida"], sel.dias, sel.link) : '<div class="aviso atencao"><b>Nenhum CRAF cadastrado</b><span class="pequeno">Envie o registro das suas armas em Documentos.</span></div>'}
-    ${sel ? (guias.length ? guias.map((g) => cart("Guia de tráfego", g.numero ? "GT nº " + esc(g.numero) : "Guia de tráfego", [g.destino ? "Destino: " + esc(g.destino) : "", g.descricao ? esc(g.descricao) : "", g.validade ? "Validade: " + br(g.validade) : "Sem validade lida"], g.dias, g.link)).join("")
-      : `<div class="aviso critico"><b>Nenhuma guia de tráfego encontrada para esta arma</b><span class="pequeno">${gts.length ? "Você tem " + gts.length + " guia(s) no app, mas nenhuma bate com esta arma. Confira em Documentos › Guias de tráfego." : "Não há guias de tráfego no app."}</span></div>`) : ""}
+    ${sel ? (guias.length ? guias.map((g) => cart("Guia de trânsito", g.numero ? "GT nº " + esc(g.numero) : "Guia de trânsito", [g.destino ? "Destino: " + esc(g.destino) : "", g.descricao ? esc(g.descricao) : "", g.validade ? "Validade: " + br(g.validade) : "Sem validade lida"], g.dias, g.link)).join("")
+      : `<div class="aviso critico"><b>Nenhuma guia de trânsito encontrada para esta arma</b><span class="pequeno">${gts.length ? "Você tem " + gts.length + " guia(s) no app, mas nenhuma bate com esta arma. Confira em Documentos › Guias de trânsito." : "Não há guias de trânsito no app."}</span></div>`) : ""}
     <p class="pequeno" style="margin-top:14px">Os dados desta tela ficam salvos no aparelho e aparecem mesmo sem internet. O arquivo do documento só abre com internet; leve sempre o original ou a versão oficial. Esta tela é um apoio e não substitui os documentos.</p>`;
   const s = c.querySelector("#ab-arma"); if (s) s.onchange = () => { abArma = s.value; render(); };
 }
@@ -2712,7 +2822,7 @@ function renderCaca(c, sub) {
       <h3 class="sec-tit">Documentos das propriedades</h3>
       <div class="envio-doc"><button class="btn" data-ldoc="foto">Fotografar documento</button><button class="btn sec" data-ldoc="arq">Enviar arquivo ou PDF</button></div>${cacaPasta ? "" : '<div id="envio"></div>'}
       ${(() => { const dd = cacaDocsConta().filter((d) => d.tipo !== "SIMAF" && d.tipo !== "CTF"); return dd.length ? `<div class="lista" id="caca-docs-prop">${dd.map(cacaDocLinha).join("")}</div>` : '<div class="vazio">Nenhum documento enviado ainda. Envie a autorização do proprietário ou arrendatário e o CAR.</div>'; })()}
-      <p class="pequeno" style="margin-top:14px">Leve sempre: documento com foto, autorização do SIMAF, certificado do CTF em dia, declaração do proprietário e a guia de tráfego. O Ática organiza prazos e registros; a autorização é emitida pelo Ibama no SIMAF.</p>`;
+      <p class="pequeno" style="margin-top:14px">Leve sempre: documento com foto, autorização do SIMAF, certificado do CTF em dia, declaração do proprietário e a guia de trânsito. O Ática organiza prazos e registros; a autorização é emitida pelo Ibama no SIMAF.</p>`;
     const g = (i) => c.querySelector("#" + i);
     g("caca-ctf").onchange = () => { C.ctf = g("caca-ctf").value; cacaGravar(C); render(); };
     if (g("caca-nova")) g("caca-nova").onclick = () => { cacaEdit = {}; render(); };
@@ -2878,7 +2988,8 @@ function renderTela(c, a, primeiro, docs) {
     return;
   }
   const item = hub.itens.find((i) => i[0] === subTela);
-  if (tela === "documentos" && subTela === "abordagem") renderAbordagem(c);
+  if (tela === "documentos" && subTela === "checklist") renderChecklist(c);
+  else if (tela === "documentos" && subTela === "abordagem") renderAbordagem(c);
   else if (tela === "documentos" && subTela === "relatorio") renderRelatorio(c);
   else if (tela === "caderneta" && subTela === "seco") renderSeco(c);
   else if (tela === "caderneta" && subTela === "agenda") renderAgenda(c);
@@ -3008,7 +3119,7 @@ function renderTela0(c, a, primeiro, docs) {
           ${d.cadastrado && d.id ? `<button class="btn sec rem" data-id="${d.id}" style="margin-top:12px;min-height:38px;padding:8px 12px">Remover clube</button>` : ""}` : `<div class="pequeno" style="margin-top:8px;color:var(--ouro)">Toque para ver as guias</div>`}
       </div>`;
     };
-    c.innerHTML = `<div class="topo"><div><h2>Guias de tráfego</h2><p>${g.podeLevar.length} guia(s) válida(s) hoje, separadas por destino. Sem guia vigente não se transporta a arma.</p></div><button class="btn" id="bt-novo-clube">+ Adicionar clube</button></div>
+    c.innerHTML = `<div class="topo"><div><h2>Guias de trânsito</h2><p>${g.podeLevar.length} guia(s) válida(s) hoje, separadas por destino. Sem guia vigente não se transporta a arma.</p></div><button class="btn" id="bt-novo-clube">+ Adicionar clube</button></div>
       <div id="form-clube" class="card" style="display:none;margin-bottom:16px">
         <div class="grade g4" style="align-items:end">
           <label>Nome do clube ou local<input id="cl-nome" maxlength="80" placeholder="Ex.: Clube de Tiro Lima"></label>
@@ -3044,17 +3155,19 @@ function renderTela0(c, a, primeiro, docs) {
   }
   if (tela === "documentos") {
     const ANTEC_RX = /antecedente|certid[ãa]o[^.]{0,60}(criminal|criminais|distribui|negativa|execu[çc])|justi[çc]a (federal|estadual|militar|eleitoral)|crimes eleitorais/i;
-    docs = docs.map((d) => (d.tipo === "OUTRO" && ANTEC_RX.test([d.arma, d.descricao, d.nome_tipo].join(" "))) ? Object.assign({}, d, { tipo: "ANTECEDENTES" }) : d);
-    const ordem = ["CR", "EXAME_PSICOLOGICO", "EXAME_TECNICO", "ANTECEDENTES", "CRAF", "AUTORIZACAO", "GT", "CTF", "SIMAF", "AUT_PROPRIEDADE", "CAR", "OUTRO"];
-    const nomes = { CR: "Certificado de Registro", EXAME_PSICOLOGICO: "Laudo psicológico", EXAME_TECNICO: "Capacidade técnica", CRAF: "CRAFs", AUTORIZACAO: "Autorizações de aquisição", GT: "Guias de tráfego", OUTRO: "Outros", CTF: "CTF do Ibama", SIMAF: "Autorizações de manejo (SIMAF)", AUT_PROPRIEDADE: "Autorizações de proprietários", CAR: "CAR das propriedades", ANTECEDENTES: "Antecedentes criminais" };
+    docs = docsCarteira();
+    const ordem = ["CR", "IDENTIDADE", "EXAME_PSICOLOGICO", "EXAME_TECNICO", "ANTECEDENTES", "RESIDENCIA", "RESID_TERCEIRO", "SEGUNDO_ENDERECO", "OCUPACAO", "DECL_IDONEIDADE", "DSA", "FILIACAO", "CRAF", "AUTORIZACAO", "NOTA_FISCAL", "GT", "TAXA", "CTF", "SIMAF", "AUT_PROPRIEDADE", "CAR", "OUTRO"];
+    const nomes = { CR: "Certificado de Registro", EXAME_PSICOLOGICO: "Laudo psicológico", EXAME_TECNICO: "Capacidade técnica", CRAF: "CRAFs", AUTORIZACAO: "Autorizações de aquisição", GT: "Guias de trânsito", OUTRO: "Outros", CTF: "CTF do Ibama", SIMAF: "Autorizações de manejo (SIMAF)", AUT_PROPRIEDADE: "Autorizações de proprietários", CAR: "CAR das propriedades", ANTECEDENTES: "Antecedentes criminais", IDENTIDADE: "Documento de identificação", RESIDENCIA: "Comprovante de residência", RESID_TERCEIRO: "Residência em nome de terceiro", SEGUNDO_ENDERECO: "Segundo endereço de guarda", OCUPACAO: "Ocupação lícita (IR, holerite)", DECL_IDONEIDADE: "Declaração de idoneidade", DSA: "Segurança do acervo (DSA)", FILIACAO: "Filiação ao clube", NOTA_FISCAL: "Notas fiscais das armas", TAXA: "Comprovantes de taxa" };
     const temLaudo = (t) => docs.some((d) => d.tipo === t);
     c.innerHTML = `<div class="topo"><div><h2>Documentos</h2><p>Fotografe ou envie o documento: a gente lê, guarda e a nossa equipe confere. Se preferir, mande pelo WhatsApp.</p></div>
         <div class="acoes"><button class="btn" id="bt-foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></svg>Fotografar documento</button><button class="btn sec" id="bt-arquivo">Enviar arquivo ou PDF</button></div></div>
       <div id="envio"></div>
+      <div class="opcao" style="margin-bottom:12px"><div><div class="t">Vai fazer um pedido na PF?</div><div class="pequeno">Veja o que falta para comprar arma, renovar o CR ou pedir guia.</div></div><button class="btn sec" id="bt-checklist">Checklist</button></div>
       ${!temLaudo("EXAME_TECNICO") || !temLaudo("EXAME_PSICOLOGICO") ? `<div class="aviso atencao" style="margin-bottom:12px"><b>Laudos para o CR</b><span class="pequeno">Exigidos na revalidação do CR (pedir até 30 dias antes do vencimento). ${!temLaudo("EXAME_PSICOLOGICO") ? "Falta o laudo psicológico. " : ""}${!temLaudo("EXAME_TECNICO") ? "Falta o comprovante de capacidade técnica." : ""}</span></div>` : ""}
-      ${ordem.filter((t) => t === "ANTECEDENTES" || docs.some((d) => d.tipo === t)).map((t) => `<h3 class="sec-tit">${nomes[t]}</h3>${t === "ANTECEDENTES" ? `<p class="pequeno" id="antec-nota" style="margin:0 0 8px">Certidões de antecedentes das Justiças Federal, Estadual, Militar e Eleitoral, pedidas no CR, na revalidação e nas autorizações. Costumam valer 90 dias: confira a data em cada uma.${docs.some((d) => d.tipo === "ANTECEDENTES") ? "" : " Nenhuma enviada ainda: use os botões acima."}</p>` : ""}<div class="lista">${docs.filter((d) => d.tipo === t).map((d) => `<div class="linha"><div><div class="t">${esc(d.arma || d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`).join("")}</div>`).join("") || '<div class="vazio">Nenhum documento ainda. Toque em "Fotografar documento" para começar.</div>'}`;
+      ${ordem.filter((t) => t === "ANTECEDENTES" || docs.some((d) => d.tipo === t)).map((t) => `<h3 class="sec-tit">${nomes[t]}</h3>${t === "ANTECEDENTES" ? `<p class="pequeno" id="antec-nota" style="margin:0 0 8px">Certidões de antecedentes das Justiças Federal, Estadual, Militar e Eleitoral, pedidas no CR, na revalidação e nas autorizações. Costumam valer 90 dias: confira a data em cada uma.${docs.some(ehAntec) ? "" : " Nenhuma enviada ainda: use os botões acima."}</p>${antecGrade(docs)}` : ""}<div class="lista">${docs.filter((d) => d.tipo === t || (t === "ANTECEDENTES" && ehAntec(d))).map((d) => `<div class="linha"><div><div class="t">${esc(d.arma || d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`).join("")}</div>`).join("") || '<div class="vazio">Nenhum documento ainda. Toque em "Fotografar documento" para começar.</div>'}`;
     $("#bt-foto").onclick = fotografar;
     $("#bt-arquivo").onclick = () => $("#arq").click();
+    $("#bt-checklist").onclick = () => irPara("documentos", "checklist");
   }
   if (tela === "conta") {
     c.innerHTML = `<div class="topo"><div><h2>Conta</h2><p>${esc(a.nome || "")}</p></div></div>
