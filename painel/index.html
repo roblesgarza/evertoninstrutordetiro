@@ -238,6 +238,13 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 .ab-tit{font:700 20px 'Chakra Petch';margin-top:6px;color:var(--txt)}.ab-linha{font-size:16px;margin-top:4px;color:var(--txt)}.ab-arq{display:inline-block;margin-top:10px}
 .med-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}.med{display:flex;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);padding:12px 14px;opacity:.55}.med.tem{opacity:1;border-color:var(--ouro)}
 .med-ic{width:38px;height:38px;flex:none;display:grid;place-items:center;border:1px solid var(--line);color:var(--sub)}.med.tem .med-ic{color:var(--ouro);border-color:var(--ouro)}.med-ic svg{width:20px;height:20px}.med b{display:block;font:600 14px 'Chakra Petch'}.med .pequeno{display:block}
+
+#dp-msg:not(:empty){margin-bottom:14px}
+.dsp-mini{min-height:36px;padding:6px 12px;font-size:13px;white-space:nowrap}
+.dsp-itens{margin-top:10px;display:grid;gap:8px}.dsp-item{background:var(--card2);padding:10px 12px;border-left:3px solid var(--line);font-size:14px;overflow-wrap:anywhere}.dsp-item.pend{border-left-color:var(--ouro)}.dsp-item .dsp-mini{margin-top:8px}
+.dsp-resp{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.dsp-resp input{flex:1 1 220px;min-width:0;background:var(--bg);border:1px solid var(--line);color:var(--txt);padding:10px 12px;font:inherit;min-height:44px}.dsp-resp .btn{min-height:44px;padding:8px 12px;font-size:13px}
+.dsp-editor{margin-top:10px;padding:12px;border:1px solid var(--line)}.dsp-editor .caca-campos{margin-top:0}
+.dsp-docs{margin-top:10px;display:grid;gap:6px}.dsp-doc{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--card2);padding:8px 12px;font-size:14px}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -2009,6 +2016,171 @@ function renderConquistas(c) {
     ${grupos.map((g) => `<h3 class="sec-tit">${g}</h3><div class="med-grade">${L.filter((x) => x.grupo === g).map((x) => `<div class="med ${x.tem ? "tem" : ""}"><div class="med-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${ICON.desafio}</svg></div><div><b>${x.nome}</b><span class="pequeno">${x.desc}${!x.tem && x.prog ? " · " + x.prog : ""}</span></div></div>`).join("")}</div>`).join("")}
     <p class="pequeno" style="margin-top:14px">As medalhas são calculadas neste aparelho, com os seus dados do app. Só você vê.${DSF.carregando ? " Carregando os desafios…" : ""}</p>`;
 }
+// ---------- área do despachante ----------
+let DSP = { meu: null, painel: null, adm: null, aba: "", carregando: false, erro: "", aviso: "", falha: "", form: null, ocupado: false };
+const dspBrl = (n) => n == null ? "—" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const DSP_ST = { aberto: ["Em preparo", "at"], aguardando_cliente: ["Aguardando o cliente", "cr"], protocolado: ["Protocolado", "ok"], deferido: ["Deferido", "ok"], indeferido: ["Indeferido", "cr"], concluido: ["Concluído", "ok"], cancelado: ["Cancelado", ""] };
+const dspDias = (iso, hoje) => iso ? Math.round((new Date(iso + "T12:00:00") - new Date(hoje + "T12:00:00")) / 864e5) : null;
+document.addEventListener("click", (e) => { if (e.target && e.target.closest && e.target.closest("#bt-desp")) irPara("desp", ""); });
+async function dspCarregar() {
+  DSP.carregando = true; let r = null;
+  try { r = await api("desp_meu"); } catch (e) {}
+  if (r && r.ok && r.despachantes) {
+    DSP.meu = r; DSP.erro = ""; DSP.painel = null; DSP.adm = null;
+    if (r.sou && r.sou.status === "aprovado") { const p = await api("desp_painel"); if (p && p.ok) DSP.painel = p; }
+    if (D.assinante && D.assinante.admin) { const a = await api("desp_admin", { op: "listar" }); if (a && a.ok) DSP.adm = a; }
+    if (!DSP.aba || (DSP.aba === "clientes" && !DSP.painel) || (DSP.aba === "adm" && !DSP.adm)) DSP.aba = DSP.painel ? "clientes" : "cliente";
+  } else DSP.erro = (r && r.erro) || "Não foi possível carregar agora.";
+  DSP.carregando = false; if (tela === "desp") render();
+}
+async function dspAcao(acao, extra, okMsg) {
+  if (DSP.ocupado) return null;
+  DSP.ocupado = true; DSP.falha = ""; DSP.aviso = "";
+  let r = null; try { r = await api(acao, extra); } catch (e) {}
+  DSP.ocupado = false;
+  if (r && r.ok) { DSP.aviso = okMsg || ""; DSP.form = null; await dspCarregar(); }
+  else { DSP.falha = (r && r.erro) || "Não deu certo. Tente de novo."; if (tela === "desp") render(); }
+  return r;
+}
+function dspArquivo(arq) {
+  if (!/^image\//.test(arq.type)) return new Promise((ok, falha) => { const fr = new FileReader(); fr.onload = () => ok({ arquivo: String(fr.result).split(",")[1], mime: arq.type || "application/pdf" }); fr.onerror = falha; fr.readAsDataURL(arq); });
+  return new Promise((ok, falha) => { const url = URL.createObjectURL(arq), img = new Image();
+    img.onload = () => { const k = Math.min(1, 1800 / Math.max(img.width, img.height)), cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); ok({ arquivo: cv.toDataURL("image/jpeg", 0.85).split(",")[1], mime: "image/jpeg" }); };
+    img.onerror = () => { URL.revokeObjectURL(url); falha(new Error("imagem")); }; img.src = url; });
+}
+function dspProc(p, souDesp) {
+  const st = DSP_ST[p.status] || [p.status, ""], rot = !souDesp && p.status === "aguardando_cliente" ? "Aguardando você" : st[0];
+  const temValor = p.valor_gru != null || p.valor_honorario != null, f = DSP.form && DSP.form.t === "proc" && DSP.form.id === p.id;
+  const autor = { despachante: souDesp ? "Você" : "Despachante", cliente: souDesp ? "Cliente" : "Você", sistema: "Ática" };
+  const itens = p.itens.slice(-8).map((i) => `<div class="dsp-item ${i.tipo === "pendencia" && !i.resolvido ? "pend" : ""}"><div class="pequeno"><b>${i.tipo === "pendencia" ? (i.resolvido ? "Pendência resolvida" : "Pendência") : autor[i.autor] || ""}</b> · ${br(i.em)}</div><div>${esc(i.texto)}</div>${i.tipo === "pendencia" && !i.resolvido ? `<button class="btn sec dsp-mini" data-dres="${i.id}">Marcar como resolvida</button>` : ""}</div>`).join("");
+  const editor = !f ? "" : `<div class="dsp-editor"><div class="caca-campos">
+      <label>Situação<select id="dp-st">${Object.entries(DSP_ST).map(([k, v]) => `<option value="${k}" ${p.status === k ? "selected" : ""}>${v[0]}</option>`).join("")}</select></label>
+      <label>Nº do protocolo<input id="dp-prot" maxlength="60" value="${esc(p.protocolo || "")}"></label>
+      <label>Data do protocolo<input id="dp-data" type="date" value="${esc(p.protocolado_em || "")}"></label>
+      <label>Taxa (GRU) em R$<input id="dp-gru" inputmode="decimal" value="${p.valor_gru != null ? String(p.valor_gru).replace(".", ",") : ""}"></label>
+      <label>Honorário em R$<input id="dp-hon" inputmode="decimal" value="${p.valor_honorario != null ? String(p.valor_honorario).replace(".", ",") : ""}"></label>
+    </div><div class="caca-envia"><button class="btn" data-dsalvar="${p.id}">Salvar</button><button class="btn sec" data-dfechar="1">Fechar</button></div></div>`;
+  return `<div class="linha caca-doc" data-proc="${p.id}"><div class="caca-topo"><div><div class="t">${esc(p.titulo || p.nome_tipo)}</div><div class="pequeno">${p.titulo ? esc(p.nome_tipo) + " · " : ""}${souDesp ? esc(p.cliente) : esc(p.despachante)} · aberto em ${br(p.criado_em)}</div></div><span class="etiqueta ${st[1]}" style="white-space:nowrap">${rot}</span></div>
+    ${p.protocolo ? `<div class="pequeno" style="margin-top:6px">Protocolo <b>${esc(p.protocolo)}</b>${p.protocolado_em ? " em " + br(p.protocolado_em) : ""}</div>` : ""}
+    ${temValor ? `<div class="pequeno" style="margin-top:6px">Taxa (GRU) ${dspBrl(p.valor_gru)} · Honorário ${dspBrl(p.valor_honorario)} · <b>Total ${dspBrl((p.valor_gru || 0) + (p.valor_honorario || 0))}</b></div>` : ""}
+    ${itens ? `<div class="dsp-itens">${itens}</div>` : ""}
+    ${editor}
+    <div class="dsp-resp"><input data-dtxt="${p.id}" maxlength="500" placeholder="${souDesp ? "Mensagem ou pedido ao cliente" : "Responder ao despachante"}">
+      ${souDesp ? `<button class="btn sec" data-dpend="${p.id}">Pedir ao cliente</button><button class="btn sec" data-dnota="${p.id}">Anotar</button>` : `<button class="btn sec" data-dnota="${p.id}">Enviar</button>`}</div>
+    ${souDesp ? `<div class="caca-envia"><button class="btn sec" data-dedit="${p.id}">Situação, protocolo e valores</button><button class="btn sec" data-dent="${p.cliente_id}" data-dentp="${p.id}">Entregar documento</button></div>` : ""}</div>`;
+}
+function dspCliente() {
+  const M = DSP.meu, meus = M.despachantes.filter((d) => d.autorizado_em), outros = M.despachantes.filter((d) => !d.autorizado_em && !d.suspenso), f = DSP.form;
+  const local = (d) => [d.cidade, d.uf].filter(Boolean).join(" / ");
+  const sou = M.sou, cv = (f && f.v) || sou || {};
+  return `
+    ${meus.length ? `<div class="card"><div class="rotulo">Quem cuida dos meus processos</div><div class="lista" style="margin-top:10px">${meus.map((d) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(d.nome)}</div><div class="pequeno">${esc(local(d))} · autorizado em ${br(d.autorizado_em)}</div></div><button class="btn sec dsp-mini" data-drev="${d.id}">Revogar acesso</button></div>
+      ${f && f.t === "rev" && f.id === d.id ? `<div class="aviso atencao" style="margin-top:10px"><b>Revogar o acesso?</b><span class="pequeno">${esc(d.nome)} deixa de ver seus documentos na hora. Os processos já abertos continuam aparecendo para você.</span></div><div class="caca-envia"><button class="btn" data-drevok="${d.id}">Revogar</button><button class="btn sec" data-dfechar="1">Manter</button></div>` : ""}</div>`).join("")}</div></div>` : ""}
+    <div class="card" style="margin-top:14px"><div class="rotulo">Meus processos</div>
+      ${M.processos.length ? `<div class="lista" style="margin-top:10px">${M.processos.map((p) => dspProc(p, false)).join("")}</div>` : `<div class="vazio" style="margin-top:10px">${meus.length ? "Nenhum processo aberto ainda. Quando o despachante abrir um, ele aparece aqui com cada etapa." : "Autorize um despachante abaixo para ele acompanhar seus documentos e abrir processos para você."}</div>`}
+      <p class="pequeno" style="margin:10px 0 0">O pagamento dos serviços pelo app ainda não está disponível. Por enquanto, combine direto com o despachante.</p></div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Despachantes no Ática</div>
+      ${outros.length ? `<div class="lista" style="margin-top:10px">${outros.map((d) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(d.nome)}</div><div class="pequeno">${esc(local(d))}</div></div><button class="btn sec dsp-mini" data-daut="${d.id}">Autorizar</button></div>
+        ${d.sobre ? `<div class="pequeno" style="margin-top:6px">${esc(d.sobre)}</div>` : ""}
+        ${f && f.t === "aut" && f.id === d.id ? `<label class="caca-check" style="margin-top:10px"><input type="checkbox" id="dp-aceite"><span>Autorizo ${esc(d.nome)} a ver meu nome, meu WhatsApp e os documentos e validades guardados no Ática, para cuidar dos meus processos. Posso revogar quando quiser.</span></label><div class="caca-envia"><button class="btn" data-dautok="${d.id}">Confirmar autorização</button><button class="btn sec" data-dfechar="1">Cancelar</button></div>` : ""}</div>`).join("")}</div>` : `<div class="vazio" style="margin-top:10px">${meus.length ? "Você já autorizou os despachantes disponíveis." : "Ainda não há despachantes cadastrados. Assim que houver, eles aparecem aqui."}</div>`}</div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Trabalha como despachante?</div>
+      ${sou && sou.status === "aprovado" ? '<p class="pequeno" style="margin:10px 0 0">Seu cadastro está aprovado. Use a aba Meus clientes.</p>'
+      : sou && sou.status === "suspenso" ? '<p class="pequeno" style="margin:10px 0 0">Seu cadastro de despachante está suspenso. Fale com o Ática.</p>'
+      : f && f.t === "cand" ? `<div class="caca-campos">
+          <label>Nome profissional ou do escritório<input id="dc-nome" maxlength="80" value="${esc(cv.nome || "")}"></label>
+          <label>Cidade<input id="dc-cid" maxlength="60" value="${esc(cv.cidade || "")}"></label>
+          <label>UF<input id="dc-uf" maxlength="2" style="text-transform:uppercase" value="${esc(cv.uf || "")}"></label>
+          <label>Contato para clientes (opcional)<input id="dc-cont" maxlength="80" value="${esc(cv.contato || "")}"></label>
+          <label style="grid-column:1/-1">Serviços que você faz (opcional)<input id="dc-sobre" maxlength="400" value="${esc(cv.sobre || "")}"></label></div>
+          <label class="caca-check" style="margin-top:10px"><input type="checkbox" id="dc-aceite"><span>Declaro que atuo como despachante e que só vou usar os dados dos clientes para os processos que eles me confiarem.</span></label>
+          <div class="caca-envia"><button class="btn" id="dc-enviar">Enviar cadastro</button><button class="btn sec" data-dfechar="1">Cancelar</button></div>`
+      : `<p class="pequeno" style="margin:10px 0">${sou ? "Seu cadastro foi enviado e está em análise. Você recebe um aviso quando for aprovado." : "Cadastre-se para acompanhar os documentos e prazos dos seus clientes e registrar cada processo. O cadastro passa por aprovação."}</p><button class="btn sec" id="dc-abrir">${sou ? "Corrigir cadastro" : "Quero me cadastrar"}</button>`}</div>`;
+}
+function dspClientes() {
+  const P = DSP.painel, f = DSP.form, hoje = P.hoje;
+  const venc = (d) => { const n = dspDias(d.validade, hoje); return n !== null && n <= 60; };
+  const vencendo = P.clientes.reduce((s, c) => s + c.docs.filter(venc).length, 0);
+  const abertos = P.processos.filter((p) => ["aberto", "aguardando_cliente", "protocolado"].includes(p.status));
+  const parados = abertos.filter((p) => (Date.now() - new Date(p.atualizado_em)) / 864e5 > 15).length;
+  const cart = (r, v, e) => `<div><span>${r}</span><b>${v}</b>${e ? `<em>${e}</em>` : ""}</div>`;
+  const doc = (d) => { const n = dspDias(d.validade, hoje), cls = n === null ? "" : n < 0 ? "cr" : n <= 60 ? "at" : "ok", txt = n === null ? "sem validade" : n < 0 ? "venceu " + br(d.validade) : br(d.validade);
+    return `<div class="dsp-doc"><span>${esc(d.nome_tipo)}${d.arma ? " · " + esc(d.arma) : ""}</span><span><span class="etiqueta ${cls}">${txt}</span> <button class="btn sec dsp-mini" data-dver="${d.id}">Abrir</button></span></div>`; };
+  return `
+    <div class="card"><div class="rotulo">Minha carteira</div><div class="dados-caca">${cart("Clientes", P.clientes.length)}${cart("Vencem em 60 dias", vencendo, "documentos")}${cart("Processos em andamento", abertos.length)}${cart("Parados há 15 dias", parados)}</div></div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Clientes</div>
+      ${P.clientes.length ? `<div class="lista" style="margin-top:10px">${P.clientes.map((c) => { const al = c.docs.filter(venc).length, ab = f && f.t === "cli" && f.id === c.id, np = f && f.t === "novo" && f.id === c.id;
+        return `<div class="linha caca-doc" data-cli="${c.id}"><div class="caca-topo"><div><div class="t">${esc(c.nome)}</div><div class="pequeno">${c.docs.length} documento(s)${al ? ' · <span class="cr">' + al + " vencendo ou vencido(s)</span>" : ""}</div></div><a class="wpp" href="https://wa.me/${esc(String(c.whatsapp || "").replace(/\D/g, ""))}" target="_blank" rel="noopener">WhatsApp</a></div>
+          <div class="caca-envia"><button class="btn sec" data-dcli="${c.id}">${ab ? "Ocultar documentos" : "Ver documentos"}</button><button class="btn sec" data-dnovo="${c.id}">Novo processo</button><button class="btn sec" data-dent="${c.id}" data-dentp="">Entregar documento</button></div>
+          ${ab ? `<div class="dsp-docs">${c.docs.length ? c.docs.map(doc).join("") : '<div class="pequeno">Este cliente ainda não guardou documentos.</div>'}</div>` : ""}
+          ${np ? `<div class="dsp-editor"><div class="caca-campos">
+              <label>Serviço<select id="dn-tipo">${Object.entries(P.tipos).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("")}</select></label>
+              <label>Descrição curta (opcional)<input id="dn-tit" maxlength="80" placeholder="Ex.: CRAF da Glock G25"></label>
+              <label>Taxa (GRU) em R$<input id="dn-gru" inputmode="decimal"></label>
+              <label>Honorário em R$<input id="dn-hon" inputmode="decimal"></label></div>
+              <div class="caca-envia"><button class="btn" data-dcriar="${c.id}">Abrir processo</button><button class="btn sec" data-dfechar="1">Cancelar</button></div></div>` : ""}</div>`; }).join("")}</div>`
+      : '<div class="vazio" style="margin-top:10px">Nenhum cliente autorizou o seu acesso ainda. Peça para o cliente abrir Conta › Despachante no Ática e tocar em Autorizar ao lado do seu nome.</div>'}</div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Processos</div>
+      ${P.processos.length ? `<div class="lista" style="margin-top:10px">${P.processos.map((p) => dspProc(p, true)).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nenhum processo aberto. Use Novo processo no cliente.</div>'}</div>
+    <input type="file" id="dsp-arq" accept="image/*,application/pdf" hidden>
+    <p class="pequeno" style="margin-top:14px">Você vê só os clientes que autorizaram o seu acesso, e o cliente pode revogar quando quiser. O documento que você entrega é lido e guardado na conta dele.</p>`;
+}
+function dspAdm() {
+  const L = DSP.adm.despachantes, et = { pendente: ["Em análise", "at"], aprovado: ["Aprovado", "ok"], suspenso: ["Suspenso", "cr"] };
+  return `<div class="card"><div class="rotulo">Cadastros de despachante</div>
+    ${L.length ? `<div class="lista" style="margin-top:10px">${L.map((d) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(d.nome)}</div><div class="pequeno">${esc(d.pessoa)} · ${esc([d.cidade, d.uf].filter(Boolean).join(" / "))} · desde ${br(d.desde)}</div></div><span class="etiqueta ${et[d.status][1]}" style="white-space:nowrap">${et[d.status][0]}</span></div>
+      ${d.sobre ? `<div class="pequeno" style="margin-top:6px">${esc(d.sobre)}</div>` : ""}
+      <div class="pequeno" style="margin-top:6px">${d.clientes} cliente(s) · ${d.processos} processo(s)${d.contato ? " · " + esc(d.contato) : ""}</div>
+      <div class="caca-campos"><label>Repasse ao despachante<select data-dregra="${d.id}"><option value="protocolo" ${d.regra === "protocolo" ? "selected" : ""}>Tudo só depois do protocolo</option><option value="gru_adiantada" ${d.regra === "gru_adiantada" ? "selected" : ""}>GRU adiantada, honorário no protocolo</option></select></label></div>
+      <div class="caca-envia">${d.status !== "aprovado" ? `<button class="btn" data-dadm="${d.id}" data-st="aprovado">Aprovar</button>` : ""}${d.status !== "suspenso" ? `<button class="btn sec" data-dadm="${d.id}" data-st="suspenso">Suspender</button>` : ""}<a class="wpp" href="https://wa.me/${esc(String(d.whatsapp || "").replace(/\D/g, ""))}" target="_blank" rel="noopener">WhatsApp</a></div></div>`).join("")}</div>`
+    : '<div class="vazio" style="margin-top:10px">Nenhum cadastro de despachante ainda.</div>'}
+    <p class="pequeno" style="margin:10px 0 0">A regra de repasse fica registrada para a cobrança pelo app, que ainda não está ligada.</p></div>`;
+}
+function renderDesp(c) {
+  const topo = `<button class="voltar-hub" id="dp-volta">‹ Conta</button><div class="topo"><div><h2>Despachante</h2><p>Quem cuida dos seus processos, cada etapa e o que falta.</p></div></div>`;
+  const volta = () => { const b = c.querySelector("#dp-volta"); if (b) b.onclick = () => irPara("conta", ""); };
+  if (!DSP.meu && !DSP.erro) { if (!DSP.carregando) dspCarregar(); c.innerHTML = topo + '<div class="card"><span class="carregando"></span>Carregando…</div>'; return volta(); }
+  if (DSP.erro && !DSP.meu) { c.innerHTML = topo + `<div class="aviso critico"><b>Não carregou</b><span class="pequeno">${esc(DSP.erro)}</span></div><button class="btn sec" id="dp-de-novo">Tentar de novo</button>`; c.querySelector("#dp-de-novo").onclick = () => { DSP.erro = ""; render(); }; return volta(); }
+  const abas = [["cliente", DSP.painel ? "Como cliente" : "Meus processos"]]; if (DSP.painel) abas.unshift(["clientes", "Meus clientes"]); if (DSP.adm) abas.push(["adm", "Cadastros (" + DSP.adm.despachantes.filter((d) => d.status === "pendente").length + ")"]);
+  const msg = (DSP.aviso ? `<div class="aviso info"><b>Pronto ✓</b><span class="pequeno">${esc(DSP.aviso)}</span></div>` : "") + (DSP.falha ? `<div class="aviso critico"><b>Não deu certo</b><span class="pequeno">${esc(DSP.falha)}</span></div>` : "");
+  DSP.aviso = ""; DSP.falha = "";
+  c.innerHTML = topo + (abas.length > 1 ? `<div class="ip-fator ad-filtros" style="margin-bottom:14px">${abas.map(([k, r]) => `<button data-daba="${k}" class="${DSP.aba === k ? "on" : ""}">${r}</button>`).join("")}</div>` : "") + `<div id="dp-msg">${msg}</div>` + (DSP.aba === "clientes" && DSP.painel ? dspClientes() : DSP.aba === "adm" && DSP.adm ? dspAdm() : dspCliente());
+  volta();
+  const q = (s) => c.querySelector(s), val = (s) => (q(s) ? q(s).value.trim() : "");
+  const abrir = (t, id) => { DSP.form = DSP.form && DSP.form.t === t && DSP.form.id === id ? null : { t, id }; render(); };
+  c.onclick = async (e) => {
+    const b = e.target.closest("button"); if (!b || !c.contains(b)) return; const d = b.dataset;
+    if (d.daba) { DSP.aba = d.daba; DSP.form = null; return render(); }
+    if (d.dfechar) { DSP.form = null; return render(); }
+    if (d.daut) return abrir("aut", d.daut);
+    if (d.drev) return abrir("rev", d.drev);
+    if (d.dcli) return abrir("cli", d.dcli);
+    if (d.dnovo) return abrir("novo", d.dnovo);
+    if (d.dedit) return abrir("proc", d.dedit);
+    if (b.id === "dc-abrir") return abrir("cand", "");
+    if (d.dautok) { if (!q("#dp-aceite").checked) { DSP.falha = "Marque a autorização para continuar."; return render(); } return dspAcao("desp_autorizar", { despachante_id: d.dautok, aceite: true }, "Autorização registrada. O despachante já pode ver seus documentos."); }
+    if (d.drevok) return dspAcao("desp_revogar", { despachante_id: d.drevok }, "Acesso revogado.");
+    if (b.id === "dc-enviar") { const v = { nome: val("#dc-nome"), cidade: val("#dc-cid"), uf: val("#dc-uf").toUpperCase(), contato: val("#dc-cont"), sobre: val("#dc-sobre") }; DSP.form.v = v; return dspAcao("desp_candidatar", { ...v, aceite: q("#dc-aceite").checked }, "Cadastro enviado. Você recebe um aviso quando for aprovado."); }
+    if (d.dcriar) return dspAcao("desp_processo_criar", { assinante_id: d.dcriar, tipo: val("#dn-tipo"), titulo: val("#dn-tit"), valor_gru: val("#dn-gru"), valor_honorario: val("#dn-hon") }, "Processo aberto. O cliente foi avisado.");
+    if (d.dsalvar) return dspAcao("desp_processo_atualizar", { id: d.dsalvar, status: val("#dp-st"), protocolo: val("#dp-prot"), protocolado_em: val("#dp-data"), valor_gru: val("#dp-gru"), valor_honorario: val("#dp-hon") }, "Processo atualizado.");
+    if (d.dnota || d.dpend) { const id = d.dnota || d.dpend, t = q(`[data-dtxt="${id}"]`).value.trim(); if (t.length < 2) { DSP.falha = "Escreva a mensagem antes de enviar."; return render(); } return dspAcao("desp_item", { processo_id: id, tipo: d.dpend ? "pendencia" : "nota", texto: t }, d.dpend ? "Pedido enviado ao cliente." : "Mensagem registrada."); }
+    if (d.dres) return dspAcao("desp_item_resolver", { id: d.dres }, "Pendência resolvida.");
+    if (d.dadm) return dspAcao("desp_admin", { op: "status", id: d.dadm, status: d.st }, d.st === "aprovado" ? "Despachante aprovado." : "Cadastro suspenso.");
+    if (d.dver) { const r = await api("desp_doc_link", { id: d.dver }); if (r && r.ok && r.url) window.open(r.url, "_blank", "noopener"); else { DSP.falha = (r && r.erro) || "Não foi possível abrir o arquivo."; render(); } return; }
+    if (d.dent) { const inp = q("#dsp-arq"); if (!inp) return; inp.dataset.cli = d.dent; inp.dataset.proc = d.dentp || ""; inp.value = ""; inp.click(); }
+  };
+  c.onchange = async (e) => {
+    const t = e.target;
+    if (t.dataset && t.dataset.dregra) return dspAcao("desp_admin", { op: "regra", id: t.dataset.dregra, regra: t.value }, "Regra de repasse salva.");
+    if (t.id !== "dsp-arq" || !t.files || !t.files[0]) return;
+    const arq = t.files[0], cli = t.dataset.cli, proc = t.dataset.proc;
+    if (arq.size > 12 * 1024 * 1024) { DSP.falha = "Arquivo muito grande (máx. 12 MB)."; return render(); }
+    q("#dp-msg").innerHTML = '<div class="card"><span class="carregando"></span>Lendo o documento… isso leva alguns segundos.</div>'; window.scrollTo(0, 0);
+    let dados = null; try { dados = await dspArquivo(arq); } catch (er) {}
+    if (!dados) { DSP.falha = "Não consegui abrir esse arquivo."; return render(); }
+    const r = await dspAcao("desp_entregar", { assinante_id: cli, processo_id: proc, ...dados }, "");
+    if (r && r.ok) { DSP.aviso = "Entregue na conta do cliente: " + r.nome_tipo + (r.arma ? " (" + r.arma + ")" : "") + (r.validade ? ", válido até " + br(r.validade) : "") + "."; render(); }
+  };
+}
 function renderCaca(c, sub) {
   const C = cacaLer(), topo = (t, s) => `<div class="topo"><div><h2>${t}</h2><p>${s}</p></div></div>`;
   const nomeProp = (id) => (C.props.find((p) => p.id === id) || {}).nome || "Propriedade removida";
@@ -2184,6 +2356,7 @@ function primeiroNome() { return esc(((D.assinante || {}).nome || "O caçador").
 function renderTela(c, a, primeiro, docs) {
   usoTela();
   if (tela === "admin") return renderAdmin(c);
+  if (tela === "desp") return renderDesp(c);
   const hub = HUBS[tela];
   if (!hub) { subTela = ""; return renderTela0(c, a, primeiro, docs); }
   if (subTela && !hub.itens.some((i) => i[0] === subTela)) subTela = "";
@@ -2380,6 +2553,7 @@ function renderTela0(c, a, primeiro, docs) {
         ${NATIVO ? `<div class="opcao" id="op-trava" style="display:none"><div><div class="t">Trava com digital ou Face ID</div><div class="pequeno">Pede sua biometria ao abrir o app.</div></div><input type="checkbox" class="chave" id="ck-trava" ${guardar.get("cac_trava") === "1" ? "checked" : ""}></div>
         <div class="opcao"><div><div class="t">Lembretes no celular</div><div class="pequeno">Aviso 30 dias, 7 dias e no dia de cada vencimento, às 9h.</div></div><input type="checkbox" class="chave" id="ck-lembretes" ${guardar.get("cac_lembretes") !== "0" ? "checked" : ""}></div>` : ""}
         ${D.assinante && D.assinante.admin ? '<div class="opcao"><div><div class="t">Administração</div><div class="pequeno">Assinantes, acessos, uso por função e erros.</div></div><button class="btn sec" id="bt-admin">Abrir</button></div>' : ""}
+        <div class="opcao"><div><div class="t">Despachante</div><div class="pequeno">Autorize quem cuida dos seus processos e acompanhe cada etapa.</div></div><button class="btn sec" id="bt-desp">Abrir</button></div>
         <div class="opcao"><div><div class="t">Falar com o Ática</div><div class="pequeno">Dúvidas, documentos e atendimento pelo WhatsApp.</div></div><a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">WhatsApp</a></div>
         <div class="opcao"><div><div class="t">Política de privacidade</div><div class="pequeno">Como seus dados e documentos são guardados.</div></div><a href="${SITE}/privacidade/" target="_blank" rel="noopener">Abrir</a></div>
         <div class="opcao" style="flex-wrap:wrap"><div><div class="t">Senha de acesso</div><div class="pequeno">Crie ou troque a senha usada para entrar.</div></div><button class="btn sec" id="bt-senha">Alterar</button>
