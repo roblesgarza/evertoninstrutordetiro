@@ -2450,6 +2450,7 @@ function statusEnvio(html) { const el = $("#envio"); if (el) el.innerHTML = html
 async function enviarDocumento(base64, mime) {
   statusEnvio('<div class="card"><span class="carregando"></span>Lendo o documento… isso leva alguns segundos.</div>');
   const r = await api("enviar_documento", { arquivo: base64, mime });
+  if (!r.ok && /já está na sua conta/.test(r.erro || "")) { statusEnvio(`<div class="aviso info"><b>Documento já enviado</b><span class="pequeno">${esc(r.erro)}</span></div>`); return; }
   if (!r.ok) { usoReg("erro", "documento", r.erro || "falha no envio"); statusEnvio(`<div class="aviso critico"><b>Não deu certo</b><span class="pequeno">${esc(r.erro || "Tente de novo.")}</span></div>`); return; }
   await carregar();
   if (tela === "caca" && cacaDocAlvo && cacaDocAlvo.lista) { subTela = cacaDocAlvo.volta || "propriedades"; cacaDocAlvo = null; montarMenu(); render(); }
