@@ -1219,7 +1219,7 @@ function hubConta(k) {
     if (k === "acervo") return tela === "caca" ? D.documentos.filter((d) => d.tipo === "CRAF" && d.acervo === "cacador").length : D.resumo.armas;
     if (k === "simaf") return cacaDocsConta().filter((d) => d.tipo === "SIMAF").length;
     if (k === "ipsc") return ipscLer().series.length;
-    if (k === "propriedades") return cacaLer().props.length;
+    if (k === "propriedades") return cacaLer().props.length + cacaDocsConta().filter((d) => d.tipo !== "SIMAF" && d.tipo !== "CTF").length;
     if (k === "autorizacoes") return cacaDocsConta().length;
     if (k === "saidas") return cacaLer().saidas.length;
     if (k === "documentos") return D.documentos.length;
