@@ -508,9 +508,28 @@ const Balistica = (() => {
     return { pontos, yMax, xyMax };
   }
 
+  function finos(p, e) { // deriva de giro (Litz), Coriolis e salto aerodinâmico (Litz), em metros
+    const f = { giro: 0, corH: 0, corV: 0, salto: 0 };
+    const mao = p.twistEsq ? -1 : 1;
+    if (p.usarGiro && p.sg > 0) f.giro = mao * 0.0254 * 1.25 * (p.sg + 1.2) * Math.pow(e.t, 1.83);
+    if (p.usarCoriolis && isFinite(p.lat)) {
+      const W = 7.292115e-5, L = p.lat * Math.PI / 180, az = (p.azimute || 0) * Math.PI / 180;
+      f.corH = W * Math.sin(L) * e.x * e.t;
+      f.corV = W * Math.cos(L) * Math.sin(az) * e.x * e.t;
+    }
+    if (p.usarSalto && p.sg > 0 && p.calibres > 0 && p.ventoVel) {
+      const lateral = p.ventoVel * Math.sin((p.ventoDir || 0) * Math.PI / 180) * 2.236936; // mph, + vindo da direita
+      const moa = (0.01 * p.sg - 0.0024 * p.calibres + 0.032) * lateral;
+      f.salto = -mao * moa / MOA_POR_MRAD / 1000 * e.x;
+    }
+    return f;
+  }
   function em(p, alfa, x) { // estado exatamente na distância x
     const r = voar(p, alfa, x, x > 0 ? x : 1).pontos;
-    return r[r.length - 1].x >= x - 1e-6 ? r[r.length - 1] : null;
+    const e = r[r.length - 1].x >= x - 1e-6 ? r[r.length - 1] : null;
+    if (!e) return null;
+    const f = finos(p, e);
+    return { ...e, y: e.y + f.corV + f.salto, z: e.z + f.giro + f.corH, finos: f };
   }
 
   // Ângulo de saída que zera na distância de zeragem (terreno plano, sem vento).
@@ -543,7 +562,7 @@ const Balistica = (() => {
     const corr = voar(p, alfa + elev.mrad / 1000, distancia, distancia);
     return {
       alfa, elev, vento, velocidade: e.v, energia: en(e.v), energiaBoca: en(p.v0), tempo: e.t, mach: e.v / p.som,
-      quedaCm: e.y * 100, derivaCm: e.z * 100,
+      quedaCm: e.y * 100, derivaCm: e.z * 100, finos: e.finos,
       alturaMaxCm: Math.max(corr.yMax, 0) * 100, distAlturaMax: corr.yMax > 0 ? corr.xyMax : 0,
       cliqueCmV: p.cliqueV * distancia / 10, cliqueCmH: p.cliqueH * distancia / 10,
     };
@@ -577,7 +596,7 @@ const Balistica = (() => {
 
   return { estabilidade, atmosfera, calcular, tabela, curva, cd, TAB, MOA_POR_MRAD, SMOA_POR_MRAD };
 })();
-const BALX_HTML = "<div class=\"topo\"><div><h2>Balística <span class=\"etiqueta at\" style=\"vertical-align:4px;margin-left:6px\">Beta<\/span><\/h2><p>Correções de elevação e vento, tabela, gráfico e retículo para o seu rifle, mira e munição.<\/p><\/div><\/div><div id=\"balx\"><div class=\"abas\" id=\"abas\">\n    <button data-t=\"tiro\" class=\"ativo\">Tiro<\/button><button data-t=\"tabela\">Tabela<\/button><button data-t=\"grafico\">Gráfico<\/button><button data-t=\"reticulo\">Retículo<\/button><button data-t=\"alvo\">Alvo<\/button><button data-t=\"cadastro\">Cadastro<\/button>\n  <\/div>\n  <div class=\"aviso\" style=\"margin-bottom:14px\"><b>Versão beta.<\/b> Novas funções estão a caminho. Confirme sempre os valores no estande.<\/div>\n  <!-- TIRO -->\n  <section class=\"tela ativa\" id=\"t-tiro\">\n    <div class=\"conjunto\">\n      <label>Rifle<select id=\"sel-rifle\"><\/select><\/label>\n      <label>Mira<select id=\"sel-mira\"><\/select><\/label>\n      <label>Munição<select id=\"sel-municao\"><\/select><\/label>\n    <\/div>\n    <button class=\"btn sec\" id=\"ir-cadastro\" style=\"width:100%;text-align:left\">Cadastrar ou editar rifle, mira e munição ›<\/button>\n    <div class=\"duas\">\n      <div>\n        <div class=\"card\" style=\"border-color:rgba(226,182,87,.35)\">\n          <div class=\"rotulo\">Munição em uso<\/div>\n          <div class=\"c2\" style=\"margin-top:10px\">\n            <label>Velocidade na boca (m/s)<input id=\"v0rapido\" inputmode=\"decimal\"><\/label>\n            <label>Coeficiente balístico<input id=\"cbrapido\" inputmode=\"decimal\"><\/label>\n          <\/div>\n          <p class=\"pequeno\" style=\"margin:10px 0 0\">Use a velocidade medida no cronógrafo. Ela muda a queda e os cliques; o valor fica salvo na munição selecionada.<\/p>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Alvo<\/div>\n          <div class=\"c2\" style=\"margin-top:10px\">\n            <label>Distância (m)<input id=\"distancia\" inputmode=\"decimal\"><\/label>\n            <label>Inclinação (graus)<input id=\"inclinacao\" inputmode=\"decimal\"><\/label>\n          <\/div>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Vento<\/div>\n          <div class=\"vento\" style=\"margin-top:10px\">\n            <svg class=\"rosa\" id=\"rosa\" viewBox=\"0 0 80 80\"><\/svg>\n            <div class=\"campos\">\n              <label>Velocidade<div class=\"junto\"><input id=\"ventoVel\" inputmode=\"decimal\"><select id=\"ventoUn\"><option value=\"ms\">m/s<\/option><option value=\"kmh\">km/h<\/option><\/select><\/div><\/label>\n              <label>Vem de<select id=\"ventoHora\"><\/select><\/label>\n            <\/div>\n          <\/div>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Clima<\/div>\n          <div class=\"chips\" id=\"clima-modo\" style=\"margin:10px 0\">\n            <button class=\"chip\" data-m=\"da\">Alt. de densidade<\/button><button class=\"chip\" data-m=\"pressao\">Pressão<\/button><button class=\"chip\" data-m=\"altitude\">Altitude<\/button>\n          <\/div>\n          <div class=\"campos\">\n            <label>Temperatura (°C)<input id=\"temperatura\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"da\">Alt. de densidade (m)<input id=\"altitudeDensidade\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"pressao\">Pressão no local (hPa)<input id=\"pressao\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"altitude\">Altitude (m)<input id=\"altitude\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"pressao altitude\">Umidade (%)<input id=\"umidade\" inputmode=\"decimal\"><\/label>\n          <\/div>\n        <\/div>\n      <\/div>\n      <div>\n        <div id=\"resultado\"><\/div>\n        <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Os valores são calculados a partir dos dados que você cadastrou e devem ser confirmados no estande antes de qualquer uso. Siga sempre as regras de segurança do clube e do seu instrutor.<\/div>\n      <\/div>\n    <\/div>\n  <\/section>\n\n  <!-- TABELA -->\n  <section class=\"tela\" id=\"t-tabela\">\n    <div class=\"card\">\n      <div class=\"rotulo\">Tabela balística<\/div>\n      <div class=\"campos\" style=\"margin-top:10px;grid-template-columns:repeat(3,minmax(0,1fr))\">\n        <label>Início (m)<input id=\"tabIni\" inputmode=\"decimal\"><\/label>\n        <label>Fim (m)<input id=\"tabFim\" inputmode=\"decimal\"><\/label>\n        <label>Passo (m)<input id=\"tabPasso\" inputmode=\"decimal\"><\/label>\n      <\/div>\n      <p class=\"pequeno\" id=\"tab-resumo\" style=\"margin:10px 0 0\"><\/p>\n    <\/div>\n    <div class=\"card\" style=\"padding-top:6px;padding-bottom:6px\"><div class=\"rolagem\" id=\"tabela\"><\/div><\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- GRÁFICO -->\n  <section class=\"tela\" id=\"t-grafico\">\n    <div class=\"card\">\n      <div class=\"rotulo\">Trajetória em relação à linha de visada<\/div>\n      <div class=\"leitura\" id=\"leitura\" style=\"margin:10px 0 6px\"><\/div>\n      <div id=\"grafico\"><\/div>\n      <p class=\"pequeno\" style=\"margin:10px 0 0\">Toque ou passe o dedo no gráfico para ler os valores em cada distância. O alcance do gráfico segue o fim da tabela.<\/p>\n    <\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- RETÍCULO -->\n  <section class=\"tela\" id=\"t-reticulo\">\n    <div class=\"card\">\n      <div class=\"rotulo\" id=\"ret-tit\">Retículo<\/div>\n      <div class=\"chips\" id=\"ret-zoom\" style=\"margin:10px 0\"><button class=\"chip ativo\" data-z=\"ponto\">Zoom no ponto<\/button><button class=\"chip\" data-z=\"inteiro\">Inteiro<\/button><\/div>\n      <div class=\"leitura\" id=\"ret-leitura\" style=\"margin:0 0 8px\"><\/div>\n      <div id=\"reticulo\"><\/div>\n      <p class=\"pequeno\" id=\"ret-nota\" style=\"margin:10px 0 0\"><\/p>\n    <\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- ALVO -->\n  <section class=\"tela\" id=\"t-alvo\">\n    <div class=\"card\" id=\"alvo-foto-card\">\n      <div class=\"rotulo\">Análise do alvo por foto <span class=\"etiqueta at\" style=\"margin-left:6px\">Beta<\/span><\/div>\n      <p class=\"pequeno\" style=\"margin:8px 0 10px\">Fotografe o alvo de frente, bem enquadrado. Marque a escala, confira os furos e veja o tamanho do grupo e a correção em cliques. Use o zoom (+) para marcar com precisão e arraste a foto com o dedo. A foto original fica no aparelho; o registro guarda só uma miniatura.<\/p>\n      <label class=\"btn\" style=\"display:flex;align-items:center;justify-content:center;color:#0A0A0C;font-size:15px\">Tirar ou escolher a foto do alvo<input id=\"alvo-foto\" type=\"file\" accept=\"image/*\" style=\"display:none\"><\/label>\n    <\/div>\n    <div class=\"card\" id=\"alvo-area\" style=\"display:none\">\n      <div class=\"chips\" id=\"alvo-modo\" style=\"margin-bottom:10px\">\n        <button class=\"chip\" data-m=\"escala\">1 · Escala<\/button><button class=\"chip\" data-m=\"furos\">2 · Furos<\/button><button class=\"chip\" data-m=\"visado\">3 · Ponto visado<\/button>\n      <\/div>\n      <p class=\"pequeno\" id=\"alvo-dica\" style=\"margin:0 0 10px\"><\/p>\n      <div class=\"acoes\" style=\"margin-bottom:8px;align-items:center\"><button class=\"btn sec\" id=\"alvo-zmenos\" style=\"min-width:52px\" aria-label=\"Diminuir zoom\">−<\/button><button class=\"btn sec\" id=\"alvo-zmais\" style=\"min-width:52px\" aria-label=\"Aumentar zoom\">+<\/button><span class=\"pequeno\" id=\"alvo-zinfo\">Zoom 1x<\/span><\/div>\n      <div id=\"alvo-quadro\" style=\"position:relative;overflow:auto;max-height:72vh;touch-action:pan-x pan-y;line-height:0;border:1px solid var(--line)\"><canvas id=\"alvo-tela\" style=\"width:100%;height:auto;display:block;max-width:none\"><\/canvas><\/div>\n      <div class=\"acoes\" style=\"margin-top:10px\">\n        <button class=\"btn sec\" id=\"alvo-detectar\">Detectar furos<\/button><button class=\"btn sec\" id=\"alvo-desfazer\">Desfazer<\/button><button class=\"btn perigo\" id=\"alvo-limpar\">Limpar furos<\/button>\n      <\/div>\n      <div class=\"campos\" style=\"margin-top:12px\">\n        <label>Medida da escala (cm)<input id=\"alvo-ref\" inputmode=\"decimal\"><\/label>\n        <label>Distância do tiro (m)<input id=\"alvo-dist\" inputmode=\"decimal\"><\/label>\n        <label>Diâmetro do projétil (mm)<input id=\"alvo-diam\" inputmode=\"decimal\"><\/label>\n        <label>Arma usada<select id=\"alvo-arma\"><\/select><\/label>\n        <label>Tipo de arma<select id=\"alvo-tipo\"><option value=\"longa\">Arma longa<\/option><option value=\"curta\">Arma curta<\/option><\/select><\/label>\n        <label>Munição<input id=\"alvo-mun\" list=\"alvo-mun-l\" maxlength=\"60\" placeholder=\"Opcional\"><datalist id=\"alvo-mun-l\"><\/datalist><\/label>\n        <label>Modalidade<input id=\"alvo-mod\" list=\"alvo-mod-l\" maxlength=\"40\" placeholder=\"Opcional\"><datalist id=\"alvo-mod-l\"><option>Tiro de precisão<\/option><option>Tiro prático (IPSC)<\/option><option>Saque rápido<\/option><option>Carabina de precisão<\/option><option>Tiro ao prato<\/option><option>Silhueta metálica<\/option><option>Treino livre<\/option><\/datalist><\/label>\n        <label>Coldre<input id=\"alvo-col\" maxlength=\"40\" placeholder=\"Opcional\"><\/label>\n        <label style=\"grid-column:1/-1\">Observação (opcional)<input id=\"alvo-obs\" maxlength=\"140\" placeholder=\"Munição, clima, posição, o que quiser lembrar\"><\/label>\n      <\/div>\n    <\/div>\n    <div id=\"alvo-res\"><\/div>\n    <div class=\"card\" id=\"alvo-hist-card\">\n      <div class=\"rotulo\">Meus alvos<\/div>\n      <div class=\"chips\" id=\"alvo-ordem\" style=\"margin:10px 0\"><button class=\"chip\" data-o=\"melhores\">Melhores (MOA)<\/button><button class=\"chip\" data-o=\"recentes\">Recentes<\/button><\/div>\n      <label style=\"margin-bottom:10px\">Filtrar por arma<select id=\"alvo-filtro\"><\/select><\/label>\n      <div id=\"alvo-hist\"><\/div>\n    <\/div>\n    <div class=\"card\" id=\"alvo-evo-card\">\n      <div class=\"rotulo\">Evolução dos grupos<\/div>\n      <label style=\"margin:10px 0\">Arma<select id=\"evo-arma\"><\/select><\/label>\n      <div id=\"evo-graf\"><\/div>\n      <div class=\"dados\" id=\"evo-nums\" style=\"margin-top:10px\"><\/div>\n    <\/div>\n    <div class=\"card\" id=\"quadro-card\">\n      <div class=\"rotulo\">Quadro de análise de tiro · arma curta<\/div>\n      <p class=\"pequeno\" style=\"margin:8px 0 10px\">Relaciona a região onde os tiros se concentram a possíveis erros do atirador. Vale para arma curta já regulada e para uma série de disparos. O alvo sugere, não comprova: quem confirma é o instrutor, observando o atirador.<\/p>\n      <div class=\"chips\" id=\"quadro-mao\" style=\"margin-bottom:10px\"><button class=\"chip\" data-m=\"destro\">Destro<\/button><button class=\"chip\" data-m=\"canhoto\">Canhoto<\/button><\/div>\n      <div id=\"quadro-svg\" style=\"max-width:340px;margin:0 auto\"><\/div>\n      <div id=\"quadro-det\" style=\"margin-top:12px\"><\/div>\n      <p class=\"pequeno\" style=\"margin:10px 0 0\">Baseado no quadro tradicional de análise de tiro de arma curta (revista O Tiro, CBTA, 1977). Desenho e textos do Ática.<\/p>\n    <\/div>\n    <div class=\"aviso\" id=\"alvo-aviso\"><b>Estimativa para tiro esportivo.<\/b> A medida depende da foto e da escala marcada. Confira com a régua quando o resultado for valer para algo.<\/div>\n  <\/section>\n\n  <!-- CADASTRO -->\n  <section class=\"tela\" id=\"t-cadastro\">\n    <p class=\"pequeno\" style=\"margin:0\">Os cadastros ficam salvos só neste aparelho. Cadastre os dados do seu próprio equipamento e da sua munição, medidos por você.<\/p>\n    <div class=\"card\" id=\"cad-rifle\"><\/div>\n    <div class=\"card\" id=\"cad-mira\"><\/div>\n    <div class=\"card\" id=\"cad-municao\"><\/div>\n  <\/section>\n\n<p class=\"pequeno\" style=\"margin:0\">Marcas, modelos de lunetas e nomes de retículos pertencem aos seus fabricantes e aparecem só para você identificar o seu equipamento. O Ática não tem vínculo com eles.<\/p><\/div>";
+const BALX_HTML = "<div class=\"topo\"><div><h2>Balística <span class=\"etiqueta at\" style=\"vertical-align:4px;margin-left:6px\">Beta<\/span><\/h2><p>Correções de elevação e vento, tabela, gráfico e retículo para o seu rifle, mira e munição.<\/p><\/div><\/div><div id=\"balx\"><div class=\"abas\" id=\"abas\">\n    <button data-t=\"tiro\" class=\"ativo\">Tiro<\/button><button data-t=\"tabela\">Tabela<\/button><button data-t=\"grafico\">Gráfico<\/button><button data-t=\"reticulo\">Retículo<\/button><button data-t=\"alvo\">Alvo<\/button><button data-t=\"cadastro\">Cadastro<\/button>\n  <\/div>\n  <div class=\"aviso\" style=\"margin-bottom:14px\"><b>Versão beta.<\/b> Novas funções estão a caminho. Confirme sempre os valores no estande.<\/div>\n  <!-- TIRO -->\n  <section class=\"tela ativa\" id=\"t-tiro\">\n    <div class=\"conjunto\">\n      <label>Rifle<select id=\"sel-rifle\"><\/select><\/label>\n      <label>Mira<select id=\"sel-mira\"><\/select><\/label>\n      <label>Munição<select id=\"sel-municao\"><\/select><\/label>\n    <\/div>\n    <button class=\"btn sec\" id=\"ir-cadastro\" style=\"width:100%;text-align:left\">Cadastrar ou editar rifle, mira e munição ›<\/button>\n    <div class=\"duas\">\n      <div>\n        <div class=\"card\" style=\"border-color:rgba(226,182,87,.35)\">\n          <div class=\"rotulo\">Munição em uso<\/div>\n          <div class=\"c2\" style=\"margin-top:10px\">\n            <label>Velocidade na boca (m/s)<input id=\"v0rapido\" inputmode=\"decimal\"><\/label>\n            <label>Coeficiente balístico<input id=\"cbrapido\" inputmode=\"decimal\"><\/label>\n          <\/div>\n          <p class=\"pequeno\" style=\"margin:10px 0 0\">Use a velocidade medida no cronógrafo. Ela muda a queda e os cliques; o valor fica salvo na munição selecionada.<\/p>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Alvo<\/div>\n          <div class=\"c2\" style=\"margin-top:10px\">\n            <label>Distância (m)<input id=\"distancia\" inputmode=\"decimal\"><\/label>\n            <label>Inclinação (graus)<input id=\"inclinacao\" inputmode=\"decimal\"><\/label>\n          <\/div>\n          <div style=\"display:flex;gap:8px;margin-top:10px;flex-wrap:wrap\"><button class=\"btn sec\" id=\"ab-inc\" type=\"button\">Medir inclinação com o celular<\/button><\/div>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Vento<\/div>\n          <div class=\"vento\" style=\"margin-top:10px\">\n            <svg class=\"rosa\" id=\"rosa\" viewBox=\"0 0 80 80\"><\/svg>\n            <div class=\"campos\">\n              <label>Velocidade<div class=\"junto\"><input id=\"ventoVel\" inputmode=\"decimal\"><select id=\"ventoUn\"><option value=\"ms\">m/s<\/option><option value=\"kmh\">km/h<\/option><\/select><\/div><\/label>\n              <label>Vem de<select id=\"ventoHora\"><\/select><\/label>\n              <label>Vento 2 (opcional)<input id=\"ventoVel2\" inputmode=\"decimal\" placeholder=\"rajada ou outro valor\"><\/label>\n            <\/div>\n          <\/div>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Clima<\/div>\n          <div class=\"chips\" id=\"clima-modo\" style=\"margin:10px 0\">\n            <button class=\"chip\" data-m=\"da\">Alt. de densidade<\/button><button class=\"chip\" data-m=\"pressao\">Pressão<\/button><button class=\"chip\" data-m=\"altitude\">Altitude<\/button>\n          <\/div>\n          <div class=\"campos\">\n            <label>Temperatura (°C)<input id=\"temperatura\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"da\">Alt. de densidade (m)<input id=\"altitudeDensidade\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"pressao\">Pressão no local (hPa)<input id=\"pressao\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"altitude\">Altitude (m)<input id=\"altitude\" inputmode=\"decimal\"><\/label>\n            <label data-modo=\"pressao altitude\">Umidade (%)<input id=\"umidade\" inputmode=\"decimal\"><\/label>\n          <\/div>\n        <\/div>\n        <div class=\"card\">\n          <div class=\"rotulo\">Efeitos para tiro longo<\/div>\n          <div class=\"chips\" id=\"ab-opc\" style=\"margin:10px 0\"><\/div>\n          <div id=\"ab-cor\">\n            <div class=\"c2\">\n              <label>Latitude (°)<input id=\"latitude\" inputmode=\"decimal\" placeholder=\"Ex.: -20,8\"><\/label>\n              <label>Rumo do tiro (°)<input id=\"azimute\" inputmode=\"decimal\" placeholder=\"0 norte · 90 leste\"><\/label>\n            <\/div>\n            <div style=\"display:flex;gap:8px;margin-top:10px;flex-wrap:wrap\"><button class=\"btn sec\" id=\"ab-gps\" type=\"button\">Latitude pelo GPS<\/button><button class=\"btn sec\" id=\"ab-rumo\" type=\"button\">Rumo pela bússola<\/button><\/div>\n          <\/div>\n          <div class=\"msg\" id=\"ab-msg\"><\/div>\n          <p class=\"pequeno\" style=\"margin:8px 0 0\">A deriva de giro empurra o tiro para o lado do estriamento. Coriolis e salto aerodinâmico só pesam em distâncias longas.<\/p>\n        <\/div>\n      <\/div>\n      <div>\n        <div id=\"resultado\"><\/div>\n        <div id=\"multi\"><\/div>\n        <div id=\"calib\"><\/div>\n        <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Os valores são calculados a partir dos dados que você cadastrou e devem ser confirmados no estande antes de qualquer uso. Siga sempre as regras de segurança do clube e do seu instrutor.<\/div>\n      <\/div>\n    <\/div>\n  <\/section>\n\n  <!-- TABELA -->\n  <section class=\"tela\" id=\"t-tabela\">\n    <div class=\"card\">\n      <div class=\"rotulo\">Tabela balística<\/div>\n      <div class=\"campos\" style=\"margin-top:10px;grid-template-columns:repeat(3,minmax(0,1fr))\">\n        <label>Início (m)<input id=\"tabIni\" inputmode=\"decimal\"><\/label>\n        <label>Fim (m)<input id=\"tabFim\" inputmode=\"decimal\"><\/label>\n        <label>Passo (m)<input id=\"tabPasso\" inputmode=\"decimal\"><\/label>\n      <\/div>\n      <p class=\"pequeno\" id=\"tab-resumo\" style=\"margin:10px 0 0\"><\/p>\n    <\/div>\n    <div class=\"card\" style=\"padding-top:6px;padding-bottom:6px\"><div class=\"rolagem\" id=\"tabela\"><\/div><\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- GRÁFICO -->\n  <section class=\"tela\" id=\"t-grafico\">\n    <div class=\"card\">\n      <div class=\"rotulo\">Trajetória em relação à linha de visada<\/div>\n      <div class=\"leitura\" id=\"leitura\" style=\"margin:10px 0 6px\"><\/div>\n      <div id=\"grafico\"><\/div>\n      <p class=\"pequeno\" style=\"margin:10px 0 0\">Toque ou passe o dedo no gráfico para ler os valores em cada distância. O alcance do gráfico segue o fim da tabela.<\/p>\n    <\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- RETÍCULO -->\n  <section class=\"tela\" id=\"t-reticulo\">\n    <div class=\"card\">\n      <div class=\"rotulo\" id=\"ret-tit\">Retículo<\/div>\n      <div class=\"chips\" id=\"ret-zoom\" style=\"margin:10px 0\"><button class=\"chip ativo\" data-z=\"ponto\">Zoom no ponto<\/button><button class=\"chip\" data-z=\"inteiro\">Inteiro<\/button><\/div>\n      <div class=\"leitura\" id=\"ret-leitura\" style=\"margin:0 0 8px\"><\/div>\n      <div id=\"reticulo\"><\/div>\n      <p class=\"pequeno\" id=\"ret-nota\" style=\"margin:10px 0 0\"><\/p>\n    <\/div>\n    <div class=\"aviso\"><b>Estimativa para tiro esportivo.<\/b> Confirme os valores no estande.<\/div>\n  <\/section>\n\n  <!-- ALVO -->\n  <section class=\"tela\" id=\"t-alvo\">\n    <div class=\"card\" id=\"alvo-foto-card\">\n      <div class=\"rotulo\">Análise do alvo por foto <span class=\"etiqueta at\" style=\"margin-left:6px\">Beta<\/span><\/div>\n      <p class=\"pequeno\" style=\"margin:8px 0 10px\">Fotografe o alvo de frente, bem enquadrado. Marque a escala, confira os furos e veja o tamanho do grupo e a correção em cliques. Use o zoom (+) para marcar com precisão e arraste a foto com o dedo. A foto original fica no aparelho; o registro guarda só uma miniatura.<\/p>\n      <label class=\"btn\" style=\"display:flex;align-items:center;justify-content:center;color:#0A0A0C;font-size:15px\">Tirar ou escolher a foto do alvo<input id=\"alvo-foto\" type=\"file\" accept=\"image/*\" style=\"display:none\"><\/label>\n    <\/div>\n    <div class=\"card\" id=\"alvo-area\" style=\"display:none\">\n      <div class=\"chips\" id=\"alvo-modo\" style=\"margin-bottom:10px\">\n        <button class=\"chip\" data-m=\"escala\">1 · Escala<\/button><button class=\"chip\" data-m=\"furos\">2 · Furos<\/button><button class=\"chip\" data-m=\"visado\">3 · Ponto visado<\/button>\n      <\/div>\n      <p class=\"pequeno\" id=\"alvo-dica\" style=\"margin:0 0 10px\"><\/p>\n      <div class=\"acoes\" style=\"margin-bottom:8px;align-items:center\"><button class=\"btn sec\" id=\"alvo-zmenos\" style=\"min-width:52px\" aria-label=\"Diminuir zoom\">−<\/button><button class=\"btn sec\" id=\"alvo-zmais\" style=\"min-width:52px\" aria-label=\"Aumentar zoom\">+<\/button><span class=\"pequeno\" id=\"alvo-zinfo\">Zoom 1x<\/span><\/div>\n      <div id=\"alvo-quadro\" style=\"position:relative;overflow:auto;max-height:72vh;touch-action:pan-x pan-y;line-height:0;border:1px solid var(--line)\"><canvas id=\"alvo-tela\" style=\"width:100%;height:auto;display:block;max-width:none\"><\/canvas><\/div>\n      <div class=\"acoes\" style=\"margin-top:10px\">\n        <button class=\"btn sec\" id=\"alvo-detectar\">Detectar furos<\/button><button class=\"btn sec\" id=\"alvo-desfazer\">Desfazer<\/button><button class=\"btn perigo\" id=\"alvo-limpar\">Limpar furos<\/button>\n      <\/div>\n      <div class=\"campos\" style=\"margin-top:12px\">\n        <label>Medida da escala (cm)<input id=\"alvo-ref\" inputmode=\"decimal\"><\/label>\n        <label>Distância do tiro (m)<input id=\"alvo-dist\" inputmode=\"decimal\"><\/label>\n        <label>Diâmetro do projétil (mm)<input id=\"alvo-diam\" inputmode=\"decimal\"><\/label>\n        <label>Arma usada<select id=\"alvo-arma\"><\/select><\/label>\n        <label>Tipo de arma<select id=\"alvo-tipo\"><option value=\"longa\">Arma longa<\/option><option value=\"curta\">Arma curta<\/option><\/select><\/label>\n        <label>Munição<input id=\"alvo-mun\" list=\"alvo-mun-l\" maxlength=\"60\" placeholder=\"Opcional\"><datalist id=\"alvo-mun-l\"><\/datalist><\/label>\n        <label>Modalidade<input id=\"alvo-mod\" list=\"alvo-mod-l\" maxlength=\"40\" placeholder=\"Opcional\"><datalist id=\"alvo-mod-l\"><option>Tiro de precisão<\/option><option>Tiro prático (IPSC)<\/option><option>Saque rápido<\/option><option>Carabina de precisão<\/option><option>Tiro ao prato<\/option><option>Silhueta metálica<\/option><option>Treino livre<\/option><\/datalist><\/label>\n        <label>Coldre<input id=\"alvo-col\" maxlength=\"40\" placeholder=\"Opcional\"><\/label>\n        <label style=\"grid-column:1/-1\">Observação (opcional)<input id=\"alvo-obs\" maxlength=\"140\" placeholder=\"Munição, clima, posição, o que quiser lembrar\"><\/label>\n      <\/div>\n    <\/div>\n    <div id=\"alvo-res\"><\/div>\n    <div class=\"card\" id=\"alvo-hist-card\">\n      <div class=\"rotulo\">Meus alvos<\/div>\n      <div class=\"chips\" id=\"alvo-ordem\" style=\"margin:10px 0\"><button class=\"chip\" data-o=\"melhores\">Melhores (MOA)<\/button><button class=\"chip\" data-o=\"recentes\">Recentes<\/button><\/div>\n      <label style=\"margin-bottom:10px\">Filtrar por arma<select id=\"alvo-filtro\"><\/select><\/label>\n      <div id=\"alvo-hist\"><\/div>\n    <\/div>\n    <div class=\"card\" id=\"alvo-evo-card\">\n      <div class=\"rotulo\">Evolução dos grupos<\/div>\n      <label style=\"margin:10px 0\">Arma<select id=\"evo-arma\"><\/select><\/label>\n      <div id=\"evo-graf\"><\/div>\n      <div class=\"dados\" id=\"evo-nums\" style=\"margin-top:10px\"><\/div>\n    <\/div>\n    <div class=\"card\" id=\"quadro-card\">\n      <div class=\"rotulo\">Quadro de análise de tiro · arma curta<\/div>\n      <p class=\"pequeno\" style=\"margin:8px 0 10px\">Relaciona a região onde os tiros se concentram a possíveis erros do atirador. Vale para arma curta já regulada e para uma série de disparos. O alvo sugere, não comprova: quem confirma é o instrutor, observando o atirador.<\/p>\n      <div class=\"chips\" id=\"quadro-mao\" style=\"margin-bottom:10px\"><button class=\"chip\" data-m=\"destro\">Destro<\/button><button class=\"chip\" data-m=\"canhoto\">Canhoto<\/button><\/div>\n      <div id=\"quadro-svg\" style=\"max-width:340px;margin:0 auto\"><\/div>\n      <div id=\"quadro-det\" style=\"margin-top:12px\"><\/div>\n      <p class=\"pequeno\" style=\"margin:10px 0 0\">Baseado no quadro tradicional de análise de tiro de arma curta (revista O Tiro, CBTA, 1977). Desenho e textos do Ática.<\/p>\n    <\/div>\n    <div class=\"aviso\" id=\"alvo-aviso\"><b>Estimativa para tiro esportivo.<\/b> A medida depende da foto e da escala marcada. Confira com a régua quando o resultado for valer para algo.<\/div>\n  <\/section>\n\n  <!-- CADASTRO -->\n  <section class=\"tela\" id=\"t-cadastro\">\n    <p class=\"pequeno\" style=\"margin:0\">Os cadastros ficam salvos só neste aparelho. Cadastre os dados do seu próprio equipamento e da sua munição, medidos por você.<\/p>\n    <div class=\"card\" id=\"cad-rifle\"><\/div>\n    <div class=\"card\" id=\"cad-mira\"><\/div>\n    <div class=\"card\" id=\"cad-municao\"><\/div>\n  <\/section>\n\n<p class=\"pequeno\" style=\"margin:0\">Marcas, modelos de lunetas e nomes de retículos pertencem aos seus fabricantes e aparecem só para você identificar o seu equipamento. O Ática não tem vínculo com eles.<\/p><\/div>";
 function renderBalistica(c) {
   c.innerHTML = BALX_HTML;
   const raiz = c.querySelector("#balx");
@@ -601,6 +620,9 @@ const EXEMPLO = () => ({
 });
 let E = guardar.get() || EXEMPLO();
 const salvar = () => guardar.set(E);
+const PROJETEIS = [["Hornady","73 gr ELD Match",0.224,73,0.398,0.2,null,null],["Hornady","75 gr ELD Match",0.224,75,0.467,0.235,null,null],["Hornady","80 gr ELD Match",0.224,80,0.485,0.244,null,null],["Hornady","88 gr ELD Match",0.224,88,0.545,0.274,null,null],["Hornady","76 gr A-Tip Match",0.224,76,0.413,0.208,null,null],["Hornady","90 gr A-Tip Match",0.224,90,0.585,0.295,null,null],["Berger","52 gr FB Target",0.224,52,0.235,null,0.714,14],["Berger","55 gr FB Target",0.224,55,0.254,null,0.749,14],["Berger","70 gr VLD Target",0.224,70,0.374,0.191,0.961,9],["Berger","73 gr BT Target",0.224,73,0.348,0.178,0.963,9],["Berger","75 gr VLD Target",0.224,75,0.421,0.216,1.051,8],["Berger","77 gr OTM Tactical",0.224,77,0.374,0.192,1.015,8],["Berger","80 gr VLD Target",0.224,80,0.455,0.233,1.106,8],["Berger","80.5 gr Fullbore Target",0.224,80.5,0.441,0.226,1.091,8],["Berger","85.5 gr Long Range Hybrid Target",0.224,85.5,0.524,0.268,1.167,8],["Berger","90 gr VLD Target",0.224,90,0.534,0.274,1.254,7],["Lapua","69 gr Scenar-L",0.224,69,0.341,0.171,null,null],["Lapua","77 gr Scenar-L",0.224,77,0.386,0.193,null,null],["Hornady","108 gr ELD Match",0.243,108,0.536,0.27,null,null],["Hornady","110 gr A-Tip Match",0.243,110,0.604,0.304,null,null],["Hornady","120 gr A-Tip Match",0.243,120,0.675,0.34,null,null],["Hornady","90 gr ELD-X",0.243,90,0.41,0.206,null,null],["Hornady","103 gr ELD-X",0.243,103,0.512,0.258,null,null],["Berger","90 gr BT Target",0.243,90,0.409,0.21,1.05,10],["Berger","95 gr VLD Target",0.243,95,0.467,0.24,1.13,9],["Berger","105 gr BT Target",0.243,105,0.494,0.253,1.189,8],["Berger","105 gr VLD Target",0.243,105,0.517,0.265,1.222,8],["Berger","105 gr Hybrid Target",0.243,105,0.536,0.275,1.256,8],["Berger","108 gr BT Target",0.243,108,0.522,0.268,1.217,8],["Berger","109 gr Long Range Hybrid Target",0.243,109,0.568,0.292,1.277,8],["Berger","115 gr VLD Target",0.243,115,0.563,0.289,1.332,7],["Lapua","90 gr Scenar-L",0.243,90,0.434,0.216,null,null],["Lapua","105 gr Scenar-L",0.243,105,0.472,0.236,null,null],["Hornady","134 gr ELD Match",0.257,134,0.645,0.325,null,null],["Hornady","110 gr ELD-X",0.257,110,0.465,0.234,null,null],["Hornady","100 gr ELD Match",0.264,100,0.385,0.194,null,null],["Hornady","120 gr ELD Match",0.264,120,0.486,0.245,null,null],["Hornady","123 gr ELD Match",0.264,123,0.506,0.255,null,null],["Hornady","130 gr ELD Match",0.264,130,0.554,0.279,null,null],["Hornady","140 gr ELD Match",0.264,140,0.646,0.326,null,null],["Hornady","147 gr ELD Match",0.264,147,0.697,0.351,null,null],["Hornady","135 gr A-Tip Match",0.264,135,0.637,0.321,null,null],["Hornady","153 gr A-Tip Match",0.264,153,0.704,0.355,null,null],["Hornady","143 gr ELD-X",0.264,143,0.623,0.314,null,null],["Berger","120 gr BT Target",0.264,120,0.468,0.24,1.219,9],["Berger","130 gr VLD Target",0.264,130,0.562,0.288,1.31,8],["Berger","130 gr AR Hybrid OTM Tactical",0.264,130,0.56,0.287,1.295,10],["Berger","140 gr VLD Target",0.264,140,0.593,0.304,1.387,8],["Berger","140 gr Long Range BT Target",0.264,140,0.593,0.304,1.397,8],["Berger","140 gr Hybrid Target",0.264,140,0.607,0.311,1.407,8],["Berger","144 gr Long Range Hybrid Target",0.264,144,0.655,0.336,1.413,8],["Berger","153.5 gr Long Range Hybrid Target",0.264,153.5,0.694,0.356,1.514,8],["Lapua","100 gr Scenar",0.264,100,0.424,0.212,null,null],["Lapua","108 gr Scenar",0.264,108,0.465,0.231,null,null],["Lapua","120 gr Scenar-L",0.264,120,0.497,0.246,null,null],["Lapua","123 gr Scenar",0.264,123,0.527,0.263,null,null],["Lapua","136 gr Scenar-L",0.264,136,0.545,0.274,null,null],["Lapua","139 gr Scenar",0.264,139,0.578,0.29,null,null],["Hornady","162 gr ELD Match",0.284,162,0.67,0.338,null,null],["Hornady","180 gr ELD Match (passo 1:8,75)",0.284,180,0.777,0.391,null,8.75],["Hornady","180 gr ELD Match (passo 1:7,5)",0.284,180,0.816,0.411,null,7.5],["Hornady","166 gr A-Tip Match",0.284,166,0.664,0.332,null,null],["Hornady","190 gr A-Tip Match",0.284,190,0.838,0.422,null,null],["Hornady","150 gr ELD-X",0.284,150,0.574,0.289,null,null],["Hornady","162 gr ELD-X",0.284,162,0.631,0.318,null,null],["Hornady","175 gr ELD-X",0.284,175,0.689,0.347,null,null],["Berger","168 gr VLD Target",0.284,168,0.628,0.322,1.431,10],["Berger","180 gr VLD Target",0.284,180,0.683,0.35,1.52,9],["Berger","180 gr Hybrid Target",0.284,180,0.68,0.349,1.527,9],["Berger","184 gr F-Open Hybrid Target",0.284,184,0.695,0.356,1.575,9],["Berger","190 gr Long Range Hybrid Target",0.284,190,0.751,0.384,1.601,9],["Hornady","155 gr ELD Match",0.308,155,0.461,0.232,null,null],["Hornady","168 gr ELD Match",0.308,168,0.523,0.263,null,null],["Hornady","178 gr ELD Match",0.308,178,0.547,0.275,null,null],["Hornady","195 gr ELD Match",0.308,195,0.584,0.294,null,null],["Hornady","208 gr ELD Match",0.308,208,0.69,0.348,null,null],["Hornady","225 gr ELD Match (passo 1:10)",0.308,225,0.777,0.391,null,10],["Hornady","176 gr A-Tip Match",0.308,176,0.564,0.284,null,null],["Hornady","230 gr A-Tip Match",0.308,230,0.823,0.414,null,null],["Hornady","250 gr A-Tip Match",0.308,250,0.878,0.442,null,null],["Hornady","178 gr ELD-X",0.308,178,0.552,0.278,null,null],["Hornady","200 gr ELD-X",0.308,200,0.597,0.301,null,null],["Hornady","212 gr ELD-X (passo 1:10)",0.308,212,0.663,0.334,null,10],["Hornady","220 gr ELD-X",0.308,220,0.654,0.329,null,null],["Berger","150 gr FB Target",0.308,150,0.393,null,1.155,15],["Berger","155 gr Hybrid Target",0.308,155,0.478,0.245,1.271,12],["Berger","155.5 gr Fullbore Target",0.308,155.5,0.473,0.242,1.226,13],["Berger","168 gr VLD Target",0.308,168,0.507,0.26,1.251,13],["Berger","168 gr Hybrid Target",0.308,168,0.515,0.264,1.287,12],["Berger","175 gr Long Range BT Target",0.308,175,0.512,0.262,1.314,13],["Berger","175 gr OTM Tactical",0.308,175,0.512,0.263,1.261,13],["Berger","185 gr Juggernaut Target",0.308,185,0.555,0.284,1.344,12],["Berger","185 gr Juggernaut OTM Tactical",0.308,185,0.552,0.283,1.355,12],["Berger","185 gr Hybrid Target",0.308,185,0.576,0.295,1.418,11],["Berger","200 gr Hybrid Target",0.308,200,0.616,0.316,1.489,11],["Berger","200.20X Hybrid Target",0.308,200,0.64,0.328,1.508,11],["Berger","208 gr Long Range Hybrid Target",0.308,208,0.689,0.354,1.575,10],["Berger","210 gr VLD Target",0.308,210,0.621,0.318,1.46,11],["Berger","215 gr Hybrid Target",0.308,215,0.691,0.354,1.598,10],["Berger","220 gr Long Range Hybrid Target",0.308,220,0.717,0.369,1.597,10],["Berger","230 gr Hybrid Target",0.308,230,0.717,0.368,1.668,10],["Berger","230 gr Hybrid OTM Tactical",0.308,230,0.71,0.364,1.608,10],["Berger","245 gr Long Range Hybrid Target",0.308,245,0.846,0.433,1.775,9],["Lapua","155 gr Scenar",0.308,155,0.46,0.23,null,null],["Lapua","155 gr Scenar-L",0.308,155,0.46,0.23,null,null],["Lapua","167 gr Scenar",0.308,167,0.446,0.223,null,null],["Lapua","175 gr Scenar-L",0.308,175,0.49,0.247,null,null],["Lapua","185 gr Scenar",0.308,185,0.482,0.242,null,null],["Lapua","220 gr Scenar-L",0.308,220,0.608,0.303,null,null],["Hornady","285 gr ELD Match",0.338,285,0.829,0.417,null,null],["Hornady","300 gr A-Tip Match",0.338,300,0.863,0.435,null,null],["Hornady","230 gr ELD-X",0.338,230,0.616,0.31,null,null],["Hornady","270 gr ELD-X",0.338,270,0.757,0.381,null,null],["Berger","250 gr Hybrid OTM Tactical",0.338,250,0.682,0.349,1.635,12],["Berger","300 gr Hybrid OTM Tactical",0.338,300,0.822,0.421,1.819,10],["Lapua","250 gr Scenar",0.338,250,0.648,0.322,null,null],["Lapua","300 gr Scenar",0.338,300,0.736,0.368,null,null]];
+const PROJ_CALS = [[".224", ".22 / .223 / 5,56"], [".243", "6 mm / .243 / 6 Creedmoor"], [".257", ".25"], [".264", "6,5 mm / 6,5 Creedmoor / .260"], [".284", "7 mm / 7 mm-08 / 7 PRC"], [".308", ".30 / .308 / .300 WM / 7,62"], [".338", ".338 / .338 Lapua"]];
+const PROJ = { cal: "" };
 const MUNICOES = [
   { cal: "308", nome: ".308 Win 147 gr FMJ (tipo M80)", d: 7.82, l: 28.4, gr: 147, cb: 0.398, v0: 838, cano: 22 },
   { cal: "308", nome: ".308 Win 150 gr ponta macia", d: 7.82, l: 27, gr: 150, cb: 0.314, v0: 860, cano: 24 },
@@ -659,13 +681,15 @@ function parametros() {
     const za = Balistica.atmosfera({ modo: mira.zeroModo, temperatura: zt, pressao: zp, umidade: isFinite(zu) ? zu : 50, altitudeDensidade: zd });
     zero = { zeroRho: za.rho, zeroSom: za.som, zeroV0: num(mun.v0) + (isFinite(sens) && isFinite(tm) ? sens * (zt - tm) : 0) };
   }
-  const rifle = atual("rifle");
+  const rifle = atual("rifle"), opc = E.opc || {};
   const sg = rifle ? Balistica.estabilidade({ massaKg, diametroMm: num(mun.diametro), comprimentoMm: num(mun.comprimento), passoMm: num(rifle.passo), v0, rho: atm.rho }) : null;
   return {
     mira, mun, atm, unidade: mira.unidade, fator, sg: isFinite(sg) ? sg : null, porVolta: num(mira.porVolta),
     p: { massaKg, cb: num(mun.cb), arrasto: mun.arrasto, v0, alturaMira: num(mira.altura) / 100, zero: num(mira.zero),
       cliqueV: (num(mira.cliqueV) || 0) * fator, cliqueH: (num(mira.cliqueH) || 0) * fator, rho: atm.rho, som: atm.som,
-      inclinacao: num(t.inclinacao) || 0, ventoVel: t.ventoUn === "kmh" ? vv / 3.6 : vv, ventoDir: (num(t.ventoHora) % 12) * 30, ...zero },
+      inclinacao: num(t.inclinacao) || 0, ventoVel: t.ventoUn === "kmh" ? vv / 3.6 : vv, ventoDir: (num(t.ventoHora) % 12) * 30, ...zero,
+      sg: isFinite(sg) ? sg : 0, calibres: num(mun.comprimento) / num(mun.diametro), twistEsq: !!(rifle && rifle.direcao === "esquerda"),
+      usarGiro: !!opc.giro, usarCoriolis: !!opc.coriolis, usarSalto: !!opc.salto, lat: num(t.latitude), azimute: num(t.azimute) || 0 },
   };
 }
 const naUnidade = (c, un) => un === "MOA" ? c.moa : c.mrad;
@@ -681,9 +705,176 @@ function torre(c, q) {
 }
 
 // ---------- TIRO ----------
+// ---------- calibração pela queda real ----------
+const CAL = { d: "", val: "", un: "mira", modo: "acertou", campo: "auto", res: null, munId: null };
+const calNum = (v, d) => String(Math.round(v * 10 ** d) / 10 ** d).replace(".", ",");
+function calFaixa(q) { // distâncias em que o projétil passa por Mach 1,2 e Mach 1,0
+  const L = Balistica.tabela(q.p, 50, 2500, 10); let a = null, b = null;
+  for (const l of L) { const m = l.v / q.p.som; if (a === null && m < 1.2) a = l.x; if (b === null && m < 1.0) { b = l.x; break; } }
+  return { a, b };
+}
+function calResolver(q, d, alvo, campo) {
+  const p = q.p, lim = campo === "v0" ? [0.6, 1.4] : [0.4, 2.5];
+  const f = (k) => { const r = Balistica.calcular(campo === "v0" ? { ...p, v0: p.v0 * k, zeroV0: p.zeroV0 === undefined ? undefined : p.zeroV0 * k } : { ...p, cb: p.cb * k }, d); return r ? r.elev.mrad : NaN; };
+  let lo = lim[0], hi = lim[1], flo = f(lo), fhi = f(hi);
+  if (!isFinite(flo) || !isFinite(fhi) || (flo - alvo) * (fhi - alvo) > 0) return null;
+  for (let i = 0; i < 28; i++) { const m = (lo + hi) / 2, fm = f(m); if (!isFinite(fm)) return null; if ((flo - alvo) * (fm - alvo) <= 0) { hi = m; } else { lo = m; flo = fm; } }
+  return (lo + hi) / 2;
+}
+function calHtml(q) {
+  const mun = q.mun, un = q.unidade, hist = (mun.calib || []).slice(-3).reverse();
+  const op = (v, t, s) => `<option value="${v}"${s === v ? " selected" : ""}>${t}</option>`;
+  let res = "";
+  if (CAL.res && CAL.munId === mun.id) {
+    const R = CAL.res;
+    res = R.erro ? `<div class="erro" style="margin-top:12px">${R.erro}</div>` : `<div class="dados" style="margin-top:12px">
+      <div><span>Previsto pelo Ática</span><b>${fmt(R.prev, 2)}</b><em>MRAD</em></div>
+      <div><span>Real no estande</span><b>${fmt(R.real, 2)}</b><em>MRAD</em></div>
+      <div><span>${R.campo === "v0" ? "Velocidade na boca" : "Coeficiente balístico"}</span><b>${R.campo === "v0" ? fmt(R.antes, 0) + " → " + fmt(R.depois, 0) : fmt(R.antes, 3) + " → " + fmt(R.depois, 3)}</b><em>${R.campo === "v0" ? "m/s" : mun.arrasto}</em></div>
+      <div><span>Mach a ${fmt(R.d, 0)} m</span><b>${fmt(R.mach, 2)}</b></div></div>
+      ${R.aviso ? `<div class="aviso" style="margin-top:10px">${R.aviso}</div>` : ""}
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" id="cal-aplicar">Aplicar na munição</button><button class="btn sec" id="cal-limpar">Descartar</button></div>`;
+  }
+  const fx = CAL.faixa;
+  return `<div class="card" id="cal-card" style="margin-top:14px">
+    <div class="rotulo">Calibrar com o tiro real</div>
+    <p class="pequeno" style="margin:8px 0 10px">Atire numa distância conhecida e diga ao Ática quanto precisou subir para acertar o centro. Ele corrige a munição selecionada (<b>${esc(mun.nome)}</b>) para as próximas contas. Preencha o clima do dia do tiro no cartão Clima e confira antes se o zero está certo.</p>
+    <div class="campos">
+      <label>Distância do tiro (m)<input id="cal-d" inputmode="decimal" value="${esc(CAL.d)}"></label>
+      <label>O que você mediu<select id="cal-modo">${op("acertou", "Correção que acertou", CAL.modo)}${op("errou", "Errei usando a do Ática", CAL.modo)}</select></label>
+      <label>${CAL.modo === "errou" ? "Quanto o tiro bateu (cm, + acima / − abaixo)" : "Correção de elevação usada"}<div class="junto"><input id="cal-val" inputmode="decimal" value="${esc(CAL.val)}">${CAL.modo === "errou" ? "" : `<select id="cal-un">${op("mira", un, CAL.un)}${op("cliques", "cliques", CAL.un)}</select>`}</div></label>
+      <label>Ajustar<select id="cal-campo">${op("auto", "Automático", CAL.campo)}${op("v0", "Velocidade na boca (v0)", CAL.campo)}${op("cb", "Coeficiente balístico (BC)", CAL.campo)}</select></label>
+    </div>
+    <p class="pequeno" style="margin:8px 0 0">Comece pela velocidade, atirando onde o projétil ainda está bem acima da velocidade do som${fx && fx.a ? ` (até uns ${fmt(fx.a, 0)} m com esta munição e este clima)` : ""}. Depois, se quiser, calibre o BC mais longe${fx && fx.a ? `, entre ${fmt(fx.a, 0)} e ${fmt(fx.b || fx.a + 200, 0)} m` : ""}.</p>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn" id="cal-calc">Calcular ajuste</button>${(mun.calib || []).length ? `<button class="btn sec" id="cal-desfazer">Desfazer a última calibração</button>` : ""}</div>
+    ${res}
+    ${hist.length ? `<div class="pequeno" style="margin-top:10px">${hist.map((h) => `${new Date(h.em).toLocaleDateString("pt-BR")}: ${h.campo === "v0" ? "v0 " + fmt(h.antes, 0) + " → " + fmt(h.depois, 0) + " m/s" : "BC " + fmt(h.antes, 3) + " → " + fmt(h.depois, 3)} (tiro a ${fmt(h.d, 0)} m)`).join("<br>")}</div>` : ""}
+  </div>`;
+}
+function calCalcular(q) {
+  const d = num(CAL.d), v = num(CAL.val);
+  if (!(d >= 50) || d > 2500) return { erro: "Informe a distância do tiro (de 50 a 2.500 m)." };
+  if (!isFinite(v)) return { erro: CAL.modo === "errou" ? "Informe quantos centímetros o tiro bateu acima (+) ou abaixo (−)." : "Informe a correção de elevação que acertou o centro." };
+  const r = Balistica.calcular(q.p, d);
+  if (!r) return { erro: "O projétil não chega a essa distância com os dados cadastrados." };
+  let real;
+  if (CAL.modo === "errou") real = r.elev.mrad - (v / 100) / d * 1000;
+  else if (CAL.un === "cliques") { if (!(q.p.cliqueV > 0)) return { erro: "Cadastre o valor do clique da mira para usar cliques." }; real = v * q.p.cliqueV; }
+  else real = q.unidade === "MOA" ? v / Balistica.MOA_POR_MRAD : v;
+  if (Math.abs(real - r.elev.mrad) < 0.02) return { erro: "O tiro real bateu com o previsto. Não há o que ajustar." };
+  const campo = CAL.campo === "auto" ? (r.mach >= 1.2 ? "v0" : "cb") : CAL.campo;
+  const k = calResolver(q, d, real, campo);
+  if (k === null) return { erro: "A diferença é grande demais para ser só a munição. Confira o zero, a altura da mira, o valor do clique e o clima." };
+  const mun = q.mun, antes = num(mun[campo]), depois = antes * k;
+  const avisos = [];
+  if (campo === "v0" && r.mach < 1.2) avisos.push(`A ${fmt(d, 0)} m o projétil já está perto da velocidade do som. A velocidade fica mais confiável calibrada numa distância menor.`);
+  if (campo === "cb" && r.mach >= 1.2) avisos.push(`A ${fmt(d, 0)} m o projétil ainda está rápido; o BC pesa pouco aqui. Para o BC, atire mais longe.`);
+  if (campo === "cb" && !(mun.calib || []).some((h) => h.campo === "v0")) avisos.push("Calibre a velocidade antes do BC, numa distância menor, para não esconder um erro no outro.");
+  if (Math.abs(k - 1) > (campo === "v0" ? 0.06 : 0.15)) avisos.push("A mudança é grande. Antes de aplicar, confira o zero, a altura da mira e o clique da luneta, e repita o tiro com um grupo de 3 a 5 disparos.");
+  return { d, prev: r.elev.mrad, real, campo, antes, depois, mach: r.mach, aviso: avisos.join(" ") };
+}
+function renderCalib() {
+  const el = $("#" + "calib"); if (!el) return;
+  const q = parametros(); if (q.erro) { el.innerHTML = ""; return; }
+  if (CAL.munId !== q.mun.id) { CAL.res = null; CAL.munId = q.mun.id; }
+  try { CAL.faixa = calFaixa(q); } catch (e) { CAL.faixa = null; }
+  el.innerHTML = calHtml(q);
+  const liga = (id, k, re) => { const i = $("#" + id); if (!i) return; i.oninput = i.onchange = () => { CAL[k] = i.value; if (re) renderCalib(); }; };
+  liga("cal-d", "d"); liga("cal-val", "val"); liga("cal-un", "un"); liga("cal-campo", "campo"); liga("cal-modo", "modo", true);
+  const b = (id, fn) => { const x = $("#" + id); if (x) x.onclick = fn; };
+  b("cal-calc", () => { CAL.res = calCalcular(parametros()); CAL.munId = q.mun.id; renderCalib(); });
+  b("cal-limpar", () => { CAL.res = null; renderCalib(); });
+  b("cal-aplicar", () => {
+    const R = CAL.res, m = atual("municao"); if (!R || R.erro || !m) return;
+    m[R.campo] = calNum(R.depois, R.campo === "v0" ? 1 : 3);
+    (m.calib = m.calib || []).push({ em: Date.now(), campo: R.campo, antes: R.antes, depois: R.depois, d: R.d, prev: R.prev, real: R.real });
+    if (m.calib.length > 10) m.calib.shift();
+    CAL.res = null; CAL.val = ""; salvar(); renderTudo();
+  });
+  b("cal-desfazer", () => {
+    const m = atual("municao"); if (!m || !(m.calib || []).length) return;
+    const h = m.calib.pop(); m[h.campo] = calNum(h.antes, h.campo === "v0" ? 1 : 3); CAL.res = null; salvar(); renderTudo();
+  });
+}
+// ---------- sensores do celular ----------
+function abMsg(t, erro) { const m = $("#ab-msg"); if (m) { m.textContent = t; m.className = "msg" + (erro ? " erro" : ""); } }
+function abCampo(k, v) { E.tiro[k] = v; const i = $("#" + k); if (i) i.value = v; salvar(); renderTiro(); renderTabela(); renderGrafico(); renderReticulo(); }
+async function abPermOrient() {
+  try { if (typeof DeviceOrientationEvent !== "undefined" && typeof DeviceOrientationEvent.requestPermission === "function") return (await DeviceOrientationEvent.requestPermission()) === "granted"; } catch (e) { return false; }
+  return typeof DeviceOrientationEvent !== "undefined";
+}
+async function abInclinacao() {
+  if (!(await abPermOrient())) return abMsg("Este aparelho não liberou o sensor de inclinação.", true);
+  abMsg("Deite o celular sobre o trilho da luneta, com o topo apontando para o alvo, e segure firme…");
+  const L = [], ouvir = (ev) => { if (ev.beta !== null) L.push(ev.beta); };
+  globalThis.addEventListener("deviceorientation", ouvir);
+  setTimeout(() => {
+    globalThis.removeEventListener("deviceorientation", ouvir);
+    if (L.length < 3) return abMsg("Não recebi leitura do sensor. Confira se o navegador tem permissão de movimento.", true);
+    L.sort((a, b) => a - b); const m = L[Math.floor(L.length / 2)];
+    if (Math.abs(m) > 60) return abMsg("Leitura fora do esperado. Deite o celular sobre a arma e tente de novo.", true);
+    abCampo("inclinacao", String(Math.round(m)).replace(".", ",")); abMsg("Inclinação medida: " + Math.round(m) + "°. " + (m > 0 ? "Tiro para cima." : m < 0 ? "Tiro para baixo." : "Tiro plano."));
+  }, 2500);
+}
+async function abRumo() {
+  if (!(await abPermOrient())) return abMsg("Este aparelho não liberou a bússola.", true);
+  abMsg("Deite o celular com o topo apontando para o alvo, longe de metal, e espere…");
+  const L = [], ouvir = (ev) => { const h = ev.webkitCompassHeading ?? (ev.absolute && ev.alpha !== null ? 360 - ev.alpha : null); if (h !== null && isFinite(h)) L.push(h); };
+  globalThis.addEventListener("deviceorientationabsolute", ouvir); globalThis.addEventListener("deviceorientation", ouvir);
+  setTimeout(() => {
+    globalThis.removeEventListener("deviceorientationabsolute", ouvir); globalThis.removeEventListener("deviceorientation", ouvir);
+    if (L.length < 3) return abMsg("A bússola não respondeu neste aparelho. Digite o rumo (0 = norte, 90 = leste).", true);
+    const s = L.reduce((a, h) => [a[0] + Math.sin(h * Math.PI / 180), a[1] + Math.cos(h * Math.PI / 180)], [0, 0]);
+    const h = Math.round((Math.atan2(s[0], s[1]) * 180 / Math.PI + 360) % 360);
+    abCampo("azimute", String(h)); abMsg("Rumo do tiro: " + h + "°. A bússola do celular erra perto de metal e da arma; confira se puder.");
+  }, 2500);
+}
+function abGps() {
+  if (!navigator.geolocation) return abMsg("Este aparelho não tem GPS disponível no navegador.", true);
+  abMsg("Buscando a posição…");
+  navigator.geolocation.getCurrentPosition((p) => { abCampo("latitude", String(Math.round(p.coords.latitude * 100) / 100).replace(".", ",")); abMsg("Latitude preenchida pelo GPS."); },
+    () => abMsg("Não consegui a posição. Libere a localização ou digite a latitude (negativa no Brasil).", true), { enableHighAccuracy: false, timeout: 12000, maximumAge: 600000 });
+}
+function abOpcoes() {
+  const el = $("#ab-opc"); if (!el) return; const o = E.opc || {};
+  const cor = $("#ab-cor"); if (cor) cor.style.display = o.coriolis ? "" : "none";
+  if (el.childElementCount) { el.querySelectorAll("[data-opc]").forEach((b) => b.classList.toggle("ativo", !!o[b.dataset.opc])); return; }
+  el.innerHTML = [["giro", "Deriva de giro", !!o.giro], ["coriolis", "Coriolis", !!o.coriolis], ["salto", "Salto aerodinâmico", !!o.salto]]
+    .map(([k, t, on]) => `<button class="chip${on ? " ativo" : ""}" data-opc="${k}">${t}</button>`).join("");
+  el.querySelectorAll("[data-opc]").forEach((b) => b.onclick = () => { const O = E.opc = E.opc || {}; const k = b.dataset.opc; O[k] = !O[k]; salvar(); abOpcoes(); renderTiro(); renderTabela(); renderGrafico(); renderReticulo(); });
+}
+// ---------- vários alvos ----------
+function multiTabela() { const t = $("#mul-tab"); if (!t) return multiRender(); t.innerHTML = multiTab(); }
+function multiTab() {
+  const L = E.multi || [], q = parametros(); if (q.erro || !L.length) return "";
+  const un = q.unidade, dec = un === "MOA" ? 2 : 1;
+  return `<div class="rolagem" style="margin-top:10px"><table><tr><th>Alvo</th><th>m</th><th>Elev. ${un}</th><th>Cliques</th><th>Vento ${un}</th><th>Cliques</th></tr>${L.map((a) => {
+      const d = num(a.d), r = d > 0 && d <= 3000 ? Balistica.calcular({ ...q.p, inclinacao: isFinite(num(a.inc)) ? num(a.inc) : q.p.inclinacao }, d) : null;
+      return `<tr><td>${esc(a.nome || "—")}</td><td>${fmt(d, 0)}</td>${r ? `<td>${fmt(naUnidade(r.elev, un), dec)}</td><td>${cliques(r.elev)} ${r.elev.mrad >= 0 ? "↑" : "↓"}</td><td>${fmt(Math.abs(naUnidade(r.vento, un)), dec)}</td><td>${cliques(r.vento)} ${r.vento.mrad >= 0 ? "→" : "←"}</td>` : `<td colspan="4">—</td>`}</tr>`;
+    }).join("")}</table></div>`;
+}
+function multiRender() {
+  const el = $("#multi"); if (!el) return;
+  const L = E.multi = E.multi || [];
+  el.innerHTML = `<div class="card" style="margin-top:14px"><div class="rotulo">Vários alvos</div>
+    <p class="pequeno" style="margin:8px 0 0">Monte a sequência da prova ou do estande e veja a correção de cada alvo com o vento e o clima de agora.</p>
+    ${L.map((a, i) => `<div class="c2" style="margin-top:10px;grid-template-columns:1.4fr 1fr 1fr auto;align-items:end"><label>Nome<input data-mn="${i}" maxlength="20" value="${esc(a.nome || "")}"></label><label>Distância (m)<input data-md="${i}" inputmode="decimal" value="${esc(a.d || "")}"></label><label>Inclinação (°)<input data-mi="${i}" inputmode="decimal" value="${esc(a.inc ?? "")}" placeholder="igual"></label><button class="btn sec" data-mx="${i}" style="min-height:44px">✕</button></div>`).join("")}
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button class="btn sec" id="mul-add">Adicionar alvo</button>${L.length ? `<button class="btn sec" id="mul-comp">Compartilhar</button>` : ""}</div><div id="mul-tab">${multiTab()}</div><div class="msg" id="mul-msg"></div></div>`;
+  const re = () => { salvar(); multiRender(); };
+  el.querySelectorAll("[data-mn],[data-md],[data-mi]").forEach((inp) => { inp.onchange = () => { const i = +(inp.dataset.mn ?? inp.dataset.md ?? inp.dataset.mi), k = inp.dataset.mn !== undefined ? "nome" : inp.dataset.md !== undefined ? "d" : "inc"; L[i][k] = inp.value; re(); }; });
+  el.querySelectorAll("[data-mx]").forEach((b) => b.onclick = () => { L.splice(+b.dataset.mx, 1); re(); });
+  $("#mul-add").onclick = () => { if (L.length >= 12) return; const ult = L.length ? num(L[L.length - 1].d) : 0; L.push({ nome: "Alvo " + (L.length + 1), d: ult > 0 ? String(ult + 100) : (E.tiro.distancia || "100") }); re(); };
+  if ($("#mul-comp")) $("#mul-comp").onclick = async () => {
+    const q2 = parametros(); if (q2.erro) return; const un = q2.unidade, dec = un === "MOA" ? 2 : 1;
+    const linhas = L.map((a) => { const d = num(a.d), r = d > 0 ? Balistica.calcular({ ...q2.p, inclinacao: isFinite(num(a.inc)) ? num(a.inc) : q2.p.inclinacao }, d) : null; return r ? `${a.nome || "Alvo"} · ${fmt(d, 0)} m: elevação ${fmt(naUnidade(r.elev, un), dec)} ${un} (${cliques(r.elev)} cliques ${r.elev.mrad >= 0 ? "para cima" : "para baixo"}), vento ${fmt(Math.abs(naUnidade(r.vento, un)), dec)} ${un}` : ""; }).filter(Boolean);
+    const text = ["Cartão de alvos · " + (atual("municao") || {}).nome, ...linhas, "Estimativa do Ática. Confirme no estande."].join("\n"), m = $("#mul-msg");
+    try { if (navigator.share) { await navigator.share({ title: "Cartão de alvos", text }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+    try { await navigator.clipboard.writeText(text); m.className = "msg"; m.textContent = "Cartão copiado. Cole no WhatsApp."; } catch (e) { m.className = "msg erro"; m.textContent = "Não foi possível compartilhar neste aparelho."; }
+  };
+}
 function renderTiro() {
   const q = parametros(), d = num(E.tiro.distancia), el = $("#resultado");
-  desenharRosa();
+  desenharRosa(); renderCalib(); multiTabela(); abOpcoes();
   if (q.erro) { el.innerHTML = `<div class="erro">${q.erro}</div>`; return; }
   if (!(d > 0) || d > 3000) { el.innerHTML = `<div class="erro">Informe a distância do alvo (até 3.000 m).</div>`; return; }
   const r = Balistica.calcular(q.p, d);
@@ -697,9 +888,15 @@ function renderTiro() {
   };
   const linha = (tit, c) => `<tr><td>${tit}</td><td>${fmt(c.mrad, 2)}</td><td>${fmt(c.moa, 2)}</td><td>${fmt(c.smoa, 2)}</td><td>${fmt(c.cm, 1)}</td><td>${c.cliques === null ? "—" : fmt(c.cliques, 1)}</td></tr>`;
   const sub = r.mach < 1.2 ? `<div class="aviso" style="border-left-color:var(--azul)">A ${fmt(d, 0)} m o projétil está em Mach ${fmt(r.mach, 2)}, perto ou abaixo da velocidade do som. Nessa faixa a previsão perde precisão.</div>` : "";
+  const v2 = num(E.tiro.ventoVel2), r2 = v2 > 0 ? Balistica.calcular({ ...q.p, ventoVel: E.tiro.ventoUn === "kmh" ? v2 / 3.6 : v2 }, d) : null;
+  const F = r.finos || {}, cmF = (m) => fmt(m * 100, 1);
+  const finosTxt = [q.p.usarGiro && q.p.sg ? `<div><span>Deriva de giro</span><b>${cmF(F.giro)}</b><em>cm ${F.giro >= 0 ? "à direita" : "à esquerda"}</em></div>` : "",
+    q.p.usarCoriolis && isFinite(q.p.lat) ? `<div><span>Coriolis</span><b>${cmF(F.corH)} / ${cmF(F.corV)}</b><em>cm lado / altura</em></div>` : "",
+    q.p.usarSalto && q.p.sg ? `<div><span>Salto aerodinâmico</span><b>${cmF(F.salto || 0)}</b><em>cm na altura</em></div>` : "",
+    (q.p.usarGiro || q.p.usarSalto) && !q.p.sg ? `<div><span>Deriva de giro e salto</span><b>—</b><em>informe o passo do estriamento do rifle e o comprimento do projétil</em></div>` : ""].join("");
   el.innerHTML = `
     <div style="display:flex;flex-direction:column;gap:14px">
-    <div class="herois">${heroi("Elevação", r.elev, "Subir", "Descer")}${heroi("Vento", r.vento, "Direita", "Esquerda")}</div>
+    <div class="herois">${heroi("Elevação", r.elev, "Subir", "Descer")}${heroi(r2 ? "Vento 1" : "Vento", r.vento, "Direita", "Esquerda")}${r2 ? heroi("Vento 2", r2.vento, "Direita", "Esquerda") : ""}</div>
     <div class="card" style="padding-top:8px;padding-bottom:8px"><div class="rolagem"><table>
       <tr><th>Correção a ${fmt(d, 0)} m</th><th>MRAD</th><th>MOA</th><th>SMOA</th><th>cm</th><th>Cliques</th></tr>
       ${linha("Elevação", r.elev)}${linha("Vento", r.vento)}</table></div></div>
@@ -713,7 +910,7 @@ function renderTiro() {
       <div><span>1 clique vale</span><b>${fmt(r.cliqueCmV, 1)}</b><em>cm a ${fmt(d, 0)} m</em></div>
       <div><span>Altura máxima</span><b>${fmt(r.alturaMaxCm, 1)}</b><em>cm a ${fmt(r.distAlturaMax, 0)} m</em></div>
       <div><span>Queda no alvo</span><b>${fmt(r.quedaCm, 1)}</b><em>cm</em></div>
-      <div><span>Alt. de densidade</span><b>${fmt(q.atm.altDens, 0)}</b><em>m</em></div>
+      <div><span>Alt. de densidade</span><b>${fmt(q.atm.altDens, 0)}</b><em>m</em></div>${finosTxt}
       ${torre(r.elev, q) ? `<div><span>Torre de elevação</span><b>${torre(r.elev, q)}</b></div>` : ""}
       ${q.sg ? `<div><span>Estabilidade (Sg)</span><b class="${q.sg < 1.1 ? "cr" : q.sg < 1.5 ? "at" : ""}">${fmt(q.sg, 2)}</b><em>${q.sg < 1.1 ? "instável" : q.sg < 1.5 ? "marginal" : "estável"}</em></div>` : ""}
     </div>${sub}</div>`;
@@ -850,19 +1047,32 @@ function renderCadastro() {
     el.innerHTML = `<div class="item-cab"><label><span class="rotulo">${c.titulo}</span><select data-sel>${lista.map((x) => `<option value="${x.id}" ${it && x.id === it.id ? "selected" : ""}>${esc(x.nome)}</option>`).join("")}</select></label>
       <button class="btn sec" data-novo>Novo</button><button class="btn perigo" data-del ${lista.length < 2 ? "disabled style='opacity:.4'" : ""}>Excluir</button></div>` +
       (it && tipo === "mira" ? `<label style="margin-bottom:10px">Preencher pelo catálogo de lunetas<select data-cat><option value="">Escolher marca e modelo…</option>${["Arken", "Nightforce", "Vortex"].map((b) => `<optgroup label="${b}">${CATALOGO.lunetas.map((x, i) => x.b === b ? `<option value="${i}">${esc(x.m)} · ${x.u}${x.r.length ? " · " + esc(x.r.join(", ")) : ""}</option>` : "").join("")}</optgroup>`).join("")}</select></label>` : "") +
+      (it && tipo === "municao" ? `<div class="c2" style="margin-bottom:10px"><label>Biblioteca de projéteis<select data-pcal><option value="">Calibre…</option>${PROJ_CALS.map(([k, t]) => `<option value="${k}"${PROJ.cal === k ? " selected" : ""}>${t}</option>`).join("")}</select></label>${PROJ.cal ? `<label>Projétil<select data-proj><option value="">Escolher…</option>${["Hornady", "Berger", "Lapua"].map((fb) => `<optgroup label="${fb}">${PROJETEIS.map((x, i) => x[0] === fb && x[2].toFixed(3).slice(1) === PROJ.cal ? `<option value="${i}">${esc(x[1])} · G1 ${String(x[4]).replace(".", ",")}${x[5] ? " · G7 " + String(x[5]).replace(".", ",") : ""}</option>` : "").join("")}</optgroup>`).join("")}</select></label>` : ""}</div>` : "") +
       (it && tipo === "municao" ? `<label style="margin-bottom:10px">Preencher pelo catálogo de munições<select data-mun><option value="">Escolher calibre e projétil…</option>${[["308", ".308 Win / 7,62x51"], ["556", "5,56x45 / .223 Rem"]].filter(([k]) => !(atual("rifle") || {}).calibre || (atual("rifle") || {}).calibre === k).map(([k, t]) => `<optgroup label="${t}">${MUNICOES.map((x, i) => x.cal === k ? `<option value="${i}">${esc(x.nome)}</option>` : "").join("")}</optgroup>`).join("")}</select></label>` : "") +
       (it ? `<div class="campos">${c.campos.filter(([, , , so]) => !so || so.split(" ").includes(it.zeroModo)).map(([k, rot, tp]) => { if (typeof tp === "function") tp = tp(); return `<label ${k === "nome" ? 'style="grid-column:1/-1"' : ""}>${rot}${Array.isArray(tp)
         ? `<select data-k="${k}">${tp.map(([v, t]) => `<option value="${v}" ${(it[k] ?? tp[0][0]) === v ? "selected" : ""}>${t}</option>`).join("")}</select>`
         : `<input data-k="${k}" value="${esc(it[k])}" ${tp === "texto" ? 'maxlength="60"' : 'inputmode="decimal"'}>`}</label>`; }).join("")}</div>` : "") +
       (tipo === "mira" ? `<p class="pequeno" style="margin:10px 0 0">Os dados do catálogo vêm das páginas dos fabricantes. Confira clique e valor por volta com o manual da sua luneta. A altura da mira e a zeragem são do seu rifle.</p>` : "") +
       (tipo === "rifle" ? `<p class="pequeno" style="margin:10px 0 0">As armas longas dos seus CRAFs entram aqui sozinhas. Ajuste o nome, o calibre e o cano se o seu rifle foi modificado (cano trocado, por exemplo). O estriamento fica guardado para o cálculo de desvio giroscópico, que entra em uma próxima versão.</p>` : "") +
-      (tipo === "municao" ? `<p class="pequeno" style="margin:10px 0 0">${it && it.canoRef ? `Catálogo: ${esc(it.v0Cat || it.v0)} m/s em cano de ${esc(it.canoRef)} pol. Cano mais curto ou mais longo muda a velocidade. ` : ""}Os valores do catálogo são típicos de fábrica. Use o coeficiente balístico e a velocidade medidos para a sua munição. Se não souber a variação por temperatura, deixe 0.</p>` : "");
+      (tipo === "municao" ? `<p class="pequeno" style="margin:10px 0 0">${it && it.projetil ? `Projétil da biblioteca: ${esc(it.projetil)}. BC e medidas publicados pelo fabricante; a velocidade na boca é a do seu rifle (meça no cronógrafo ou use a calibração). ${!num(it.comprimento) ? "Meça o comprimento do projétil com um paquímetro para o Ática calcular a estabilidade e a deriva de giro. " : ""}${it.twistMin ? `Passo mínimo indicado: 1:${String(it.twistMin).replace(".", ",")}"${(() => { const r = atual("rifle"), p = r ? num(r.passo) / 25.4 : NaN; return p > 0 && p > +it.twistMin + 0.05 ? ` — o seu rifle (1:${(Math.round(p * 10) / 10).toString().replace(".", ",")}") é mais lento que o indicado; o projétil pode não estabilizar.` : "."; })()} ` : ""}` : ""}${it && it.canoRef ? `Catálogo: ${esc(it.v0Cat || it.v0)} m/s em cano de ${esc(it.canoRef)} pol. Cano mais curto ou mais longo muda a velocidade. ` : ""}Os valores do catálogo são típicos de fábrica. Use o coeficiente balístico e a velocidade medidos para a sua munição. Se não souber a variação por temperatura, deixe 0.</p>` : "");
     el.querySelector("[data-sel]").onchange = (e) => { E.sel[tipo] = e.target.value; salvar(); renderTudo(); };
     const mun = el.querySelector("[data-mun]");
     if (mun) mun.onchange = () => {
       const x = MUNICOES[mun.value]; if (!x) return;
       const br = (n) => String(n).replace(".", ",");
       Object.assign(it, { nome: x.nome, diametro: br(x.d), comprimento: br(x.l), peso: String(x.gr), pesoUn: "gr", cb: br(x.cb), arrasto: "G1", v0: String(x.v0), v0Cat: String(x.v0), canoRef: String(x.cano), sens: it.sens || "0" });
+      salvar(); renderTudo();
+    };
+    const pcal = el.querySelector("[data-pcal]");
+    if (pcal) pcal.onchange = () => { PROJ.cal = pcal.value; renderCadastro(); };
+    const proj = el.querySelector("[data-proj]");
+    if (proj) proj.onchange = () => {
+      const x = PROJETEIS[proj.value]; if (!x) return;
+      const br = (n, d) => String(Math.round(n * 10 ** d) / 10 ** d).replace(".", ",");
+      const [fb, nome, d, gr, g1, g7, l, tw] = x;
+      Object.assign(it, { nome: fb + " " + nome, diametro: br(d * 25.4, 2), peso: String(gr).replace(".", ","), pesoUn: "gr", cb: br(g7 || g1, 3), arrasto: g7 ? "G7" : "G1", projetil: fb + " " + nome, twistMin: tw || "" });
+      if (l) it.comprimento = br(l * 25.4, 2); else it.comprimento = "";
+      if (!it.v0 && it.v0Cat) it.v0 = it.v0Cat;
       salvar(); renderTudo();
     };
     const cat = el.querySelector("[data-cat]");
@@ -913,8 +1123,9 @@ function renderTudo(pularCadastro) {
   seletores(); rapidos(); climaModo(); renderTiro(); renderTabela(); renderGrafico(); renderReticulo();
   if (!pularCadastro) renderCadastro();
 }
+for (const [i, f] of [["ab-inc", abInclinacao], ["ab-rumo", abRumo], ["ab-gps", abGps]]) { const b = $("#" + i); if (b) b.onclick = f; }
 $("#ventoHora").innerHTML = [[12, "12 h · de frente"], [1, "1 h"], [2, "2 h"], [3, "3 h · da direita"], [4, "4 h"], [5, "5 h"], [6, "6 h · de trás"], [7, "7 h"], [8, "8 h"], [9, "9 h · da esquerda"], [10, "10 h"], [11, "11 h"]].map(([v, t]) => `<option value="${v}">${t}</option>`).join("");
-for (const k of ["distancia", "inclinacao", "ventoVel", "ventoUn", "ventoHora", "temperatura", "pressao", "umidade", "altitude", "altitudeDensidade"]) {
+for (const k of ["azimute", "latitude", "ventoVel2", "distancia", "inclinacao", "ventoVel", "ventoUn", "ventoHora", "temperatura", "pressao", "umidade", "altitude", "altitudeDensidade"]) {
   const inp = $("#" + k); inp.value = E.tiro[k] ?? "";
   inp.oninput = inp.onchange = () => { E.tiro[k] = inp.value; salvar(); renderTiro(); renderTabela(); renderGrafico(); renderReticulo(); };
 }
@@ -1384,7 +1595,30 @@ function cacaRelSimaf(C, p) {
 }
 let cacaRel = null;
 const cacaZap = (v) => { const n = String(v || "").replace(/\D/g, ""); return n.length === 10 || n.length === 11 ? "55" + n : n.length === 12 || n.length === 13 ? n : ""; };
-function cacaContatos() { const L = []; cacaLer().props.forEach((p) => { if (cacaZap(p.zap)) L.push({ nome: (p.dono || "Proprietário ou arrendatário") + " · " + p.nome, zap: cacaZap(p.zap) }); (p.contatos || []).forEach((c) => { if (cacaZap(c.zap)) L.push({ nome: (c.nome || "Contato") + " · " + p.nome, zap: cacaZap(c.zap) }); }); }); return L; }
+function cacaContatos() { const C = cacaLer(), L = [], vistos = new Set(), por = (nome, z, meu) => { z = cacaZap(z); if (!z || vistos.has(z)) return; vistos.add(z); L.push({ nome, zap: z, meu }); };
+  (C.contatos || []).forEach((c) => por(c.nome || "Contato", c.zap, true));
+  C.props.forEach((p) => { por((p.dono || "Proprietário") + " · " + p.nome, p.fone || p.zap, false); (p.contatos || []).forEach((c) => por((c.nome || "Contato") + " · " + p.nome, c.zap, false)); });
+  return L; }
+function cacaContatoSalvar(nome, z) { const A = cacaLer(); A.contatos = (A.contatos || []).filter((c) => cacaZap(c.zap) !== z).concat([{ nome: String(nome || "").trim().slice(0, 40) || "Contato", zap: z }]).slice(-50); cacaGravar(A); }
+function cacaContatoTirar(z) { const A = cacaLer(); A.contatos = (A.contatos || []).filter((c) => cacaZap(c.zap) !== z); A.props.forEach((p) => { if (p.contatos) p.contatos = p.contatos.filter((c) => cacaZap(c.zap) !== z); }); cacaGravar(A); }
+function cacaPainelComp(box, titulo, texto, rodape, rotulo) {
+  const wa = (z) => "https://wa.me/" + z + "?text=" + encodeURIComponent(texto), cts = cacaContatos(), ed = box.dataset.editar === "1";
+  box.innerHTML = `<div class="rotulo" style="margin-top:4px">${rotulo || "Compartilhar com"}</div>
+    <div class="acoes" style="margin-top:8px"><button class="btn" data-cg>Grupo ou outro app</button>${cts.map((c) => ed && c.meu ? `<button class="btn sec" data-ctira="${c.zap}" style="color:var(--vermelho)">✕ ${esc(c.nome)}</button>` : `<a class="btn sec" href="${wa(c.zap)}" target="_blank" rel="noopener">${esc(c.nome)}</a>`).join("")}</div>
+    ${cts.some((c) => c.meu) ? `<button class="link" data-ced style="margin-top:8px;background:none;border:0;color:var(--ouro);padding:0;font:inherit;cursor:pointer">${ed ? "Pronto" : "Editar meus contatos"}</button>` : ""}
+    <div class="caca-campos" style="margin-top:10px"><label>Outro contato (WhatsApp com DDD)<input data-cn inputmode="tel" maxlength="20" placeholder="(17) 99999-9999"></label><label>Nome<input data-cnome maxlength="40" placeholder="Ex.: João da equipe"></label></div>
+    <label class="caca-check" style="flex-direction:row;align-items:center"><input type="checkbox" data-csalva checked> Salvar nos meus contatos para as próximas vezes</label>
+    <div class="acoes" style="margin-top:10px"><button class="btn sec" data-co>Abrir conversa no WhatsApp</button></div><div class="msg" data-cm></div>
+    <p class="pequeno" style="margin:6px 0 0">Os contatos ficam salvos só neste aparelho. ${rodape || ""}</p>`;
+  const q = (x) => box.querySelector(x), m = q("[data-cm]");
+  q("[data-cg]").onclick = () => cacaEnviarTexto(titulo, texto, m);
+  if (q("[data-ced]")) q("[data-ced]").onclick = () => { box.dataset.editar = ed ? "" : "1"; cacaPainelComp(box, titulo, texto, rodape, rotulo); };
+  box.querySelectorAll("[data-ctira]").forEach((b) => b.onclick = () => { cacaContatoTirar(b.dataset.ctira); cacaPainelComp(box, titulo, texto, rodape, rotulo); });
+  q("[data-co]").onclick = () => { const z = cacaZap(q("[data-cn]").value); m.className = "msg erro"; if (!z) return void (m.textContent = "Digite o WhatsApp com DDD.");
+    if (q("[data-csalva]").checked) cacaContatoSalvar(q("[data-cnome]").value, z);
+    window.open(wa(z), "_blank", "noopener");
+    if (q("[data-csalva]").checked) { cacaPainelComp(box, titulo, texto, rodape, rotulo); const m2 = box.querySelector("[data-cm]"); m2.className = "msg"; m2.textContent = "Contato salvo. Na próxima vez é só tocar no nome."; } else { m.className = "msg"; m.textContent = "Abrindo o WhatsApp…"; } };
+}
 // ---------- equipe com acesso pelo app (compartilhamento que dá para tirar) ----------
 const COMP = { comigo: null, carregando: false, erro: "" };
 const compQuando = (iso) => iso ? new Date(iso).toLocaleDateString("pt-BR") + " " + new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
@@ -1461,19 +1695,9 @@ async function cacaCompAbrir(id) {
   let r = null; try { r = await api("doc_link", { id }); } catch (e) {}
   if (!r || !r.ok) { box.innerHTML = '<div class="msg erro">' + esc((r && r.erro) || "Sem conexão para gerar o link.") + "</div>"; return; }
   const texto = "Documento de manejo de javali" + (CACA_TIPOS[d.tipo] ? " (" + CACA_TIPOS[d.tipo] + ")" : "") + ": " + String(d.descricao || d.nome_tipo || "").slice(0, 140) + "\nArquivo (link válido por " + r.dias + " dias): " + r.url;
-  const wa = (z) => "https://wa.me/" + z + "?text=" + encodeURIComponent(texto), C = cacaLer(), cts = cacaContatos();
-  box.innerHTML = `<div data-ceq></div><div class="rotulo" style="margin-top:4px">Ou mandar um link</div>
-    <div class="acoes" style="margin-top:8px"><button class="btn" data-cg>Grupo ou outro app</button>${cts.map((c) => `<a class="btn sec" href="${wa(c.zap)}" target="_blank" rel="noopener">${esc(c.nome)}</a>`).join("")}</div>
-    <div class="caca-campos" style="margin-top:10px"><label>Outro contato (WhatsApp com DDD)<input data-cn inputmode="tel" maxlength="20" placeholder="(17) 99999-9999"></label><label>Nome (opcional)<input data-cnome maxlength="40"></label></div>
-    ${C.props.length ? `<label>Salvar este contato na propriedade<select data-cs><option value="">Não salvar</option>${C.props.map((p) => `<option value="${p.id}">${esc(p.nome)}</option>`).join("")}</select></label>` : ""}
-    <div class="acoes" style="margin-top:10px"><button class="btn sec" data-co>Abrir conversa no WhatsApp</button></div><div class="msg" data-cm></div>
-    <p class="pequeno" style="margin:6px 0 0">O documento sai do seu WhatsApp, para quem você escolher. Quem recebe o link fica com o arquivo até ele expirar em ${r.dias} dias, e esse acesso não dá para tirar; para quem tem Ática, prefira a equipe com acesso pelo app. Se o arquivo traz dados de outras pessoas, envie só a quem precisa.</p>`;
-  const q = (x) => box.querySelector(x), m = q("[data-cm]");
-  compEquipe(q("[data-ceq]"), id);
-  q("[data-cg]").onclick = () => cacaEnviarTexto("Documento de manejo", texto, m);
-  q("[data-co]").onclick = () => { const z = cacaZap(q("[data-cn]").value); m.className = "msg erro"; if (!z) return void (m.textContent = "Digite o WhatsApp com DDD.");
-    const sel = q("[data-cs]"); if (sel && sel.value) { const A = cacaLer(), pp = A.props.find((x) => x.id === sel.value); if (pp) { pp.contatos = (pp.contatos || []).filter((c) => cacaZap(c.zap) !== z).concat([{ nome: q("[data-cnome]").value.trim().slice(0, 40), zap: z }]).slice(-20); cacaGravar(A); } }
-    m.className = "msg"; m.textContent = "Abrindo o WhatsApp…"; window.open(wa(z), "_blank", "noopener"); };
+  box.innerHTML = `<div data-ceq></div><div data-cpainel></div>`;
+  cacaPainelComp(box.querySelector("[data-cpainel]"), "Documento de manejo", texto, "Quem recebe o link fica com o arquivo até ele expirar em " + r.dias + " dias, e esse acesso não dá para tirar; para quem tem Ática, prefira a equipe com acesso pelo app.", "Ou mandar um link");
+  compEquipe(box.querySelector("[data-ceq]"), id);
 }
 if (!window.__cacaComp) { window.__cacaComp = true; document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("[data-comp]"); if (b) { e.preventDefault(); cacaCompAbrir(b.dataset.comp); } }); }
 const EQP = { dados: null, tm: null, msg: "" };
@@ -2425,7 +2649,7 @@ function renderCaca(c, sub) {
       g("cp-salvar").onclick = () => {
         const nome = g("cp-nome").value.trim(); if (nome.length < 2) { g("cp-msg").textContent = "Informe o nome da propriedade."; g("cp-msg").className = "msg erro"; return; }
         const p = { id: cacaEdit.id || "p" + Date.now().toString(36), nome, mun: g("cp-mun").value.trim(), car: g("cp-car").value.trim(), ini: g("cp-ini").value, fim: g("cp-fim").value, equipe: g("cp-eq").value.trim(), dono: g("cp-dono").value.trim(), fone: g("cp-fone").value.replace(/\D/g, ""), decl: g("cp-decl").checked, avisar: g("cp-avisar").checked, relatorio: cacaEdit.fim === g("cp-fim").value ? !!cacaEdit.relatorio : false };
-        if (cacaEdit.limite && cacaCarNorm(cacaEdit.car) === cacaCarNorm(p.car)) { p.limite = cacaEdit.limite; p.carInfo = cacaEdit.carInfo; }
+        if (cacaEdit.limite && cacaCarNorm(cacaEdit.car) === cacaCarNorm(p.car)) { p.limite = cacaEdit.limite; p.carInfo = cacaEdit.carInfo; } if (cacaEdit.contatos) p.contatos = cacaEdit.contatos;
         const i = C.props.findIndex((x) => x.id === p.id); if (i >= 0) C.props[i] = p; else C.props.push(p);
         cacaGravar(C); cacaEdit = null; render();
       };
@@ -2498,7 +2722,7 @@ function renderCaca(c, sub) {
     return;
   }
   if (sub === "ctf") {
-    const dc = cacaDias(C.ctf), env = ((C.docs || {})._ || {}).ctf || [], daConta = cacaDocsConta().filter((d) => d.tipo === "CTF" || /\bctf\b|cadastro t[ée]cnico federal|certificado de regularidade/i.test(d.descricao || ""));
+    const dc = cacaDias(C.ctf), env = ((C.docs || {})._ || {}).ctf || [], daConta = cacaDocsConta().filter((d) => d.tipo === "CTF" || (!["SIMAF", "AUT_PROPRIEDADE", "CAR"].includes(d.tipo) && /cadastro t[ée]cnico federal|certificado de regularidade/i.test(d.descricao || "")));
     const sit = !C.ctf ? ["at", "A informar"] : dc < 0 ? ["cr", "Vencido"] : dc <= 15 ? ["at", "Vence em " + dc + " dia(s)"] : ["ok", "Em dia"];
     c.innerHTML = topo("CTF do Ibama", "Certificado de Regularidade do Cadastro Técnico Federal. Vale 3 meses e precisa estar em dia para o manejo.") +
       `<div class="card"><div class="caca-topo"><div class="rotulo">Certificado de Regularidade</div><span class="etiqueta ${sit[0]}">${sit[1]}</span></div>
@@ -2530,10 +2754,10 @@ function renderCaca(c, sub) {
         `<div class="card">${cacaMapa(sv.trilha, sv.marcas, (C.props.find((x) => x.id === sv.prop) || {}).limite)}
           <div class="dados-caca"><div><span>Percorrido</span><b>${cacaFmtKm(cacaKm(sv.trilha))}</b></div><div><span>Pontos marcados</span><b>${(sv.marcas || []).length}</b></div><div><span>Abatidos</span><b>${sv.animais || 0}</b></div></div>
           ${(sv.marcas || []).length ? `<div class="lista" style="margin-top:12px">${sv.marcas.map((m, i) => `<div class="linha"><div><div class="t">${i + 1}. ${CACA_MARCAS[m.tipo] || "Ponto"}</div><div class="pequeno">${cacaHora(m.t)} · ${m.lat.toFixed(5)}, ${m.lon.toFixed(5)}${m.obs ? " · " + esc(m.obs) : ""}</div></div><a href="https://maps.google.com/?q=${m.lat},${m.lon}" target="_blank" rel="noopener">Abrir no mapa</a></div>`).join("")}</div>` : ""}
-          <div class="acoes" style="margin-top:14px"><button class="btn" id="cs-comp">Compartilhar</button><button class="btn sec" id="cs-gpx">Baixar GPX</button><button class="btn sec" id="cs-volta">Voltar às saídas</button></div><div class="msg" id="cs-msg"></div>
+          <div class="acoes" style="margin-top:14px"><button class="btn" id="cs-comp">Compartilhar</button><button class="btn sec" id="cs-gpx">Baixar GPX</button><button class="btn sec" id="cs-volta">Voltar às saídas</button></div><div class="msg" id="cs-msg"></div><div id="cs-box" style="margin-top:10px"></div>
           <p class="pequeno" style="margin:10px 0 0">Você escolhe com quem compartilhar. O resumo leva os pontos marcados com link de mapa; o arquivo GPX abre em apps de trilha e mapas.</p></div>`;
       c.querySelector("#cs-volta").onclick = () => { cacaVer = null; render(); };
-      c.querySelector("#cs-comp").onclick = () => cacaCompartilhar(sv, nome, c.querySelector("#cs-msg"));
+      c.querySelector("#cs-comp").onclick = () => { const bx = c.querySelector("#cs-box"); if (bx.innerHTML) { bx.innerHTML = ""; return; } cacaPainelComp(bx, "Manejo de javali · " + nome, cacaTexto(sv, nome), ""); };
       c.querySelector("#cs-gpx").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([cacaGpx(sv, nome)], { type: "application/gpx+xml" })); a.download = "manejo-" + sv.inicio.slice(0, 10) + ".gpx"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
       return;
     }
