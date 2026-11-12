@@ -253,6 +253,8 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 .comp-visor{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column}.comp-vtopo,.comp-vrod{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;font:600 13px 'Chakra Petch';color:var(--txt)}.comp-vrod{font:500 12px Inter,sans-serif;color:var(--sub);justify-content:center;text-align:center}
 .comp-vcorpo{position:relative;flex:1;overflow:auto;-webkit-user-select:none;user-select:none}.comp-vcorpo img{display:block;max-width:100%;margin:0 auto}.comp-vcorpo iframe{width:100%;height:100%;border:0;background:#fff}
 .comp-marca{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-around;align-items:center;overflow:hidden}.comp-marca span{transform:rotate(-24deg);white-space:nowrap;font:700 14px Inter,sans-serif;color:rgba(200,30,30,.28)}
+
+.lote-arq{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 10px;padding:10px 12px;background:var(--card2);overflow-wrap:anywhere}.lote-arq>div:first-child{flex:1 1 60%;min-width:0}.lote-arq>.pequeno{flex:1 1 100%;order:3}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -2104,9 +2106,9 @@ async function dspCarregar() {
   try { r = await api("desp_meu"); } catch (e) {}
   if (r && r.ok && r.despachantes) {
     DSP.meu = r; DSP.erro = ""; DSP.painel = null; DSP.adm = null;
-    if (r.sou && r.sou.status === "aprovado") { const p = await api("desp_painel"); if (p && p.ok) DSP.painel = p; }
+    DSP.inst = null; if (r.sou && r.sou.status === "aprovado") { if (r.sou.tipo === "instrutor") { const p = await api("inst_painel"); if (p && p.ok) DSP.inst = p; } else { const p = await api("desp_painel"); if (p && p.ok) DSP.painel = p; } }
     if (D.assinante && D.assinante.admin) { const a = await api("desp_admin", { op: "listar" }); if (a && a.ok) DSP.adm = a; }
-    if (!DSP.aba || (DSP.aba === "clientes" && !DSP.painel) || (DSP.aba === "adm" && !DSP.adm)) DSP.aba = DSP.painel ? "clientes" : "cliente";
+    if (!DSP.aba || (DSP.aba === "clientes" && !DSP.painel) || (DSP.aba === "laudos" && !DSP.inst) || (DSP.aba === "adm" && !DSP.adm)) DSP.aba = DSP.painel ? "clientes" : DSP.inst ? "laudos" : "cliente";
   } else DSP.erro = (r && r.erro) || "Não foi possível carregar agora.";
   DSP.carregando = false; if (tela === "desp") render();
 }
@@ -2151,27 +2153,28 @@ function dspCliente() {
   const local = (d) => [d.cidade, d.uf].filter(Boolean).join(" / ");
   const sou = M.sou, cv = (f && f.v) || sou || {};
   return `
-    ${meus.length ? `<div class="card"><div class="rotulo">Quem cuida dos meus processos</div><div class="lista" style="margin-top:10px">${meus.map((d) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(d.nome)}</div><div class="pequeno">${esc(local(d))} · autorizado em ${br(d.autorizado_em)}</div></div><button class="btn sec dsp-mini" data-drev="${d.id}">Revogar acesso</button></div>
+    ${meus.length ? `<div class="card"><div class="rotulo">Quem tem acesso aos meus documentos</div><div class="lista" style="margin-top:10px">${meus.map((d) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(d.nome)} <span class="etiqueta">${d.tipo === "instrutor" ? "Instrutor" : "Despachante"}</span></div><div class="pequeno">${esc(local(d))} · autorizado em ${br(d.autorizado_em)}</div></div><button class="btn sec dsp-mini" data-drev="${d.id}">Revogar acesso</button></div>
       ${f && f.t === "rev" && f.id === d.id ? `<div class="aviso atencao" style="margin-top:10px"><b>Revogar o acesso?</b><span class="pequeno">${esc(d.nome)} deixa de ver seus documentos na hora. Os processos já abertos continuam aparecendo para você.</span></div><div class="caca-envia"><button class="btn" data-drevok="${d.id}">Revogar</button><button class="btn sec" data-dfechar="1">Manter</button></div>` : ""}</div>`).join("")}</div></div>` : ""}
     <div class="card" style="margin-top:14px"><div class="rotulo">Meus processos</div>
       ${M.processos.length ? `<div class="lista" style="margin-top:10px">${M.processos.map((p) => dspProc(p, false)).join("")}</div>` : `<div class="vazio" style="margin-top:10px">${meus.length ? "Nenhum processo aberto ainda. Quando o despachante abrir um, ele aparece aqui com cada etapa." : "Autorize um despachante abaixo para ele acompanhar seus documentos e abrir processos para você."}</div>`}
       <p class="pequeno" style="margin:10px 0 0">O pagamento dos serviços pelo app ainda não está disponível. Por enquanto, combine direto com o despachante.</p></div>
-    <div class="card" style="margin-top:14px"><div class="rotulo">Despachantes no Ática</div>
-      ${outros.length ? `<div class="lista" style="margin-top:10px">${outros.map((d) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(d.nome)}</div><div class="pequeno">${esc(local(d))}</div></div><button class="btn sec dsp-mini" data-daut="${d.id}">Autorizar</button></div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Despachantes e instrutores no Ática</div>
+      ${outros.length ? `<div class="lista" style="margin-top:10px">${outros.map((d) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(d.nome)} <span class="etiqueta">${d.tipo === "instrutor" ? "Instrutor" : "Despachante"}</span></div><div class="pequeno">${esc(local(d))}</div></div><button class="btn sec dsp-mini" data-daut="${d.id}">Autorizar</button></div>
         ${d.sobre ? `<div class="pequeno" style="margin-top:6px">${esc(d.sobre)}</div>` : ""}
-        ${f && f.t === "aut" && f.id === d.id ? `<label class="caca-check" style="margin-top:10px"><input type="checkbox" id="dp-aceite"><span>Autorizo ${esc(d.nome)} a ver meu nome, meu WhatsApp e os documentos e validades guardados no Ática, para cuidar dos meus processos. Posso revogar quando quiser.</span></label><div class="caca-envia"><button class="btn" data-dautok="${d.id}">Confirmar autorização</button><button class="btn sec" data-dfechar="1">Cancelar</button></div>` : ""}</div>`).join("")}</div>` : `<div class="vazio" style="margin-top:10px">${meus.length ? "Você já autorizou os despachantes disponíveis." : "Ainda não há despachantes cadastrados. Assim que houver, eles aparecem aqui."}</div>`}</div>
-    <div class="card" style="margin-top:14px"><div class="rotulo">Trabalha como despachante?</div>
-      ${sou && sou.status === "aprovado" ? '<p class="pequeno" style="margin:10px 0 0">Seu cadastro está aprovado. Use a aba Meus clientes.</p>'
+        ${f && f.t === "aut" && f.id === d.id ? `<label class="caca-check" style="margin-top:10px"><input type="checkbox" id="dp-aceite"><span>${d.tipo === "instrutor" ? `Autorizo ${esc(d.nome)}, instrutor, a ver meu nome, meu WhatsApp e os documentos necessários para a minha avaliação (CR, CRAFs, laudos, certidão de antecedentes e comprovante de residência).` : `Autorizo ${esc(d.nome)} a ver meu nome, meu WhatsApp e os documentos e validades guardados no Ática, para cuidar dos meus processos.`} Posso revogar quando quiser.</span></label><div class="caca-envia"><button class="btn" data-dautok="${d.id}">Confirmar autorização</button><button class="btn sec" data-dfechar="1">Cancelar</button></div>` : ""}</div>`).join("")}</div>` : `<div class="vazio" style="margin-top:10px">${meus.length ? "Você já autorizou os despachantes disponíveis." : "Ainda não há profissionais cadastrados. Assim que houver, eles aparecem aqui."}</div>`}</div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Trabalha como despachante ou instrutor?</div>
+      ${sou && sou.status === "aprovado" ? '<p class="pequeno" style="margin:10px 0 0">Seu cadastro está aprovado. Use a aba ${sou.tipo === "instrutor" ? "Laudos e alunos" : "Meus clientes"}.</p>'
       : sou && sou.status === "suspenso" ? '<p class="pequeno" style="margin:10px 0 0">Seu cadastro de despachante está suspenso. Fale com o Ática.</p>'
       : f && f.t === "cand" ? `<div class="caca-campos">
+          <label>Atuo como<select id="dc-tipo"><option value="despachante">Despachante</option><option value="instrutor" ${cv.tipo === "instrutor" ? "selected" : ""}>Instrutor (laudos práticos)</option></select></label>
           <label>Nome profissional ou do escritório<input id="dc-nome" maxlength="80" value="${esc(cv.nome || "")}"></label>
           <label>Cidade<input id="dc-cid" maxlength="60" value="${esc(cv.cidade || "")}"></label>
           <label>UF<input id="dc-uf" maxlength="2" style="text-transform:uppercase" value="${esc(cv.uf || "")}"></label>
           <label>Contato para clientes (opcional)<input id="dc-cont" maxlength="80" value="${esc(cv.contato || "")}"></label>
           <label style="grid-column:1/-1">Serviços que você faz (opcional)<input id="dc-sobre" maxlength="400" value="${esc(cv.sobre || "")}"></label></div>
-          <label class="caca-check" style="margin-top:10px"><input type="checkbox" id="dc-aceite"><span>Declaro que atuo como despachante e que só vou usar os dados dos clientes para os processos que eles me confiarem.</span></label>
+          <label class="caca-check" style="margin-top:10px"><input type="checkbox" id="dc-aceite"><span>Declaro que atuo como despachante ou instrutor e que só vou usar os dados dos clientes para os serviços que eles me confiarem.</span></label>
           <div class="caca-envia"><button class="btn" id="dc-enviar">Enviar cadastro</button><button class="btn sec" data-dfechar="1">Cancelar</button></div>`
-      : `<p class="pequeno" style="margin:10px 0">${sou ? "Seu cadastro foi enviado e está em análise. Você recebe um aviso quando for aprovado." : "Cadastre-se para acompanhar os documentos e prazos dos seus clientes e registrar cada processo. O cadastro passa por aprovação."}</p><button class="btn sec" id="dc-abrir">${sou ? "Corrigir cadastro" : "Quero me cadastrar"}</button>`}</div>`;
+      : `<p class="pequeno" style="margin:10px 0">${sou ? "Seu cadastro foi enviado e está em análise. Você recebe um aviso quando for aprovado." : "Despachantes acompanham documentos e processos dos clientes; instrutores guardam e entregam os laudos práticos. O cadastro passa por aprovação."}</p><button class="btn sec" id="dc-abrir">${sou ? "Corrigir cadastro" : "Quero me cadastrar"}</button>`}</div>`;
 }
 function dspClientes() {
   const P = DSP.painel, f = DSP.form, hoje = P.hoje;
@@ -2204,7 +2207,7 @@ function dspClientes() {
 function dspAdm() {
   const L = DSP.adm.despachantes, et = { pendente: ["Em análise", "at"], aprovado: ["Aprovado", "ok"], suspenso: ["Suspenso", "cr"] };
   return `<div class="card"><div class="rotulo">Cadastros de despachante</div>
-    ${L.length ? `<div class="lista" style="margin-top:10px">${L.map((d) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(d.nome)}</div><div class="pequeno">${esc(d.pessoa)} · ${esc([d.cidade, d.uf].filter(Boolean).join(" / "))} · desde ${br(d.desde)}</div></div><span class="etiqueta ${et[d.status][1]}" style="white-space:nowrap">${et[d.status][0]}</span></div>
+    ${L.length ? `<div class="lista" style="margin-top:10px">${L.map((d) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(d.nome)} <span class="etiqueta">${d.tipo === "instrutor" ? "Instrutor" : "Despachante"}</span></div><div class="pequeno">${esc(d.pessoa)} · ${esc([d.cidade, d.uf].filter(Boolean).join(" / "))} · desde ${br(d.desde)}</div></div><span class="etiqueta ${et[d.status][1]}" style="white-space:nowrap">${et[d.status][0]}</span></div>
       ${d.sobre ? `<div class="pequeno" style="margin-top:6px">${esc(d.sobre)}</div>` : ""}
       <div class="pequeno" style="margin-top:6px">${d.clientes} cliente(s) · ${d.processos} processo(s)${d.contato ? " · " + esc(d.contato) : ""}</div>
       <div class="caca-campos"><label>Repasse ao despachante<select data-dregra="${d.id}"><option value="protocolo" ${d.regra === "protocolo" ? "selected" : ""}>Tudo só depois do protocolo</option><option value="gru_adiantada" ${d.regra === "gru_adiantada" ? "selected" : ""}>GRU adiantada, honorário no protocolo</option></select></label></div>
@@ -2212,20 +2215,81 @@ function dspAdm() {
     : '<div class="vazio" style="margin-top:10px">Nenhum cadastro de despachante ainda.</div>'}
     <p class="pequeno" style="margin:10px 0 0">A regra de repasse fica registrada para a cobrança pelo app, que ainda não está ligada.</p></div>`;
 }
+// ---------- área do instrutor (laudos práticos) ----------
+let INST = { form: false, v: {}, aluno: null, arq: null, busca: "" };
+function instLer(c) { const g = (s) => { const e = c.querySelector(s); return e ? e.value : undefined; }; ["il-z", "il-nome", "il-tipo", "il-data", "il-arma", "il-cal", "il-res", "il-obs"].forEach((k) => { const v = g("#" + k); if (v !== undefined) INST.v[k] = v; }); const bs = c.querySelector("#il-busca"); if (bs) INST.busca = bs.value; }
+function instHtml() {
+  const I = DSP.inst, v = INST.v, hoje = I.hoje, al = INST.aluno;
+  const resTag = (r) => r === "apto" ? '<span class="etiqueta ok">Apto</span>' : r === "nao_apto" ? '<span class="etiqueta cr">Não apto</span>' : "";
+  const q = (INST.busca || "").toLowerCase().trim();
+  const laudos = I.laudos.filter((l) => !q || String(l.nome || "").toLowerCase().includes(q) || String(l.whatsapp || "").includes(q.replace(/\D/g, "") || "§"));
+  const form = !INST.form ? '<div class="acoes" style="margin-top:10px"><button class="btn" data-inovo="1">Registrar laudo</button></div>' : `
+    <div class="caca-campos">
+      <label>WhatsApp do aluno<input id="il-z" inputmode="tel" maxlength="20" placeholder="(17) 99999-9999" value="${esc(v["il-z"] || "")}"></label>
+    </div>
+    <div class="acoes" style="margin-top:8px"><button class="btn sec dsp-mini" data-ichk="1">Conferir aluno</button></div>
+    ${al ? (al.achou ? `<div class="aviso ${al.autorizado ? "info" : "atencao"}" style="margin-top:10px"><b>${esc(al.nome)}</b><span class="pequeno">${al.autorizado ? "Autorizou o seu acesso aos documentos dele." : "Tem conta no Ática, mas ainda não autorizou o seu acesso aos documentos."}</span></div>${al.autorizado ? "" : '<div class="acoes" style="margin-top:8px"><button class="btn sec dsp-mini" data-ipedir="1">Pedir autorização ao aluno</button></div>'}` : `<div class="aviso atencao" style="margin-top:10px"><b>Sem conta no Ática</b><span class="pequeno">O laudo fica guardado na sua pasta e pode ser entregue quando ele se cadastrar com esse WhatsApp.</span></div><div class="caca-campos"><label>Nome do aluno<input id="il-nome" maxlength="80" value="${esc(v["il-nome"] || "")}"></label></div>`) : ""}
+    <div class="caca-campos" style="margin-top:10px">
+      <label>Tipo<select id="il-tipo">${Object.entries(I.tipos).map(([k, t]) => `<option value="${k}" ${(v["il-tipo"] || "capacidade_tecnica") === k ? "selected" : ""}>${esc(t)}</option>`).join("")}</select></label>
+      <label>Data da avaliação<input id="il-data" type="date" value="${esc(v["il-data"] || hoje)}"></label>
+      <label>Arma<input id="il-arma" maxlength="80" placeholder="Ex.: pistola Taurus G2C" value="${esc(v["il-arma"] || "")}"></label>
+      <label>Calibre<input id="il-cal" maxlength="30" placeholder="Ex.: 9 mm" value="${esc(v["il-cal"] || "")}"></label>
+      <label>Resultado<select id="il-res"><option value="">Não informar</option><option value="apto" ${v["il-res"] === "apto" ? "selected" : ""}>Apto</option><option value="nao_apto" ${v["il-res"] === "nao_apto" ? "selected" : ""}>Não apto</option></select></label>
+      <label style="grid-column:1/-1">Observação (opcional)<input id="il-obs" maxlength="300" value="${esc(v["il-obs"] || "")}"></label>
+    </div>
+    <div class="envio-doc" style="margin-top:10px"><button class="btn sec" data-iarq="1">${INST.arq ? "Trocar arquivo" : "Anexar laudo preenchido (foto ou PDF)"}</button></div>${INST.arq ? `<div class="pequeno" style="margin-top:6px">Arquivo: ${esc(INST.arq.name)}</div>` : ""}
+    <input type="file" id="il-arq" accept="image/*,application/pdf" hidden>
+    <div class="caca-envia"><button class="btn" data-isalvar="1">Salvar laudo</button><button class="btn sec" data-ifechar="1">Cancelar</button></div>`;
+  return `
+    <div class="card"><div class="rotulo">Novo laudo</div>${form}</div>
+    <div class="card" style="margin-top:14px"><div class="caca-topo"><div class="rotulo">Minha pasta de laudos (${I.laudos.length})</div></div>
+      ${I.laudos.length ? `<div class="caca-campos"><label>Buscar por nome ou WhatsApp<input id="il-busca" maxlength="40" value="${esc(INST.busca)}"></label></div>
+      <div class="lista" style="margin-top:10px">${laudos.map((l) => `<div class="linha caca-doc" data-ilaudo="${esc(String(l.nome || "").toLowerCase() + " " + (l.whatsapp || ""))}"><div class="caca-topo"><div><div class="t">${esc(l.nome || "Aluno")}</div><div class="pequeno">${esc(l.nome_tipo)} · ${br(l.data)}${l.arma ? " · " + esc(l.arma) : ""}${l.calibre ? " · " + esc(l.calibre) : ""}</div></div>${resTag(l.resultado)}</div>
+        <div class="pequeno" style="margin-top:6px">${l.entregue_em ? '<span class="ok">Entregue no app em ' + br(l.entregue_em) + "</span>" : l.tem_conta ? '<span class="at">Ainda não entregue no app</span>' : "Aluno ainda sem conta no Ática"}${l.obs ? " · " + esc(l.obs) : ""}</div>
+        <div class="caca-envia"><button class="btn sec" data-iver="${l.id}">Abrir</button>${l.entregue_em ? "" : `<button class="btn" data-ient="${l.id}">Entregar no app</button>`}</div></div>`).join("") || '<div class="vazio">Nada encontrado.</div>'}</div>` : '<div class="vazio" style="margin-top:10px">Nenhum laudo ainda. Use Registrar laudo.</div>'}</div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Alunos que autorizaram o acesso</div>
+      ${I.alunos.length ? `<div class="lista" style="margin-top:10px">${I.alunos.map((a) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(a.nome)}</div><div class="pequeno">${esc(compFone(a.whatsapp))} · autorizou em ${br(a.autorizado_em)}</div></div></div>
+        ${a.docs.length ? `<div class="dsp-docs">${a.docs.map((d) => { const n = dspDias(d.validade, I.hoje), cls = n === null ? "" : n < 0 ? "cr" : n <= 60 ? "at" : "ok"; return `<div class="dsp-doc"><span>${esc(d.nome_tipo)}${d.arma ? " · " + esc(String(d.arma).slice(0, 50)) : ""}</span><span>${d.validade ? `<span class="etiqueta ${cls}">${n < 0 ? "venceu " : ""}${br(d.validade)}</span> ` : ""}<button class="btn sec dsp-mini" data-idoc="${d.id}">Abrir</button></span></div>`; }).join("")}</div>` : '<div class="pequeno" style="margin-top:6px">Ainda não guardou esses documentos no Ática.</div>'}</div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nenhum aluno autorizou ainda. Ao conferir o aluno no Novo laudo, use Pedir autorização: ele recebe o pedido no WhatsApp.</div>'}
+      <p class="pequeno" style="margin:10px 0 0">Você vê só o necessário para a avaliação (CR, CRAFs, laudos, certidão de antecedentes e comprovante de residência), e só de quem autorizou. O aluno pode retirar o acesso quando quiser.</p></div>`;
+}
+async function instClique(b, d, c) {
+  if (!(d.inovo || d.ifechar || d.ichk || d.ipedir || d.iarq || d.isalvar || d.iver || d.ient || d.idoc)) return false;
+  instLer(c);
+  if (d.inovo) { INST.form = true; INST.aluno = null; INST.arq = null; INST.v = {}; render(); return true; }
+  if (d.ifechar) { INST.form = false; INST.aluno = null; INST.arq = null; INST.v = {}; render(); return true; }
+  if (d.iarq) { const i = c.querySelector("#il-arq"); if (i) { i.value = ""; i.click(); } return true; }
+  if (d.ichk) { const z = (INST.v["il-z"] || "").replace(/\D/g, ""); if (z.length < 10) { DSP.falha = "Digite o WhatsApp do aluno com DDD."; render(); return true; } let r = null; try { r = await api("inst_aluno", { whatsapp: z }); } catch (e) {} if (r && r.ok) INST.aluno = r; else DSP.falha = (r && r.erro) || "Sem conexão."; render(); return true; }
+  if (d.ipedir) { let r = null; try { r = await api("inst_pedir", { whatsapp: INST.v["il-z"] }); } catch (e) {} if (r && r.ok) DSP.aviso = "Pedido enviado ao aluno pelo WhatsApp. Quando ele autorizar, os documentos aparecem em Alunos que autorizaram."; else DSP.falha = (r && r.erro) || "Sem conexão."; render(); return true; }
+  if (d.isalvar) {
+    const v = INST.v;
+    if (!INST.arq) { DSP.falha = "Anexe o laudo preenchido."; render(); return true; }
+    let dados = null; try { dados = await dspArquivo(INST.arq); } catch (e) {}
+    if (!dados) { DSP.falha = "Não consegui abrir esse arquivo."; render(); return true; }
+    const r = await dspAcao("inst_laudo_salvar", { whatsapp: v["il-z"], nome: v["il-nome"], tipo: v["il-tipo"], data: v["il-data"], arma: v["il-arma"], calibre: v["il-cal"], resultado: v["il-res"], obs: v["il-obs"], ...dados }, "");
+    if (r && r.ok) { INST.form = false; INST.aluno = null; INST.arq = null; INST.v = {}; DSP.aviso = r.tem_conta ? "Laudo salvo na sua pasta. Toque em Entregar no app para mandar para o aluno." : "Laudo salvo na sua pasta. O aluno ainda não tem conta; dá para entregar quando ele se cadastrar."; render(); }
+    return true;
+  }
+  if (d.ient) { await dspAcao("inst_laudo_entregar", { id: d.ient }, "Laudo entregue no app do aluno, que foi avisado pelo WhatsApp."); return true; }
+  if (d.iver || d.idoc) { const r = await api(d.iver ? "inst_laudo_link" : "inst_doc_link", { id: d.iver || d.idoc }); if (r && r.ok && r.url) window.open(r.url, "_blank", "noopener"); else { DSP.falha = (r && r.erro) || "Não foi possível abrir o arquivo."; render(); } return true; }
+  return true;
+}
+function instMuda(t, c) { if (t.id !== "il-arq") return false; instLer(c); if (t.files && t.files[0]) { if (t.files[0].size > 12 * 1024 * 1024) DSP.falha = "Arquivo muito grande (máx. 12 MB)."; else INST.arq = t.files[0]; } render(); return true; }
 function renderDesp(c) {
-  const topo = `<button class="voltar-hub" id="dp-volta">‹ Conta</button><div class="topo"><div><h2>Despachante</h2><p>Quem cuida dos seus processos, cada etapa e o que falta.</p></div></div>`;
+  const topo = `<button class="voltar-hub" id="dp-volta">‹ Conta</button><div class="topo"><div><h2>Despachantes e instrutores</h2><p>Quem tem acesso aos seus documentos, os processos e os laudos.</p></div></div>`;
   const volta = () => { const b = c.querySelector("#dp-volta"); if (b) b.onclick = () => irPara("conta", ""); };
   if (!DSP.meu && !DSP.erro) { if (!DSP.carregando) dspCarregar(); c.innerHTML = topo + '<div class="card"><span class="carregando"></span>Carregando…</div>'; return volta(); }
   if (DSP.erro && !DSP.meu) { c.innerHTML = topo + `<div class="aviso critico"><b>Não carregou</b><span class="pequeno">${esc(DSP.erro)}</span></div><button class="btn sec" id="dp-de-novo">Tentar de novo</button>`; c.querySelector("#dp-de-novo").onclick = () => { DSP.erro = ""; render(); }; return volta(); }
-  const abas = [["cliente", DSP.painel ? "Como cliente" : "Meus processos"]]; if (DSP.painel) abas.unshift(["clientes", "Meus clientes"]); if (DSP.adm) abas.push(["adm", "Cadastros (" + DSP.adm.despachantes.filter((d) => d.status === "pendente").length + ")"]);
+  const abas = [["cliente", DSP.painel || DSP.inst ? "Como cliente" : "Meus processos"]]; if (DSP.painel) abas.unshift(["clientes", "Meus clientes"]); if (DSP.inst) abas.unshift(["laudos", "Laudos e alunos"]); if (DSP.adm) abas.push(["adm", "Cadastros (" + DSP.adm.despachantes.filter((d) => d.status === "pendente").length + ")"]);
   const msg = (DSP.aviso ? `<div class="aviso info"><b>Pronto ✓</b><span class="pequeno">${esc(DSP.aviso)}</span></div>` : "") + (DSP.falha ? `<div class="aviso critico"><b>Não deu certo</b><span class="pequeno">${esc(DSP.falha)}</span></div>` : "");
   DSP.aviso = ""; DSP.falha = "";
-  c.innerHTML = topo + (abas.length > 1 ? `<div class="ip-fator ad-filtros" style="margin-bottom:14px">${abas.map(([k, r]) => `<button data-daba="${k}" class="${DSP.aba === k ? "on" : ""}">${r}</button>`).join("")}</div>` : "") + `<div id="dp-msg">${msg}</div>` + (DSP.aba === "clientes" && DSP.painel ? dspClientes() : DSP.aba === "adm" && DSP.adm ? dspAdm() : dspCliente());
+  c.innerHTML = topo + (abas.length > 1 ? `<div class="ip-fator ad-filtros" style="margin-bottom:14px">${abas.map(([k, r]) => `<button data-daba="${k}" class="${DSP.aba === k ? "on" : ""}">${r}</button>`).join("")}</div>` : "") + `<div id="dp-msg">${msg}</div>` + (DSP.aba === "laudos" && DSP.inst ? instHtml() : DSP.aba === "clientes" && DSP.painel ? dspClientes() : DSP.aba === "adm" && DSP.adm ? dspAdm() : dspCliente());
   volta();
+  { const ib = c.querySelector("#il-busca"); if (ib) ib.oninput = () => { INST.busca = ib.value; const t = ib.value.toLowerCase().trim(), z = t.replace(/\D/g, ""); c.querySelectorAll("[data-ilaudo]").forEach((x) => { const k = x.dataset.ilaudo; x.style.display = !t || k.includes(t) || (z && k.includes(z)) ? "" : "none"; }); }; }
   const q = (s) => c.querySelector(s), val = (s) => (q(s) ? q(s).value.trim() : "");
   const abrir = (t, id) => { DSP.form = DSP.form && DSP.form.t === t && DSP.form.id === id ? null : { t, id }; render(); };
   c.onclick = async (e) => {
     const b = e.target.closest("button"); if (!b || !c.contains(b)) return; const d = b.dataset;
+    if (await instClique(b, d, c)) return;
     if (d.daba) { DSP.aba = d.daba; DSP.form = null; return render(); }
     if (d.dfechar) { DSP.form = null; return render(); }
     if (d.daut) return abrir("aut", d.daut);
@@ -2236,7 +2300,7 @@ function renderDesp(c) {
     if (b.id === "dc-abrir") return abrir("cand", "");
     if (d.dautok) { if (!q("#dp-aceite").checked) { DSP.falha = "Marque a autorização para continuar."; return render(); } return dspAcao("desp_autorizar", { despachante_id: d.dautok, aceite: true }, "Autorização registrada. O despachante já pode ver seus documentos."); }
     if (d.drevok) return dspAcao("desp_revogar", { despachante_id: d.drevok }, "Acesso revogado.");
-    if (b.id === "dc-enviar") { const v = { nome: val("#dc-nome"), cidade: val("#dc-cid"), uf: val("#dc-uf").toUpperCase(), contato: val("#dc-cont"), sobre: val("#dc-sobre") }; DSP.form.v = v; return dspAcao("desp_candidatar", { ...v, aceite: q("#dc-aceite").checked }, "Cadastro enviado. Você recebe um aviso quando for aprovado."); }
+    if (b.id === "dc-enviar") { const v = { tipo: val("#dc-tipo"), nome: val("#dc-nome"), cidade: val("#dc-cid"), uf: val("#dc-uf").toUpperCase(), contato: val("#dc-cont"), sobre: val("#dc-sobre") }; DSP.form.v = v; return dspAcao("desp_candidatar", { ...v, aceite: q("#dc-aceite").checked }, "Cadastro enviado. Você recebe um aviso quando for aprovado."); }
     if (d.dcriar) return dspAcao("desp_processo_criar", { assinante_id: d.dcriar, tipo: val("#dn-tipo"), titulo: val("#dn-tit"), valor_gru: val("#dn-gru"), valor_honorario: val("#dn-hon") }, "Processo aberto. O cliente foi avisado.");
     if (d.dsalvar) return dspAcao("desp_processo_atualizar", { id: d.dsalvar, status: val("#dp-st"), protocolo: val("#dp-prot"), protocolado_em: val("#dp-data"), valor_gru: val("#dp-gru"), valor_honorario: val("#dp-hon") }, "Processo atualizado.");
     if (d.dnota || d.dpend) { const id = d.dnota || d.dpend, t = q(`[data-dtxt="${id}"]`).value.trim(); if (t.length < 2) { DSP.falha = "Escreva a mensagem antes de enviar."; return render(); } return dspAcao("desp_item", { processo_id: id, tipo: d.dpend ? "pendencia" : "nota", texto: t }, d.dpend ? "Pedido enviado ao cliente." : "Mensagem registrada."); }
@@ -2247,6 +2311,7 @@ function renderDesp(c) {
   };
   c.onchange = async (e) => {
     const t = e.target;
+    if (instMuda(t, c)) return;
     if (t.dataset && t.dataset.dregra) return dspAcao("desp_admin", { op: "regra", id: t.dataset.dregra, regra: t.value }, "Regra de repasse salva.");
     if (t.id !== "dsp-arq" || !t.files || !t.files[0]) return;
     const arq = t.files[0], cli = t.dataset.cli, proc = t.dataset.proc;
@@ -2256,6 +2321,62 @@ function renderDesp(c) {
     if (!dados) { DSP.falha = "Não consegui abrir esse arquivo."; return render(); }
     const r = await dspAcao("desp_entregar", { assinante_id: cli, processo_id: proc, ...dados }, "");
     if (r && r.ok) { DSP.aviso = "Entregue na conta do cliente: " + r.nome_tipo + (r.arma ? " (" + r.arma + ")" : "") + (r.validade ? ", válido até " + br(r.validade) : "") + "."; render(); }
+  };
+}
+// ---------- envio em lote (administradores) ----------
+let LOTE = { cli: null, achados: null, buscando: false, q: "", arqs: [], enviando: false, avisar: true, msg: "" };
+document.addEventListener("click", (e) => { if (e.target && e.target.closest && e.target.closest("#bt-lote")) { LOTE = { cli: null, achados: null, buscando: false, q: "", arqs: [], enviando: false, avisar: true, msg: "" }; irPara("lote", ""); } });
+const loteFone = (z) => { const d = String(z || "").replace(/\D/g, "").replace(/^55/, ""); return d.length >= 10 ? "(" + d.slice(0, 2) + ") " + d.slice(2, -4) + "-" + d.slice(-4) : d; };
+function loteArquivo(arq) {
+  if (!/^image\//.test(arq.type)) return new Promise((ok, falha) => { const fr = new FileReader(); fr.onload = () => ok({ arquivo: String(fr.result).split(",")[1], mime: /pdf/i.test(arq.type) || /\.pdf$/i.test(arq.name) ? "application/pdf" : arq.type }); fr.onerror = falha; fr.readAsDataURL(arq); });
+  return new Promise((ok, falha) => { const url = URL.createObjectURL(arq), img = new Image();
+    img.onload = () => { const k = Math.min(1, 1800 / Math.max(img.width, img.height)), cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); ok({ arquivo: cv.toDataURL("image/jpeg", 0.85).split(",")[1], mime: "image/jpeg" }); };
+    img.onerror = () => { URL.revokeObjectURL(url); falha(new Error("imagem")); }; img.src = url; });
+}
+function renderLote(c) {
+  const topo = `<button class="voltar-hub" id="lt-volta">‹ Conta</button><div class="topo"><div><h2>Enviar em lote</h2><p>Escolha o cliente e mande vários documentos de uma vez. Cada um passa pela leitura automática.</p></div></div>`;
+  if (!(D.assinante && D.assinante.admin)) { c.innerHTML = topo + '<div class="vazio">Disponível só para a equipe do Ática.</div>'; c.querySelector("#lt-volta").onclick = () => irPara("conta", ""); return; }
+  const L = LOTE, pend = L.arqs.filter((a) => !a.r).length, feitos = L.arqs.filter((a) => a.r);
+  const linhaArq = (a, i) => { const r = a.r, st = !r ? (L.enviando && i === L.atual ? '<span class="carregando"></span>lendo…' : "na fila") : r.ok ? `<span class="ok">✓ ${esc(r.nome_tipo || "documento")}${r.arma ? " · " + esc(String(r.arma).slice(0, 60)) : ""}${r.validade ? " · " + br(r.validade) : ""}${r.vencido ? ' · <span class="cr">vencido, guardado fora da lista</span>' : ""}</span>` : /já está/.test(r.erro || "") ? '<span class="at">já estava na conta</span>' : `<span class="cr">${esc(r.erro || "não deu certo")}</span>`;
+    return `<div class="lote-arq"><div class="t">${esc(a.f.name)}</div><div class="pequeno">${st}</div>${!L.enviando && !r ? `<button class="btn sec dsp-mini" data-ltx="${i}">Tirar</button>` : ""}</div>`; };
+  c.innerHTML = topo + (L.msg ? `<div class="aviso info" style="margin-bottom:14px"><b>Pronto ✓</b><span class="pequeno">${esc(L.msg)}</span></div>` : "") + (!L.cli ? `
+    <div class="card"><div class="rotulo">1. Cliente</div>
+      <div class="caca-campos"><label>Nome ou WhatsApp<input id="lt-q" maxlength="60" value="${esc(L.q)}" placeholder="Ex.: João ou 17 99999-0000"></label></div>
+      <div class="acoes" style="margin-top:10px"><button class="btn" id="lt-buscar">Buscar</button></div>
+      <div id="lt-res" style="margin-top:10px">${L.buscando ? '<span class="carregando"></span>Buscando…' : L.achados === null ? "" : L.achados.length ? `<div class="lista">${L.achados.map((a) => `<div class="linha"><div><div class="t">${esc(a.nome)}</div><div class="pequeno">${esc(loteFone(a.whatsapp))} · ${a.docs} documento(s)</div></div><button class="btn sec dsp-mini" data-ltc="${a.id}">Escolher</button></div>`).join("")}</div>` : '<div class="vazio">Ninguém encontrado. A pessoa precisa ter cadastro no Ática antes de receber documentos.</div>'}</div></div>` : `
+    <div class="card"><div class="caca-topo"><div><div class="rotulo">Cliente</div><div class="t" style="margin-top:6px">${esc(L.cli.nome)}</div><div class="pequeno">${esc(loteFone(L.cli.whatsapp))}</div></div>${L.enviando ? "" : '<button class="btn sec dsp-mini" id="lt-troca">Trocar</button>'}</div></div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">2. Documentos</div>
+      ${L.enviando ? "" : '<div class="envio-doc" style="margin-top:10px"><button class="btn sec" id="lt-add">Escolher fotos ou PDFs</button></div><input type="file" id="lt-arq" accept="image/*,application/pdf" multiple hidden>'}
+      ${L.arqs.length ? `<div class="lista" style="margin-top:10px">${L.arqs.map(linhaArq).join("")}</div>` : '<p class="pequeno" style="margin:10px 0 0">Pode escolher vários de uma vez: CR, CRAFs, guias de trânsito, laudos, certidões, CTF, autorizações.</p>'}
+      ${pend && !L.enviando ? `<label class="caca-check" style="margin-top:12px"><input type="checkbox" id="lt-avisar" ${L.avisar ? "checked" : ""}><span>Avisar o cliente pelo WhatsApp quando terminar</span></label><div class="acoes" style="margin-top:10px"><button class="btn" id="lt-enviar">Enviar ${pend} arquivo(s)</button></div>` : ""}
+      ${L.enviando ? `<p class="pequeno" style="margin:10px 0 0">Enviando ${feitos.length + 1} de ${L.arqs.length}… Não feche esta tela.</p>` : ""}
+      ${!pend && feitos.length && !L.enviando ? `<div class="acoes" style="margin-top:12px"><button class="btn" id="lt-outro">Outro cliente</button><button class="btn sec" id="lt-mais">Mais documentos deste cliente</button></div>` : ""}</div>`) +
+    '<p class="pequeno" style="margin-top:14px">Os documentos entram na conta do cliente como enviados por ele e ficam aguardando conferência. CRAF repetido não é gravado de novo; documento vencido é guardado fora da lista.</p>';
+  const q = (s) => c.querySelector(s);
+  q("#lt-volta").onclick = () => irPara("conta", "");
+  const buscar = async () => { L.q = q("#lt-q").value.trim(); L.msg = ""; if (L.q.length < 2) return; L.buscando = true; render(); let r = null; try { r = await api("lote_buscar", { q: L.q }); } catch (e) {} L.buscando = false; L.achados = r && r.ok ? r.itens : []; render(); };
+  if (q("#lt-buscar")) { q("#lt-buscar").onclick = buscar; q("#lt-q").onkeydown = (e) => { if (e.key === "Enter") buscar(); }; }
+  c.querySelectorAll("[data-ltc]").forEach((b) => b.onclick = () => { L.cli = L.achados.find((a) => a.id === b.dataset.ltc); L.arqs = []; L.msg = ""; render(); });
+  if (q("#lt-troca")) q("#lt-troca").onclick = () => { L.cli = null; L.arqs = []; render(); };
+  if (q("#lt-add")) { q("#lt-add").onclick = () => q("#lt-arq").click(); q("#lt-arq").onchange = (e) => { const fs = [...e.target.files].filter((f) => f.size <= 12 * 1024 * 1024); L.arqs = L.arqs.concat(fs.map((f) => ({ f, r: null }))).slice(0, 60); L.msg = ""; render(); }; }
+  c.querySelectorAll("[data-ltx]").forEach((b) => b.onclick = () => { L.arqs.splice(+b.dataset.ltx, 1); render(); });
+  if (q("#lt-avisar")) q("#lt-avisar").onchange = (e) => { L.avisar = e.target.checked; };
+  if (q("#lt-outro")) q("#lt-outro").onclick = () => { L.cli = null; L.arqs = []; L.achados = null; L.q = ""; L.msg = ""; render(); };
+  if (q("#lt-mais")) q("#lt-mais").onclick = () => { L.arqs = []; L.msg = ""; render(); };
+  if (q("#lt-enviar")) q("#lt-enviar").onclick = async () => {
+    L.enviando = true; let ok = 0;
+    for (let i = 0; i < L.arqs.length; i++) {
+      const a = L.arqs[i]; if (a.r) continue; L.atual = i; if (tela === "lote") render();
+      let dados = null; try { dados = await loteArquivo(a.f); } catch (e) {}
+      if (!dados) { a.r = { ok: false, erro: "Não consegui abrir esse arquivo." }; continue; }
+      let r = null; try { r = await api("lote_enviar", { assinante_id: L.cli.id, ...dados }); } catch (e) {}
+      a.r = r || { ok: false, erro: "Sem conexão." }; if (r && r.ok) ok++;
+    }
+    L.enviando = false;
+    if (ok) { try { await api("lote_fim", { assinante_id: L.cli.id, n: ok, avisar: L.avisar }); } catch (e) {} }
+    const rep = L.arqs.filter((a) => a.r && !a.r.ok && /já está/.test(a.r.erro || "")).length, err = L.arqs.filter((a) => a.r && !a.r.ok && !/já está/.test(a.r.erro || "")).length;
+    L.msg = `${ok} documento(s) adicionado(s) na conta de ${L.cli.nome.split(" ")[0]}` + (rep ? `, ${rep} já estava(m) na conta` : "") + (err ? `, ${err} com problema (veja abaixo)` : "") + "." + (ok && L.avisar ? " O cliente foi avisado pelo WhatsApp." : "");
+    if (tela === "lote") render();
   };
 }
 function renderCaca(c, sub) {
@@ -2435,6 +2556,7 @@ function renderTela(c, a, primeiro, docs) {
   usoTela();
   if (tela === "admin") return renderAdmin(c);
   if (tela === "desp") return renderDesp(c);
+  if (tela === "lote") return renderLote(c);
   const hub = HUBS[tela];
   if (!hub) { subTela = ""; return renderTela0(c, a, primeiro, docs); }
   if (subTela && !hub.itens.some((i) => i[0] === subTela)) subTela = "";
@@ -2630,8 +2752,8 @@ function renderTela0(c, a, primeiro, docs) {
       <div class="lista">
         ${NATIVO ? `<div class="opcao" id="op-trava" style="display:none"><div><div class="t">Trava com digital ou Face ID</div><div class="pequeno">Pede sua biometria ao abrir o app.</div></div><input type="checkbox" class="chave" id="ck-trava" ${guardar.get("cac_trava") === "1" ? "checked" : ""}></div>
         <div class="opcao"><div><div class="t">Lembretes no celular</div><div class="pequeno">Aviso 30 dias, 7 dias e no dia de cada vencimento, às 9h.</div></div><input type="checkbox" class="chave" id="ck-lembretes" ${guardar.get("cac_lembretes") !== "0" ? "checked" : ""}></div>` : ""}
-        ${D.assinante && D.assinante.admin ? '<div class="opcao"><div><div class="t">Administração</div><div class="pequeno">Assinantes, acessos, uso por função e erros.</div></div><button class="btn sec" id="bt-admin">Abrir</button></div>' : ""}
-        <div class="opcao"><div><div class="t">Despachante</div><div class="pequeno">Autorize quem cuida dos seus processos e acompanhe cada etapa.</div></div><button class="btn sec" id="bt-desp">Abrir</button></div>
+        ${D.assinante && D.assinante.admin ? '<div class="opcao"><div><div class="t">Administração</div><div class="pequeno">Assinantes, acessos, uso por função e erros.</div></div><button class="btn sec" id="bt-admin">Abrir</button></div><div class="opcao"><div><div class="t">Enviar em lote</div><div class="pequeno">Mandar vários documentos para a conta de um cliente.</div></div><button class="btn sec" id="bt-lote">Abrir</button></div>' : ""}
+        <div class="opcao"><div><div class="t">Despachantes e instrutores</div><div class="pequeno">Autorize quem cuida dos seus processos e laudos.</div></div><button class="btn sec" id="bt-desp">Abrir</button></div>
         <div class="opcao"><div><div class="t">Falar com o Ática</div><div class="pequeno">Dúvidas, documentos e atendimento pelo WhatsApp.</div></div><a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">WhatsApp</a></div>
         <div class="opcao"><div><div class="t">Política de privacidade</div><div class="pequeno">Como seus dados e documentos são guardados.</div></div><a href="${SITE}/privacidade/" target="_blank" rel="noopener">Abrir</a></div>
         <div class="opcao" style="flex-wrap:wrap"><div><div class="t">Senha de acesso</div><div class="pequeno">Crie ou troque a senha usada para entrar.</div></div><button class="btn sec" id="bt-senha">Alterar</button>
