@@ -1300,8 +1300,18 @@ function cacaRastrear() {
     cacaGravar(C); const el = document.querySelector("#cm-trilha"); if (el) el.innerHTML = cacaTrilhaAoVivo(C.ativa);
   }, (e) => (usoReg("erro", "gps", "código " + e.code), aviso)(e.code === 1 ? "Localização não permitida. Libere o acesso à localização para gravar a trilha." : "Sem sinal de GPS no momento. Continue: a trilha volta quando o sinal voltar."), { enableHighAccuracy: true, maximumAge: 5000, timeout: 30000 });
 }
-function cacaMapa(trilha, marcas) {
-  const pts = [...(trilha || []), ...(marcas || []).map((m) => [m.lat, m.lon])];
+function cacaCarNorm(c) { const m = String(c || "").toUpperCase().replace(/[\s.]/g, "").match(/^([A-Z]{2})-?(\d{7})-?([0-9A-F]{32})$/); return m ? m[1] + "-" + m[2] + "-" + m[3] : null; }
+async function cacaBuscarLimite(car) {
+  const cod = cacaCarNorm(car); if (!cod) return { erro: "O número do CAR precisa estar completo, no formato UF-0000000-código de 32 caracteres." };
+  const u = "https://geoserver.car.gov.br/geoserver/sicar/wfs?service=WFS&version=2.0.0&request=GetFeature&outputFormat=application/json&typeNames=sicar:sicar_imoveis_" + cod.slice(0, 2).toLowerCase() + "&CQL_FILTER=" + encodeURIComponent("cod_imovel='" + cod + "'");
+  let j; try { const r = await fetch(u); if (!r.ok) throw 0; j = await r.json(); } catch (e) { return { erro: "Não consegui consultar a base pública do CAR agora. Tente de novo com internet." }; }
+  const f = (j.features || [])[0]; if (!f || !f.geometry) return { erro: "Esse número não foi encontrado na base pública do CAR. Confira se digitou igual ao recibo." };
+  const pol = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates, aneis = pol.map((pg) => { const a = pg[0], passo = Math.max(1, Math.ceil(a.length / 250)); return a.filter((_, i) => i % passo === 0 || i === a.length - 1).map((q) => [+q[1].toFixed(6), +q[0].toFixed(6)]); }).slice(0, 12);
+  const P = f.properties || {}; return { limite: aneis, info: { area: P.area ? +Number(P.area).toFixed(1) : null, mun: P.municipio || "", cond: P.condicao || "", em: new Date().toISOString().slice(0, 10) } };
+}
+function cacaDentro(pos, aneis) { if (!pos || !aneis || !aneis.length) return null; return aneis.some((a) => { let d = false; for (let i = 0, j = a.length - 1; i < a.length; j = i++) { if ((a[i][0] > pos[0]) !== (a[j][0] > pos[0]) && pos[1] < (a[j][1] - a[i][1]) * (pos[0] - a[i][0]) / (a[j][0] - a[i][0]) + a[i][1]) d = !d; } return d; }); }
+function cacaMapa(trilha, marcas, limite) {
+  const lim = limite || [], pts = [...(trilha || []), ...(marcas || []).map((m) => [m.lat, m.lon]), ...lim.flat()];
   if (!pts.length) return '<div class="vazio">Nenhum ponto de GPS gravado nesta saída.</div>';
   const W = 340, H = 260, M = 24, lat0 = pts.reduce((a, p) => a + p[0], 0) / pts.length, kx = Math.cos(lat0 * Math.PI / 180) * 111320, ky = 110540;
   const xs = pts.map((p) => p[1] * kx), ys = pts.map((p) => p[0] * ky), minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
@@ -1309,6 +1319,7 @@ function cacaMapa(trilha, marcas) {
   const X = (p) => (ox + (p[1] * kx - minX) * esc2).toFixed(1), Y = (p) => (H - oy - (p[0] * ky - minY) * esc2).toFixed(1);
   const barra = [20, 50, 100, 200, 500, 1000, 2000, 5000].find((b) => b * esc2 >= 50) || 5000, t = trilha || [];
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Trilha da saída" style="display:block;width:100%;height:auto;background:var(--card2);border:1px solid var(--line)" font-family="Inter" font-size="9" fill="#A9A9B2">
+    ${lim.map((a) => `<polygon points="${a.map((p) => X(p) + "," + Y(p)).join(" ")}" fill="rgba(110,155,245,.08)" stroke="#6E9BF5" stroke-width="1.4" stroke-dasharray="5 3"/>`).join("")}
     ${t.length > 1 ? `<polyline points="${t.map((p) => X(p) + "," + Y(p)).join(" ")}" fill="none" stroke="#E2B657" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>` : ""}
     ${t.length ? `<circle cx="${X(t[0])}" cy="${Y(t[0])}" r="5" fill="#3FCB7E"/><text x="${+X(t[0]) + 8}" y="${+Y(t[0]) + 3}">início</text>` : ""}
     ${t.length > 1 ? `<rect x="${X(t[t.length - 1]) - 4}" y="${Y(t[t.length - 1]) - 4}" width="8" height="8" fill="#F0524F"/><text x="${+X(t[t.length - 1]) + 8}" y="${+Y(t[t.length - 1]) + 3}">fim</text>` : ""}
@@ -1317,8 +1328,8 @@ function cacaMapa(trilha, marcas) {
     <path d="M${W - 18} 26l5 12h-10z" fill="#A9A9B2"/><text x="${W - 18}" y="18" text-anchor="middle">N</text></svg>`;
 }
 function cacaTrilhaAoVivo(a) {
-  const t = a.trilha || [], m = a.marcas || [];
-  return `${cacaMapa(t, m)}<div class="dados-caca"><div><span>Percorrido</span><b>${cacaFmtKm(cacaKm(t))}</b></div><div><span>Pontos marcados</span><b>${m.length}</b></div><div><span>Precisão do GPS</span><b>${a.precisao ? "±" + a.precisao + " m" : "—"}</b></div></div>`;
+  const t = a.trilha || [], m = a.marcas || [], lim = (cacaLer().props.find((x) => x.id === a.prop) || {}).limite, den = cacaDentro(a.pos, lim);
+  return `${cacaMapa(t, m, lim)}${den === null ? "" : `<div class="aviso ${den ? "info" : "atencao"}" style="margin-top:10px"><b>${den ? "Você está dentro do limite do CAR" : "Você está fora do limite do CAR"}</b><span class="pequeno">${den ? "Linha tracejada: perímetro declarado da propriedade." : "Confira no mapa. O GPS e o perímetro declarado têm margem de erro."}</span></div>`}<div class="dados-caca"><div><span>Percorrido</span><b>${cacaFmtKm(cacaKm(t))}</b></div><div><span>Pontos marcados</span><b>${m.length}</b></div><div><span>Precisão do GPS</span><b>${a.precisao ? "±" + a.precisao + " m" : "—"}</b></div></div>`;
 }
 function cacaTexto(s, nome) {
   const dur = Math.round((new Date(s.fim) - new Date(s.inicio)) / 6e4), L = [`Manejo de javali · ${nome}`, `${new Date(s.inicio).toLocaleDateString("pt-BR")}, das ${cacaHora(s.inicio)} às ${cacaHora(s.fim)} (${dur >= 60 ? Math.floor(dur / 60) + "h" + String(dur % 60).padStart(2, "0") : dur + " min"})`];
@@ -1337,6 +1348,22 @@ async function cacaCompartilhar(s, nome, msgEl) {
   try { if (navigator.share) { await navigator.share({ title: "Manejo de javali · " + nome, text }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
   try { await navigator.clipboard.writeText(text); msgEl.textContent = "Resumo copiado. Cole no WhatsApp ou onde quiser."; } catch (e) { msgEl.textContent = "Não foi possível compartilhar neste aparelho."; }
 }
+async function cacaEnviarTexto(titulo, text, msgEl) {
+  try { if (navigator.share) { await navigator.share({ title: titulo, text }); return; } } catch (e) { if (e && e.name === "AbortError") return; }
+  try { await navigator.clipboard.writeText(text); msgEl.textContent = "Texto copiado. Cole no WhatsApp ou onde quiser."; msgEl.className = "msg"; } catch (e) { msgEl.textContent = "Não foi possível compartilhar neste aparelho."; msgEl.className = "msg erro"; }
+}
+function cacaPosAgora() { return new Promise((ok) => { if (!navigator.geolocation) return ok(null); navigator.geolocation.getCurrentPosition((p) => ok([+p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6), Math.round(p.coords.accuracy)]), () => ok(null), { enableHighAccuracy: true, timeout: 12000, maximumAge: 15000 }); }); }
+function cacaRelSimaf(C, p) {
+  const todas = C.saidas.filter((x) => x.prop === p.id), noPer = todas.filter((x) => (!p.ini || x.inicio.slice(0, 10) >= p.ini) && (!p.fim || x.inicio.slice(0, 10) <= p.fim));
+  const L = (p.ini || p.fim) ? noPer : todas, tot = L.reduce((a, x) => a + (x.animais || 0), 0), dias = new Set(L.map((x) => x.inicio.slice(0, 10))).size;
+  const dt = (iso) => new Date(iso).toLocaleDateString("pt-BR");
+  return ["RELATÓRIO DE MANEJO DE JAVALI (rascunho para o SIMAF)", "Propriedade: " + p.nome + (p.mun ? " · " + p.mun : ""), "CAR: " + (p.car || "a informar"),
+    "Autorização: " + (p.ini ? br(p.ini) : "início a informar") + " a " + (p.fim ? br(p.fim) : "validade a informar"), p.equipe ? "Equipe: " + p.equipe : "",
+    "Saídas no período: " + L.length + " (em " + dias + " dia(s))", "Animais abatidos: " + tot, "",
+    ...L.slice().reverse().map((x) => "- " + dt(x.inicio) + ", " + cacaHora(x.inicio) + "–" + cacaHora(x.fim) + ": " + (x.animais ? x.animais + " abatido(s)" : "sem abate") + (x.obs ? " · " + x.obs : "")),
+    "", "Gerado pelo Ática a partir do registro de saídas. Confira antes de preencher no SIMAF."].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
+}
+let cacaRel = null;
 function cacaPastaHtml(C, p) {
   const s = cacaSituacao(C, p), cr = D.resumo.cr, armas = D.documentos.filter((d) => d.tipo === "CRAF" && d.acervo === "cacador"), guias = D.documentos.filter((d) => d.tipo === "GT" && (d.dias === null || d.dias === undefined || d.dias >= 0));
   const L = [
@@ -1780,20 +1807,37 @@ const SECO_LIB = [
 ];
 let seco = { fase: "idle" };
 function secoParar(salvar) {
-  clearTimeout(seco.tm); try { if (seco.ctx) seco.ctx.close(); } catch (e) {} try { if (seco.trava) seco.trava.release(); } catch (e) {}
-  if (salvar && seco.feitas > 0) { const S = maisLer(SECO_K, { sessoes: [] }); S.sessoes.unshift({ data: new Date().toISOString(), ex: seco.cfg.ex, par: seco.cfg.par, reps: seco.feitas }); S.sessoes = S.sessoes.slice(0, 200); maisGravar(SECO_K, S); }
+  clearTimeout(seco.tm); try { if (seco.stream) seco.stream.getTracks().forEach((t) => t.stop()); } catch (e) {} try { if (seco.ctx) seco.ctx.close(); } catch (e) {} try { if (seco.trava) seco.trava.release(); } catch (e) {}
+  if (salvar && seco.feitas > 0) { const S = maisLer(SECO_K, { sessoes: [] }), tp = (seco.tempos || []).filter((x) => x !== null); S.sessoes.unshift(Object.assign({ data: new Date().toISOString(), ex: seco.cfg.ex, par: seco.cfg.par, reps: seco.feitas }, seco.ouvindo ? { cliques: tp.length, media: tp.length ? +(tp.reduce((a, b) => a + b, 0) / tp.length).toFixed(2) : null, melhor: tp.length ? +Math.min(...tp).toFixed(2) : null } : {})); S.sessoes = S.sessoes.slice(0, 200); maisGravar(SECO_K, S); }
   seco = { fase: "idle" }; render();
 }
 async function secoIniciar(cfg) {
-  const AC = window.AudioContext || window.webkitAudioContext, eu = seco = { fase: "rodando", cfg, feitas: 0, ctx: new AC() };
+  const AC = window.AudioContext || window.webkitAudioContext, eu = seco = { fase: "rodando", cfg, feitas: 0, ctx: new AC(), tempos: [], ouvindo: false };
   try { await eu.ctx.resume(); } catch (e) {} try { eu.trava = await navigator.wakeLock.request("screen"); } catch (e) {}
+  if (cfg.ouvir) {
+    try { if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("sem");
+      eu.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      if (seco !== eu) { eu.stream.getTracks().forEach((t) => t.stop()); return; }
+      const src = eu.ctx.createMediaStreamSource(eu.stream), proc = eu.proc = eu.ctx.createScriptProcessor(512, 1, 1), mudo = eu.ctx.createGain(); mudo.gain.value = 0; src.connect(proc); proc.connect(mudo); mudo.connect(eu.ctx.destination);
+      let base = null, n = 0; eu.ruido = 0.01; eu.janela = false; eu.clique = null;
+      proc.onaudioprocess = (ev) => { const b = ev.inputBuffer.getChannelData(0), sr = eu.ctx.sampleRate; if (base === null) base = eu.ctx.currentTime - b.length / sr; let pico = 0;
+        for (let i = 0; i < b.length; i++) { const v = Math.abs(b[i]); if (v > pico) pico = v;
+          if (eu.janela && eu.clique === null && v >= eu.lim) { const t = base + (n + i) / sr - eu.t0; if (t >= 0.22) eu.clique = t; } }
+        n += b.length; if (!eu.janela) eu.ruido = Math.max(pico, eu.ruido * 0.97); };
+      eu.ouvindo = true;
+    } catch (e) { eu.semMic = true; }
+  }
   const bip = (f, dur) => { const o = eu.ctx.createOscillator(), g = eu.ctx.createGain(); o.type = "square"; o.frequency.value = f; g.gain.value = 0.9; o.connect(g); g.connect(eu.ctx.destination); o.start(); o.stop(eu.ctx.currentTime + dur); };
   const el = (t) => { const x = document.querySelector("#sc-fase"); if (x) x.textContent = t; const n = document.querySelector("#sc-n"); if (n) n.textContent = eu.feitas + " de " + cfg.reps; };
   const rep = () => { if (seco !== eu) return; if (!document.querySelector("#sc-fase")) return secoParar(true);
     if (eu.feitas >= cfg.reps) return secoParar(true);
     el("Prepare-se");
-    eu.tm = setTimeout(() => { if (seco !== eu) return; bip(2400, 0.25); el("Valendo");
-      eu.tm = setTimeout(() => { if (seco !== eu) return; bip(1400, 0.4); eu.feitas++; el("Tempo"); eu.tm = setTimeout(rep, cfg.desc * 1000); }, cfg.par * 1000);
+    eu.tm = setTimeout(() => { if (seco !== eu) return;
+      if (eu.ouvindo) { eu.lim = Math.min(0.6, Math.max(0.05, eu.ruido * 3)); eu.clique = null; eu.t0 = eu.ctx.currentTime; eu.janela = true; }
+      bip(2400, eu.ouvindo ? 0.15 : 0.25); el("Valendo");
+      eu.tm = setTimeout(() => { if (seco !== eu) return; eu.janela = false; bip(1400, 0.4); eu.feitas++;
+        if (eu.ouvindo) { eu.tempos.push(eu.clique); const r = document.querySelector("#sc-res"); if (r) r.textContent = eu.clique === null ? "Sem clique dentro do par time." : "Clique em " + eu.clique.toFixed(2).replace(".", ",") + " s"; }
+        el("Tempo"); eu.tm = setTimeout(rep, cfg.desc * 1000); }, cfg.par * 1000);
     }, 1500 + Math.random() * 2000); };
   render(); rep();
 }
@@ -1802,7 +1846,7 @@ function renderSeco(c) {
   if (seco.fase === "rodando") {
     const ex = SECO_LIB.find((x) => x[0] === seco.cfg.ex) || SECO_LIB[0];
     c.innerHTML = maisTopo("Treino em seco", esc(ex[1]) + " · par time de " + String(seco.cfg.par).replace(".", ",") + " s") +
-      `<div class="card ip-caixa"><div class="rotulo" id="sc-fase">Prepare-se</div><div class="ip-tempo" id="sc-n">${seco.feitas} de ${seco.cfg.reps}</div><div class="pequeno">Bip agudo: começa. Bip grave: acabou o tempo.</div><button class="btn ip-parar" id="sc-parar">Parar</button></div>`;
+      `<div class="card ip-caixa"><div class="rotulo" id="sc-fase">Prepare-se</div><div class="ip-tempo" id="sc-n">${seco.feitas} de ${seco.cfg.reps}</div><div class="pequeno">Bip agudo: começa. Bip grave: acabou o tempo.</div>${seco.cfg.ouvir ? `<div class="t" id="sc-res" style="margin-top:8px">${seco.semMic ? "Microfone não liberado: seguindo só com o par time." : "Ouvindo o clique do gatilho…"}</div>` : ""}<button class="btn ip-parar" id="sc-parar">Parar</button></div>`;
     q("#sc-parar").onclick = () => secoParar(true); return;
   }
   const cf = Object.assign({ ex: "visada", par: 1.5, reps: 10, desc: 4 }, S.cfg || {}), ex = SECO_LIB.find((x) => x[0] === cf.ex) || SECO_LIB[0], tot = S.sessoes.reduce((n, s) => n + s.reps, 0);
@@ -1814,13 +1858,14 @@ function renderSeco(c) {
         <label>Repetições<input id="sc-reps" type="number" min="1" max="100" step="1" value="${cf.reps}"></label>
         <label>Descanso entre repetições (s)<input id="sc-desc" type="number" min="2" max="60" step="1" value="${cf.desc}"></label></div>
       <p style="margin:10px 0 0">${esc(ex[3])}</p>
+      <label class="caca-check"><input type="checkbox" id="sc-ouvir" ${cf.ouvir ? "checked" : ""}> Ouvir o clique do gatilho e medir o tempo (beta, usa o microfone)</label>
       <label class="caca-check"><input type="checkbox" id="sc-ok"> Conferi: a arma está descarregada e não há munição no ambiente.</label>
       <button class="btn ip-parar" id="sc-ini">Iniciar</button><div class="msg" id="sc-msg"></div>
-      <p class="pequeno" style="margin:10px 0 0">Os tempos sugeridos são ponto de partida; ajuste ao seu nível. Em cada repetição o app espera um tempo aleatório, dá o bip de início e, no fim do par time, o bip de encerramento.</p></div>
+      <p class="pequeno" style="margin:10px 0 0">Os tempos sugeridos são ponto de partida; ajuste ao seu nível. Em cada repetição o app espera um tempo aleatório, dá o bip de início e, no fim do par time, o bip de encerramento. Com "ouvir o clique", o app mede o tempo entre o bip e o primeiro estalo dentro do par time; deixe o celular perto e o ambiente em silêncio. O áudio não é gravado nem enviado.</p></div>
     <div class="card" style="margin-top:14px"><div class="rotulo">Histórico</div>
       <div class="dados-caca"><div><span>Sessões</span><b>${S.sessoes.length}</b></div><div><span>Repetições</span><b>${tot}</b></div></div>
-      ${S.sessoes.length ? `<div class="lista" style="margin-top:10px">${S.sessoes.slice(0, 15).map((s) => `<div class="linha"><div><div class="t">${esc((SECO_LIB.find((x) => x[0] === s.ex) || ["", "Exercício"])[1])}</div><div class="pequeno">${new Date(s.data).toLocaleDateString("pt-BR")} · ${s.reps} repetição(ões) · par time ${String(s.par).replace(".", ",")} s</div></div></div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nenhuma sessão ainda.</div>'}</div>`;
-  const ler = () => ({ ex: q("#sc-ex").value, par: Math.min(30, Math.max(0.5, +q("#sc-par").value || 1.5)), reps: Math.min(100, Math.max(1, Math.round(+q("#sc-reps").value) || 10)), desc: Math.min(60, Math.max(2, +q("#sc-desc").value || 4)) });
+      ${S.sessoes.length ? `<div class="lista" style="margin-top:10px">${S.sessoes.slice(0, 15).map((s) => `<div class="linha"><div><div class="t">${esc((SECO_LIB.find((x) => x[0] === s.ex) || ["", "Exercício"])[1])}</div><div class="pequeno">${new Date(s.data).toLocaleDateString("pt-BR")} · ${s.reps} repetição(ões) · par time ${String(s.par).replace(".", ",")} s${s.cliques ? " · " + s.cliques + " clique(s), média " + String(s.media).replace(".", ",") + " s, melhor " + String(s.melhor).replace(".", ",") + " s" : ""}</div></div></div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nenhuma sessão ainda.</div>'}</div>`;
+  const ler = () => ({ ex: q("#sc-ex").value, par: Math.min(30, Math.max(0.5, +q("#sc-par").value || 1.5)), reps: Math.min(100, Math.max(1, Math.round(+q("#sc-reps").value) || 10)), desc: Math.min(60, Math.max(2, +q("#sc-desc").value || 4)), ouvir: q("#sc-ouvir").checked });
   q("#sc-ex").onchange = () => { const n = ler(), l = SECO_LIB.find((x) => x[0] === n.ex); n.par = l[2]; const S2 = maisLer(SECO_K, { sessoes: [] }); S2.cfg = n; maisGravar(SECO_K, S2); render(); };
   q("#sc-ini").onclick = () => { if (!q("#sc-ok").checked) { q("#sc-msg").className = "msg erro"; q("#sc-msg").textContent = "Marque a conferência de segurança para começar."; return; } const n = ler(), S2 = maisLer(SECO_K, { sessoes: [] }); S2.cfg = n; maisGravar(SECO_K, S2); secoIniciar(n); };
 }
@@ -1913,7 +1958,9 @@ function renderCaca(c, sub) {
           <div><span>Autorização de acesso</span><b class="${p.decl ? "ok" : "cr"}">${p.decl ? "Em mãos" : "Falta"}</b></div>
           <div><span>Aviso ao proprietário</span><b>${p.avisar && p.fone ? "Ligado" : "Desligado"}</b></div></div>
         ${s.falta.length ? `<div class="aviso critico" style="margin-top:10px"><b>Não saia para esta propriedade ainda</b><span class="pequeno">Falta: ${esc(s.falta.join("; "))}.</span></div>` : ""}
-        <div class="acoes" style="margin-top:12px"><button class="btn sec" data-ed="${p.id}">Editar</button><button class="btn sec" data-pasta="${p.id}">Documentos</button>${s.pode ? `<button class="btn" data-ir="${p.id}">Iniciar manejo</button>` : ""}</div></div>`; }).join("") || '<div class="vazio">Nenhuma propriedade cadastrada. Adicione a primeira com o número do CAR.</div>'}</div>
+        ${p.limite ? `<div style="margin-top:10px;max-width:360px">${cacaMapa([], [], p.limite)}</div><div class="pequeno" style="margin-top:6px">Limite pelo CAR${p.carInfo && p.carInfo.area ? ": " + String(p.carInfo.area).replace(".", ",") + " ha" : ""}${p.carInfo && p.carInfo.mun ? " · " + esc(p.carInfo.mun) : ""}${p.carInfo && p.carInfo.cond ? " · " + esc(p.carInfo.cond) : ""}. Fonte: base pública do SICAR; é o perímetro declarado, não vale como divisa legal.</div>` : ""}
+        <div class="msg" data-lmsg="${p.id}"></div>
+        <div class="acoes" style="margin-top:12px"><button class="btn sec" data-ed="${p.id}">Editar</button>${p.car ? `<button class="btn sec" data-lim="${p.id}">${p.limite ? "Atualizar limite" : "Buscar limite pelo CAR"}</button>` : ""}<button class="btn sec" data-pasta="${p.id}">Documentos</button>${s.pode ? `<button class="btn" data-ir="${p.id}">Iniciar manejo</button>` : ""}</div></div>`; }).join("") || '<div class="vazio">Nenhuma propriedade cadastrada. Adicione a primeira com o número do CAR.</div>'}</div>
       <h3 class="sec-tit">Documentos das propriedades</h3>
       <div class="envio-doc"><button class="btn" data-ldoc="foto">Fotografar documento</button><button class="btn sec" data-ldoc="arq">Enviar arquivo ou PDF</button></div>${cacaPasta ? "" : '<div id="envio"></div>'}
       ${(() => { const dd = cacaDocsConta().filter((d) => d.tipo !== "SIMAF" && d.tipo !== "CTF"); return dd.length ? `<div class="lista" id="caca-docs-prop">${dd.map(cacaDocLinha).join("")}</div>` : '<div class="vazio">Nenhum documento enviado ainda. Envie a autorização do proprietário ou arrendatário e o CAR.</div>'; })()}
@@ -1922,6 +1969,9 @@ function renderCaca(c, sub) {
     g("caca-ctf").onchange = () => { C.ctf = g("caca-ctf").value; cacaGravar(C); render(); };
     if (g("caca-nova")) g("caca-nova").onclick = () => { cacaEdit = {}; render(); };
     c.querySelectorAll("[data-ed]").forEach((b) => b.onclick = () => { cacaEdit = { ...C.props.find((p) => p.id === b.dataset.ed) }; render(); window.scrollTo(0, 0); });
+    c.querySelectorAll("[data-lim]").forEach((b) => b.onclick = async () => { const m = c.querySelector('[data-lmsg="' + b.dataset.lim + '"]'), pp = C.props.find((x) => x.id === b.dataset.lim); m.className = "msg"; m.textContent = "Consultando o CAR…"; b.disabled = true;
+      const r = await cacaBuscarLimite(pp.car); if (r.erro) { m.className = "msg erro"; m.textContent = r.erro; b.disabled = false; return; }
+      const A = cacaLer(), q = A.props.find((x) => x.id === pp.id); if (q) { q.limite = r.limite; q.carInfo = r.info; cacaGravar(A); } render(); });
     c.querySelectorAll("[data-ldoc]").forEach((b) => b.onclick = () => { cacaDocAlvo = { lista: true, volta: "propriedades" }; b.dataset.ldoc === "foto" ? fotografar() : $("#arq").click(); });
     c.querySelectorAll("[data-pasta]").forEach((b) => b.onclick = () => { cacaPasta = b.dataset.pasta; cacaEdit = null; render(); window.scrollTo(0, 0); });
     c.querySelectorAll("[data-cdoc]").forEach((b) => b.onclick = () => { cacaDocAlvo = { prop: cacaPasta, k: b.dataset.k }; b.dataset.cdoc === "foto" ? fotografar() : $("#arq").click(); });
@@ -1935,6 +1985,7 @@ function renderCaca(c, sub) {
       g("cp-salvar").onclick = () => {
         const nome = g("cp-nome").value.trim(); if (nome.length < 2) { g("cp-msg").textContent = "Informe o nome da propriedade."; g("cp-msg").className = "msg erro"; return; }
         const p = { id: cacaEdit.id || "p" + Date.now().toString(36), nome, mun: g("cp-mun").value.trim(), car: g("cp-car").value.trim(), ini: g("cp-ini").value, fim: g("cp-fim").value, equipe: g("cp-eq").value.trim(), dono: g("cp-dono").value.trim(), fone: g("cp-fone").value.replace(/\D/g, ""), decl: g("cp-decl").checked, avisar: g("cp-avisar").checked, relatorio: cacaEdit.fim === g("cp-fim").value ? !!cacaEdit.relatorio : false };
+        if (cacaEdit.limite && cacaCarNorm(cacaEdit.car) === cacaCarNorm(p.car)) { p.limite = cacaEdit.limite; p.carInfo = cacaEdit.carInfo; }
         const i = C.props.findIndex((x) => x.id === p.id); if (i >= 0) C.props[i] = p; else C.props.push(p);
         cacaGravar(C); cacaEdit = null; render();
       };
@@ -1948,7 +1999,9 @@ function renderCaca(c, sub) {
       c.innerHTML = topo("Manejo em andamento", esc(p.nome || "") + " · iniciado às " + hora(C.ativa.inicio)) +
         `<div class="card" style="border-color:rgba(63,203,126,.45)"><div class="rotulo ok">Em andamento</div><div class="grande">${hora(C.ativa.inicio)} <span class="pequeno">até cerca de ${hora(C.ativa.previsto)}</span></div>
           <div class="pequeno" id="cm-gps">${C.ativa.gps === false ? "Trilha por GPS desligada nesta saída." : "Gravando a trilha por GPS. Mantenha o app aberto e a tela ligada."}</div>
-          <div class="pequeno">${av ? "Aviso ao proprietário ligado (" + esc(p.dono || "") + "). Nesta versão de demonstração a mensagem ainda não é enviada." : "Aviso ao proprietário desligado para esta propriedade."}</div></div>
+          <div class="pequeno">${av ? "Aviso ao proprietário ligado (" + esc(p.dono || "") + "). Nesta versão de demonstração a mensagem ainda não é enviada." : "Aviso ao proprietário desligado para esta propriedade."}</div>
+          <div class="acoes" style="margin-top:12px"><button class="btn sec" id="cm-cheguei">Avisar que cheguei</button><button class="btn sec" id="cm-ajuda" style="color:var(--vermelho);border-color:var(--vermelho)">Pedir ajuda</button></div><div class="msg" id="cm-amsg"></div>
+          <div class="pequeno">Você escolhe para quem mandar. O aviso de chegada não leva localização; o pedido de ajuda leva a sua posição no momento.</div></div>
         ${C.ativa.gps === false ? "" : `<div class="card" style="margin-top:14px"><div class="rotulo">Trilha e pontos</div><div id="cm-trilha" style="margin-top:10px">${cacaTrilhaAoVivo(C.ativa)}</div>
           <div class="caca-campos"><label>Marcar ponto aqui<select id="cm-tipo">${Object.entries(CACA_MARCAS).map(([k, t]) => `<option value="${k}">${t}</option>`).join("")}</select></label><label>Observação (opcional)<input id="cm-mobs" maxlength="80"></label></div>
           <button class="btn" id="cm-marcar" style="margin-top:12px">Marcar ponto</button><div class="msg" id="cm-mmsg"></div></div>`}
@@ -1963,6 +2016,10 @@ function renderCaca(c, sub) {
           (A.ativa.marcas = A.ativa.marcas || []).push({ lat: A.ativa.pos[0], lon: A.ativa.pos[1], t: Date.now(), tipo: c.querySelector("#cm-tipo").value, obs: c.querySelector("#cm-mobs").value.trim() });
           cacaGravar(A); c.querySelector("#cm-mobs").value = ""; c.querySelector("#cm-trilha").innerHTML = cacaTrilhaAoVivo(A.ativa); m.textContent = "Ponto " + A.ativa.marcas.length + " marcado."; m.className = "msg"; };
       }
+      c.querySelector("#cm-cheguei").onclick = () => cacaEnviarTexto("Manejo de javali", primeiroNomeTxt() + " chegou à " + (p.nome || "propriedade") + (p.mun ? " (" + p.mun + ")" : "") + " para o manejo de javali às " + cacaHora(C.ativa.inicio) + ", com previsão de término por volta das " + cacaHora(C.ativa.previsto) + "." + (p.equipe ? " Equipe: " + p.equipe + "." : ""), c.querySelector("#cm-amsg"));
+      c.querySelector("#cm-ajuda").onclick = async () => { const m = c.querySelector("#cm-amsg"); m.textContent = "Buscando a sua posição…"; m.className = "msg";
+        const A = cacaLer(), pos = (await cacaPosAgora()) || (A.ativa && A.ativa.pos) || null; m.textContent = pos ? "" : "Sem posição do GPS: o pedido vai sem o link do mapa.";
+        cacaEnviarTexto("Pedido de ajuda", "PRECISO DE AJUDA. " + primeiroNomeTxt() + ", em manejo de javali na " + (p.nome || "propriedade") + (p.mun ? " (" + p.mun + ")" : "") + ", às " + cacaHora(Date.now()) + "." + (pos ? " Minha posição: https://maps.google.com/?q=" + pos[0] + "," + pos[1] : " Não consegui obter a posição pelo GPS.") + " Em emergência, ligue 193 (Bombeiros) ou 192 (SAMU).", m); };
       c.querySelector("#cm-fim").onclick = () => { const A = cacaLer(); cacaParar(); A.saidas.unshift({ id: "s" + Date.now().toString(36), prop: A.ativa.prop, inicio: A.ativa.inicio, fim: new Date().toISOString(), animais: Number(c.querySelector("#cm-n").value) || 0, obs: c.querySelector("#cm-obs").value.trim(), trilha: A.ativa.trilha || [], marcas: A.ativa.marcas || [] }); cacaVer = A.saidas[0].id; A.ativa = null; cacaGravar(A); irPara("caca", "saidas"); };
       return;
     }
@@ -2028,7 +2085,7 @@ function renderCaca(c, sub) {
     if (sv) {
       const nome = nomeProp(sv.prop);
       c.innerHTML = topo("Trilha da saída", esc(nome) + " · " + new Date(sv.inicio).toLocaleDateString("pt-BR") + ", " + cacaHora(sv.inicio) + "–" + cacaHora(sv.fim)) +
-        `<div class="card">${cacaMapa(sv.trilha, sv.marcas)}
+        `<div class="card">${cacaMapa(sv.trilha, sv.marcas, (C.props.find((x) => x.id === sv.prop) || {}).limite)}
           <div class="dados-caca"><div><span>Percorrido</span><b>${cacaFmtKm(cacaKm(sv.trilha))}</b></div><div><span>Pontos marcados</span><b>${(sv.marcas || []).length}</b></div><div><span>Abatidos</span><b>${sv.animais || 0}</b></div></div>
           ${(sv.marcas || []).length ? `<div class="lista" style="margin-top:12px">${sv.marcas.map((m, i) => `<div class="linha"><div><div class="t">${i + 1}. ${CACA_MARCAS[m.tipo] || "Ponto"}</div><div class="pequeno">${cacaHora(m.t)} · ${m.lat.toFixed(5)}, ${m.lon.toFixed(5)}${m.obs ? " · " + esc(m.obs) : ""}</div></div><a href="https://maps.google.com/?q=${m.lat},${m.lon}" target="_blank" rel="noopener">Abrir no mapa</a></div>`).join("")}</div>` : ""}
           <div class="acoes" style="margin-top:14px"><button class="btn" id="cs-comp">Compartilhar</button><button class="btn sec" id="cs-gpx">Baixar GPX</button><button class="btn sec" id="cs-volta">Voltar às saídas</button></div><div class="msg" id="cs-msg"></div>
@@ -2042,12 +2099,16 @@ function renderCaca(c, sub) {
     const dur = (s) => { const m = Math.round((new Date(s.fim) - new Date(s.inicio)) / 6e4); return m >= 60 ? Math.floor(m / 60) + "h" + String(m % 60).padStart(2, "0") : m + " min"; };
     c.innerHTML = topo("Registro de saídas", "Cada manejo encerrado fica aqui, por propriedade. Use os totais para preencher o relatório do SIMAF.") +
       (Object.keys(porProp).map((id) => { const L = porProp[id], tot = L.reduce((a, s) => a + (s.animais || 0), 0);
-        return `<h3 class="sec-tit">${esc(nomeProp(id))} · ${L.length} saída(s) · ${tot} animal(is)</h3><div class="lista">${L.map((s) => `<div class="linha"><div><div class="t">${new Date(s.inicio).toLocaleDateString("pt-BR")} · ${dur(s)}</div><div class="pequeno">${s.animais ? s.animais + " abatido(s)" : "sem abate"}${(s.trilha || []).length > 1 ? " · " + cacaFmtKm(cacaKm(s.trilha)) : ""}${(s.marcas || []).length ? " · " + s.marcas.length + " ponto(s)" : ""}${s.obs ? " · " + esc(s.obs) : ""}</div></div><div style="text-align:right"><div class="pequeno">${new Date(s.inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}–${new Date(s.fim).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div><button class="btn sec" data-ver="${s.id}" style="min-height:36px;padding:6px 12px;margin-top:6px">Ver trilha</button></div></div>`).join("")}</div>`; }).join("")
+        const pr = C.props.find((x) => x.id === id);
+        return `<h3 class="sec-tit">${esc(nomeProp(id))} · ${L.length} saída(s) · ${tot} animal(is)</h3>${pr ? `<button class="btn sec" data-rsim="${id}" style="margin-bottom:10px">Relatório para o SIMAF</button>${cacaRel === id ? `<div class="card" id="caca-rel" style="margin-bottom:12px"><pre style="white-space:pre-wrap;font:inherit;margin:0">${esc(cacaRelSimaf(C, pr))}</pre><div class="acoes" style="margin-top:12px"><button class="btn" id="rs-comp">Copiar ou compartilhar</button><button class="btn sec" id="rs-x">Fechar</button></div><div class="msg" id="rs-msg"></div><p class="pequeno" style="margin:8px 0 0">Considera as saídas dentro do período da autorização informado em SIMAF. O Ática não envia nada ao Ibama: o relatório é preenchido por você no SIMAF.</p></div>` : ""}` : ""}<div class="lista">${L.map((s) => `<div class="linha"><div><div class="t">${new Date(s.inicio).toLocaleDateString("pt-BR")} · ${dur(s)}</div><div class="pequeno">${s.animais ? s.animais + " abatido(s)" : "sem abate"}${(s.trilha || []).length > 1 ? " · " + cacaFmtKm(cacaKm(s.trilha)) : ""}${(s.marcas || []).length ? " · " + s.marcas.length + " ponto(s)" : ""}${s.obs ? " · " + esc(s.obs) : ""}</div></div><div style="text-align:right"><div class="pequeno">${new Date(s.inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}–${new Date(s.fim).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div><button class="btn sec" data-ver="${s.id}" style="min-height:36px;padding:6px 12px;margin-top:6px">Ver trilha</button></div></div>`).join("")}</div>`; }).join("")
         || '<div class="vazio">Nenhuma saída registrada ainda. Inicie um manejo para começar o histórico.</div>');
     c.querySelectorAll("[data-ver]").forEach((b) => b.onclick = () => { cacaVer = b.dataset.ver; render(); window.scrollTo(0, 0); });
+    c.querySelectorAll("[data-rsim]").forEach((b) => b.onclick = () => { cacaRel = cacaRel === b.dataset.rsim ? null : b.dataset.rsim; render(); });
+    if (c.querySelector("#rs-x")) { c.querySelector("#rs-x").onclick = () => { cacaRel = null; render(); }; c.querySelector("#rs-comp").onclick = () => cacaEnviarTexto("Relatório de manejo", cacaRelSimaf(C, C.props.find((x) => x.id === cacaRel)), c.querySelector("#rs-msg")); }
     return;
   }
 }
+function primeiroNomeTxt() { return ((D.assinante || {}).nome || "O caçador").split(" ")[0]; }
 function primeiroNome() { return esc(((D.assinante || {}).nome || "O caçador").split(" ")[0]); }
 function renderTela(c, a, primeiro, docs) {
   usoTela();
