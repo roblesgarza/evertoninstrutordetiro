@@ -1601,16 +1601,25 @@ function cacaContatos() { const C = cacaLer(), L = [], vistos = new Set(), por =
   return L; }
 function cacaContatoSalvar(nome, z) { const A = cacaLer(); A.contatos = (A.contatos || []).filter((c) => cacaZap(c.zap) !== z).concat([{ nome: String(nome || "").trim().slice(0, 40) || "Contato", zap: z }]).slice(-50); cacaGravar(A); }
 function cacaContatoTirar(z) { const A = cacaLer(); A.contatos = (A.contatos || []).filter((c) => cacaZap(c.zap) !== z); A.props.forEach((p) => { if (p.contatos) p.contatos = p.contatos.filter((c) => cacaZap(c.zap) !== z); }); cacaGravar(A); }
+function cacaFiltro(box, sel, nomeInp, zapInp) { // filtra a lista de contatos enquanto digita o nome ou o número
+  const norm = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const f = () => { const n = norm(nomeInp && nomeInp.value).trim(), z = String((zapInp && zapInp.value) || "").replace(/\D/g, ""); let vis = 0;
+    box.querySelectorAll(sel).forEach((it) => { const ok = (!n || norm(it.dataset.fnome).includes(n)) && (!z || String(it.dataset.fzap).includes(z)); it.style.display = ok ? "" : "none"; if (ok) vis++; });
+    const av = box.querySelector("[data-fvazio]"); if (av) av.style.display = (n || z) && !vis ? "" : "none"; };
+  [nomeInp, zapInp].forEach((i) => { if (i) i.addEventListener("input", f); });
+}
 function cacaPainelComp(box, titulo, texto, rodape, rotulo) {
   const wa = (z) => "https://wa.me/" + z + "?text=" + encodeURIComponent(texto), cts = cacaContatos(), ed = box.dataset.editar === "1";
   box.innerHTML = `<div class="rotulo" style="margin-top:4px">${rotulo || "Compartilhar com"}</div>
-    <div class="acoes" style="margin-top:8px"><button class="btn" data-cg>Grupo ou outro app</button>${cts.map((c) => ed && c.meu ? `<button class="btn sec" data-ctira="${c.zap}" style="color:var(--vermelho)">✕ ${esc(c.nome)}</button>` : `<a class="btn sec" href="${wa(c.zap)}" target="_blank" rel="noopener">${esc(c.nome)}</a>`).join("")}</div>
+    <div class="acoes" style="margin-top:8px"><button class="btn" data-cg>Grupo ou outro app</button>${cts.map((c) => ed && c.meu ? `<button class="btn sec" data-ctira="${c.zap}" style="color:var(--vermelho)">✕ ${esc(c.nome)}</button>` : `<a class="btn sec" data-fnome="${esc(c.nome)}" data-fzap="${c.zap}" href="${wa(c.zap)}" target="_blank" rel="noopener">${esc(c.nome)}</a>`).join("")}</div>
+    <p class="pequeno" data-fvazio style="display:none;margin:6px 0 0">Nenhum contato salvo com esse nome ou número. Digite o WhatsApp abaixo para mandar e salvar.</p>
     ${cts.some((c) => c.meu) ? `<button class="link" data-ced style="margin-top:8px;background:none;border:0;color:var(--ouro);padding:0;font:inherit;cursor:pointer">${ed ? "Pronto" : "Editar meus contatos"}</button>` : ""}
-    <div class="caca-campos" style="margin-top:10px"><label>Outro contato (WhatsApp com DDD)<input data-cn inputmode="tel" maxlength="20" placeholder="(17) 99999-9999"></label><label>Nome<input data-cnome maxlength="40" placeholder="Ex.: João da equipe"></label></div>
+    <div class="caca-campos" style="margin-top:10px"><label>Nome (digite para buscar)<input data-cnome maxlength="40" placeholder="Ex.: João da equipe"></label><label>WhatsApp com DDD<input data-cn inputmode="tel" maxlength="20" placeholder="(17) 99999-9999"></label></div>
     <label class="caca-check" style="flex-direction:row;align-items:center"><input type="checkbox" data-csalva checked> Salvar nos meus contatos para as próximas vezes</label>
     <div class="acoes" style="margin-top:10px"><button class="btn sec" data-co>Abrir conversa no WhatsApp</button></div><div class="msg" data-cm></div>
     <p class="pequeno" style="margin:6px 0 0">Os contatos ficam salvos só neste aparelho. ${rodape || ""}</p>`;
   const q = (x) => box.querySelector(x), m = q("[data-cm]");
+  cacaFiltro(box, "a[data-fnome]", q("[data-cnome]"), q("[data-cn]"));
   q("[data-cg]").onclick = () => cacaEnviarTexto(titulo, texto, m);
   if (q("[data-ced]")) q("[data-ced]").onclick = () => { box.dataset.editar = ed ? "" : "1"; cacaPainelComp(box, titulo, texto, rodape, rotulo); };
   box.querySelectorAll("[data-ctira]").forEach((b) => b.onclick = () => { cacaContatoTirar(b.dataset.ctira); cacaPainelComp(box, titulo, texto, rodape, rotulo); });
@@ -1635,15 +1644,17 @@ async function compEquipe(el, docId, aviso) {
     ${aviso || ""}
     ${r.membros.length ? `<div class="comp-lista">${r.membros.map((m) => `<div class="comp-m"><div><b>${esc(m.nome || compFone(m.whatsapp))}</b><div class="pequeno">${esc(compFone(m.whatsapp))} · ${m.vistas ? "abriu " + m.vistas + " vez(es), a última em " + compQuando(m.ultima_vista) : "ainda não abriu"}</div></div><button class="btn sec dsp-mini" data-crem="${m.id}" data-cnm="${esc(m.nome || "")}">Remover</button></div>`).join("")}</div>` : '<p class="pequeno" style="margin:8px 0 0">Ninguém tem acesso pelo app ainda.</p>'}
     <div class="pequeno" style="margin-top:12px"><b>Marque quem pode ver esta autorização:</b></div>
-    ${cands.length ? `<div class="comp-cands">${cands.map((c, i) => `<label class="caca-check"><input type="checkbox" data-cc="${i}" ${c.marcado ? "checked" : ""}><span>${esc(c.nome)} · ${esc(compFone(c.zap))}</span></label>`).join("")}</div>` : '<p class="pequeno" style="margin:6px 0 0">Nenhum contato salvo ainda. Adicione abaixo.</p>'}
-    <div class="caca-campos" style="margin-top:8px"><label>Nome<input data-cxn maxlength="40"></label><label>WhatsApp com DDD<input data-cxz inputmode="tel" maxlength="20" placeholder="(17) 99999-9999"></label></div>
+    ${cands.length ? `<div class="comp-cands">${cands.map((c, i) => `<label class="caca-check" data-fnome="${esc(c.nome)}" data-fzap="${c.zap}"><input type="checkbox" data-cc="${i}" ${c.marcado ? "checked" : ""}><span>${esc(c.nome)} · ${esc(compFone(c.zap))}</span></label>`).join("")}</div><p class="pequeno" data-fvazio style="display:none;margin:6px 0 0">Ninguém salvo com esse nome. Digite o WhatsApp com DDD e toque em "Adicionar à lista".</p>` : '<p class="pequeno" style="margin:6px 0 0">Nenhum contato salvo ainda. Adicione abaixo.</p>'}
+    <div class="caca-campos" style="margin-top:8px"><label>Nome (digite para buscar)<input data-cxn maxlength="40"></label><label>WhatsApp com DDD<input data-cxz inputmode="tel" maxlength="20" placeholder="(17) 99999-9999"></label></div>
     <div class="acoes" style="margin-top:8px"><button class="btn sec" data-cxadd>Adicionar à lista</button></div>
     ${C.props.length ? `<label style="margin-top:10px">Propriedade desta autorização<select data-cprop><option value="">Não informar</option>${C.props.map((p, i) => `<option value="${p.id}" ${C.props.length === 1 && i === 0 ? "selected" : ""}>${esc(p.nome)}</option>`).join("")}</select></label>` : ""}
     <div class="acoes" style="margin-top:10px"><button class="btn" data-cdar>Dar acesso aos marcados</button></div><div class="msg" data-cmsg></div>
     <p class="pequeno" style="margin:6px 0 0">Só quem tem conta no Ática recebe acesso pelo app. Quem você remover perde o acesso na hora e é avisado. Se o proprietário não quer mais alguém, peça a ele uma autorização nova sem o nome dessa pessoa.</p></div>`;
   const q = (s) => el.querySelector(s), msg = q("[data-cmsg]");
+  cacaFiltro(el, "label[data-fnome]", q("[data-cxn]"), q("[data-cxz]"));
   q("[data-cxadd]").onclick = () => { const z = cacaZap(q("[data-cxz]").value); if (!z) { msg.className = "msg erro"; msg.textContent = "Digite o WhatsApp com DDD."; return; }
     el.__extras = (el.__extras || []).filter((x) => x.zap !== z).concat([{ nome: q("[data-cxn]").value.trim().slice(0, 40) || "Contato", zap: z, marcado: true }]);
+    cacaContatoSalvar(q("[data-cxn]").value, z);
     const sel = q("[data-cprop]"); if (sel && sel.value) { const A = cacaLer(), pp = A.props.find((x) => x.id === sel.value); if (pp) { pp.contatos = (pp.contatos || []).filter((c) => cacaZap(c.zap) !== z).concat([{ nome: q("[data-cxn]").value.trim().slice(0, 40), zap: z }]).slice(-20); cacaGravar(A); } }
     compEquipe(el, docId); };
   el.querySelectorAll("[data-crem]").forEach((b) => b.onclick = async () => {
