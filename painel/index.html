@@ -1310,8 +1310,8 @@ async function cacaBuscarLimite(car) {
   const P = f.properties || {}; return { limite: aneis, info: { area: P.area ? +Number(P.area).toFixed(1) : null, mun: P.municipio || "", cond: P.condicao || "", em: new Date().toISOString().slice(0, 10) } };
 }
 function cacaDentro(pos, aneis) { if (!pos || !aneis || !aneis.length) return null; return aneis.some((a) => { let d = false; for (let i = 0, j = a.length - 1; i < a.length; j = i++) { if ((a[i][0] > pos[0]) !== (a[j][0] > pos[0]) && pos[1] < (a[j][1] - a[i][1]) * (pos[0] - a[i][0]) / (a[j][0] - a[i][0]) + a[i][1]) d = !d; } return d; }); }
-function cacaMapa(trilha, marcas, limite) {
-  const lim = limite || [], pts = [...(trilha || []), ...(marcas || []).map((m) => [m.lat, m.lon]), ...lim.flat()];
+function cacaMapa(trilha, marcas, limite, equipe) {
+  const lim = limite || [], eqp = (equipe || []).filter((m) => m.lat !== null && m.lat !== undefined), pts = [...(trilha || []), ...(marcas || []).map((m) => [m.lat, m.lon]), ...lim.flat(), ...eqp.map((m) => [m.lat, m.lon])];
   if (!pts.length) return '<div class="vazio">Nenhum ponto de GPS gravado nesta saída.</div>';
   const W = 340, H = 260, M = 24, lat0 = pts.reduce((a, p) => a + p[0], 0) / pts.length, kx = Math.cos(lat0 * Math.PI / 180) * 111320, ky = 110540;
   const xs = pts.map((p) => p[1] * kx), ys = pts.map((p) => p[0] * ky), minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
@@ -1324,12 +1324,14 @@ function cacaMapa(trilha, marcas, limite) {
     ${t.length ? `<circle cx="${X(t[0])}" cy="${Y(t[0])}" r="5" fill="#3FCB7E"/><text x="${+X(t[0]) + 8}" y="${+Y(t[0]) + 3}">início</text>` : ""}
     ${t.length > 1 ? `<rect x="${X(t[t.length - 1]) - 4}" y="${Y(t[t.length - 1]) - 4}" width="8" height="8" fill="#F0524F"/><text x="${+X(t[t.length - 1]) + 8}" y="${+Y(t[t.length - 1]) + 3}">fim</text>` : ""}
     ${(marcas || []).map((m, i) => { const p = [m.lat, m.lon]; return `<circle cx="${X(p)}" cy="${Y(p)}" r="8" fill="#0A0A0C" stroke="#6E9BF5" stroke-width="2"/><text x="${X(p)}" y="${+Y(p) + 3}" text-anchor="middle" fill="#fff" font-weight="700">${i + 1}</text>`; }).join("")}
+    ${eqp.map((m) => { const p = [m.lat, m.lon]; return `<rect x="${X(p) - 7}" y="${Y(p) - 7}" width="14" height="14" transform="rotate(45 ${X(p)} ${Y(p)})" fill="#0A0A0C" stroke="${m.tipo ? "#F0524F" : "#3FCB7E"}" stroke-width="2"/><text x="${X(p)}" y="${+Y(p) + 3}" text-anchor="middle" fill="#fff" font-weight="700">${esc(String(m.apelido || "?").slice(0, 1).toUpperCase())}</text>`; }).join("")}
     <line x1="14" y1="${H - 12}" x2="${14 + barra * esc2}" y2="${H - 12}" stroke="#A9A9B2" stroke-width="2"/><text x="14" y="${H - 17}">${cacaFmtKm(barra)}</text>
     <path d="M${W - 18} 26l5 12h-10z" fill="#A9A9B2"/><text x="${W - 18}" y="18" text-anchor="middle">N</text></svg>`;
 }
 function cacaTrilhaAoVivo(a) {
   const t = a.trilha || [], m = a.marcas || [], lim = (cacaLer().props.find((x) => x.id === a.prop) || {}).limite, den = cacaDentro(a.pos, lim);
-  return `${cacaMapa(t, m, lim)}${den === null ? "" : `<div class="aviso ${den ? "info" : "atencao"}" style="margin-top:10px"><b>${den ? "Você está dentro do limite do CAR" : "Você está fora do limite do CAR"}</b><span class="pequeno">${den ? "Linha tracejada: perímetro declarado da propriedade." : "Confira no mapa. O GPS e o perímetro declarado têm margem de erro."}</span></div>`}<div class="dados-caca"><div><span>Percorrido</span><b>${cacaFmtKm(cacaKm(t))}</b></div><div><span>Pontos marcados</span><b>${m.length}</b></div><div><span>Precisão do GPS</span><b>${a.precisao ? "±" + a.precisao + " m" : "—"}</b></div></div>`;
+  const eqv = (EQP.dados && a.equipe) ? [...EQP.dados.membros.filter((x) => !x.eu && x.seg !== null && x.seg < 900), ...EQP.dados.avistamentos.slice(0, 20)] : [];
+  return `${cacaMapa(t, m, lim, eqv)}${den === null ? "" : `<div class="aviso ${den ? "info" : "atencao"}" style="margin-top:10px"><b>${den ? "Você está dentro do limite do CAR" : "Você está fora do limite do CAR"}</b><span class="pequeno">${den ? "Linha tracejada: perímetro declarado da propriedade." : "Confira no mapa. O GPS e o perímetro declarado têm margem de erro."}</span></div>`}<div class="dados-caca"><div><span>Percorrido</span><b>${cacaFmtKm(cacaKm(t))}</b></div><div><span>Pontos marcados</span><b>${m.length}</b></div><div><span>Precisão do GPS</span><b>${a.precisao ? "±" + a.precisao + " m" : "—"}</b></div></div>`;
 }
 function cacaTexto(s, nome) {
   const dur = Math.round((new Date(s.fim) - new Date(s.inicio)) / 6e4), L = [`Manejo de javali · ${nome}`, `${new Date(s.inicio).toLocaleDateString("pt-BR")}, das ${cacaHora(s.inicio)} às ${cacaHora(s.fim)} (${dur >= 60 ? Math.floor(dur / 60) + "h" + String(dur % 60).padStart(2, "0") : dur + " min"})`];
@@ -1364,6 +1366,48 @@ function cacaRelSimaf(C, p) {
     "", "Gerado pelo Ática a partir do registro de saídas. Confira antes de preencher no SIMAF."].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
 }
 let cacaRel = null;
+const EQP = { dados: null, tm: null, msg: "" };
+const EQP_TIPOS = { avistado: "Javali avistado", abatido: "Javali abatido", rastro: "Rastro ou fuçado", ceva: "Ceva ou armadilha", atencao: "Atenção" };
+function eqpParar() { if (EQP.tm) clearInterval(EQP.tm); EQP.tm = null; EQP.dados = null; }
+async function eqpTick(marca) {
+  const A = cacaLer(); if (!A.ativa || !A.ativa.equipe) return eqpParar();
+  let pos = A.ativa.pos && Date.now() - A.ativa.pos[2] < 60000 ? [A.ativa.pos[0], A.ativa.pos[1], A.ativa.precisao] : await cacaPosAgora();
+  const corpo = { codigo: A.ativa.equipe.codigo }; if (pos) { corpo.lat = pos[0]; corpo.lon = pos[1]; corpo.precisao = pos[2] || null; } if (marca) corpo.marca = marca;
+  let r = null; try { r = await api("equipe_estado", corpo); } catch (e) {}
+  if (!r || !r.ok) { EQP.msg = (r && r.erro) || "Sem conexão: a equipe atualiza quando o sinal voltar."; }
+  else if (r.encerrada) { const B = cacaLer(); if (B.ativa) { delete B.ativa.equipe; cacaGravar(B); } eqpParar(); EQP.msg = "A equipe foi encerrada por quem lidera."; }
+  else { EQP.dados = r; EQP.msg = pos ? "" : "Sem posição do GPS: a equipe não está vendo você."; }
+  const el = document.querySelector("#cm-equipe"); if (el) { el.innerHTML = eqpHtml(cacaLer()); eqpLigar(); } else if (!document.querySelector("#cm-fim")) eqpParar();
+  const tr = document.querySelector("#cm-trilha"), B2 = cacaLer(); if (tr && B2.ativa) tr.innerHTML = cacaTrilhaAoVivo(B2.ativa);
+}
+function eqpHtml(C) {
+  const e = C.ativa && C.ativa.equipe, d = EQP.dados, eu = C.ativa && C.ativa.pos;
+  if (!e) return `<div class="rotulo">Equipe ao vivo</div><p class="pequeno" style="margin:6px 0 0">Quem lidera cria a equipe e passa o código. Cada um vê a posição dos outros e os pontos marcados enquanto o manejo estiver aberto. Ao encerrar, as posições são apagadas do servidor.</p>
+    <div class="caca-campos"><label>Como a equipe vai ver você<input id="eq-ap" maxlength="20" value="${esc(primeiroNomeTxt())}"></label><label>Código (para entrar numa equipe)<input id="eq-cod" maxlength="8" autocapitalize="characters" placeholder="Ex.: K7M2QP"></label></div>
+    <label class="caca-check"><input type="checkbox" id="eq-ok"> Aceito compartilhar a minha posição com a equipe durante este manejo.</label>
+    <div class="acoes" style="margin-top:10px"><button class="btn" id="eq-criar">Criar equipe</button><button class="btn sec" id="eq-entrar">Entrar com o código</button></div><div class="msg ${EQP.msg ? "erro" : ""}" id="eq-msg">${esc(EQP.msg)}</div>`;
+  const idade = (s) => s === null ? "sem posição" : s < 90 ? "agora" : s < 3600 ? "há " + Math.round(s / 60) + " min" : "há mais de 1 h";
+  return `<div class="caca-topo"><div><div class="rotulo">Equipe ao vivo</div><div class="grande" style="letter-spacing:.12em">${esc(e.codigo)}</div></div><span class="etiqueta ok">${d ? d.membros.length + " na equipe" : "conectando"}</span></div>
+    ${d ? `<div class="lista" style="margin-top:10px">${d.membros.map((m) => `<div class="linha"><div><div class="t">${esc(m.apelido)}${m.eu ? ' <span class="pequeno">(você)</span>' : ""}${m.lider ? ' <span class="pequeno">· lidera</span>' : ""}</div><div class="pequeno">${idade(m.seg)}${!m.eu && eu && m.lat !== null ? " · a " + cacaFmtKm(cacaDist(eu, [m.lat, m.lon])) + " de você" : ""}</div></div>${!m.eu && m.lat !== null ? `<a href="https://maps.google.com/?q=${m.lat},${m.lon}" target="_blank" rel="noopener">Mapa</a>` : ""}</div>`).join("")}</div>
+      ${d.avistamentos.length ? `<div class="rotulo" style="margin-top:12px">Pontos da equipe</div><div class="lista" style="margin-top:6px">${d.avistamentos.slice(0, 12).map((a) => `<div class="linha"><div><div class="t">${EQP_TIPOS[a.tipo] || "Ponto"}</div><div class="pequeno">${esc(a.apelido || "")} · ${cacaHora(a.em)}${a.obs ? " · " + esc(a.obs) : ""}</div></div><a href="https://maps.google.com/?q=${a.lat},${a.lon}" target="_blank" rel="noopener">Mapa</a></div>`).join("")}</div>` : ""}` : ""}
+    <div class="acoes" style="margin-top:12px"><button class="btn sec" id="eq-comp">Compartilhar código</button><button class="btn sec" id="eq-sair">${d && d.lider ? "Encerrar equipe" : "Sair da equipe"}</button></div><div class="msg ${EQP.msg ? "erro" : ""}" id="eq-msg">${esc(EQP.msg)}</div>
+    <p class="pequeno" style="margin:8px 0 0">Losangos verdes no mapa: equipe. Vermelhos: pontos marcados por ela. Atualiza a cada 20 segundos com o app aberto.</p>`;
+}
+function eqpLigar() {
+  const g = (i) => document.querySelector("#" + i), m = g("eq-msg");
+  const entrar = async (criar) => { const ap = g("eq-ap").value.trim(), cod = g("eq-cod").value.trim().toUpperCase(); m.className = "msg erro";
+    if (!g("eq-ok").checked) return void (m.textContent = "Marque que aceita compartilhar a sua posição.");
+    if (!criar && cod.length < 6) return void (m.textContent = "Digite o código da equipe.");
+    m.className = "msg"; m.textContent = "Conectando…"; const A = cacaLer(), p = A.props.find((x) => x.id === (A.ativa || {}).prop) || {};
+    let r = null; try { r = await api(criar ? "equipe_criar" : "equipe_entrar", { apelido: ap, codigo: cod, propriedade: p.nome || "", aceite: true }); } catch (e) {}
+    if (!r || !r.ok) { m.className = "msg erro"; m.textContent = (r && r.erro) || "Sem conexão. Tente de novo."; return; }
+    const B = cacaLer(); if (!B.ativa) return; B.ativa.equipe = { codigo: r.codigo, apelido: ap }; cacaGravar(B); EQP.msg = ""; eqpIniciar(); };
+  if (g("eq-criar")) { g("eq-criar").onclick = () => entrar(true); g("eq-entrar").onclick = () => entrar(false); }
+  if (g("eq-comp")) g("eq-comp").onclick = () => { const A = cacaLer(); cacaEnviarTexto("Equipe do manejo", "Entre na equipe do manejo no Ática: abra Manejo › Manejo em andamento › Equipe ao vivo e use o código " + A.ativa.equipe.codigo + ".", m); };
+  if (g("eq-sair")) g("eq-sair").onclick = async () => { const A = cacaLer(), cod = A.ativa && A.ativa.equipe && A.ativa.equipe.codigo; if (!cod) return; if (EQP.dados && EQP.dados.lider && !confirm("Encerrar a equipe para todos? As posições são apagadas.")) return;
+    try { await api("equipe_sair", { codigo: cod }); } catch (e) {} const B = cacaLer(); if (B.ativa) { delete B.ativa.equipe; cacaGravar(B); } eqpParar(); EQP.msg = ""; const el = g("cm-equipe"); if (el) { el.innerHTML = eqpHtml(cacaLer()); eqpLigar(); } };
+}
+function eqpIniciar() { if (EQP.tm) clearInterval(EQP.tm); EQP.tm = setInterval(() => eqpTick(), 20000); eqpTick(); }
 function cacaPastaHtml(C, p) {
   const s = cacaSituacao(C, p), cr = D.resumo.cr, armas = D.documentos.filter((d) => d.tipo === "CRAF" && d.acervo === "cacador"), guias = D.documentos.filter((d) => d.tipo === "GT" && (d.dias === null || d.dias === undefined || d.dias >= 0));
   const L = [
@@ -1561,6 +1605,7 @@ function dsfOpcoes(d) {
   return al.filter((a) => a.moa > 0 && (!cf.tiros || a.n >= cf.tiros) && (!cf.dist_min || a.dist >= cf.dist_min))
     .map((a) => ({ id: a.id, rot: `${Number(a.moa).toFixed(2).replace(".", ",")} MOA · ${a.n} tiros a ${a.dist} m${a.arma ? " · " + a.arma : ""}`, data: a.data, valor: +Number(a.moa).toFixed(2), foto: String(a.img || "").startsWith("data:image/jpeg") ? a.img : "", detalhe: { moa: +Number(a.moa).toFixed(2), cm: a.cm, tiros: a.n, dist: a.dist, arma: String(a.arma || "").slice(0, 60) } }));
 }
+function dsfConf(c) { if (!c) return ""; if (!c.legivel) return " · leitura da foto: não legível"; const l = c.lido || {}; return " · leitura da foto: " + (l.furos !== undefined ? l.furos + " furo(s)" : "A" + l.A + " C" + l.C + " D" + l.D) + (c.confere ? " (confere)" : " (não bate com o declarado)"); }
 function dsfDetalhe(d, t) { return d.modalidade === "velocidade" ? `${ipscSeg(Number(t.tempo) || 0)} s · ${t.pontos} pts · ${t.tiros} tiros · A${t.A} C${t.C} D${t.D} M${t.M}${t.NS ? " NS" + t.NS : ""}${t.P ? " P" + t.P : ""} · ${t.fator === "major" ? "Major" : "Minor"}` : `${t.tiros} tiros a ${t.dist} m · ${t.cm ? Number(t.cm).toFixed(1).replace(".", ",") + " cm" : ""}${t.arma ? " · " + esc(t.arma) : ""}`; }
 function dsfDuelosHtml(R) {
   const P = R.padroes || {}, L = R.duelos || [], N = DSF.novo, K = DSF.criado;
@@ -1654,7 +1699,7 @@ function renderDesafios(c) {
       if (!q("#ds-ok").checked) return void (m.textContent = "Marque a declaração para participar.");
       q("#ds-enviar").disabled = true; m.className = "msg"; m.textContent = "Enviando…";
       let r = null; try { r = du ? await api("duelo_enviar", { duelo_id: d.id, valor: sel.valor, detalhe: sel.detalhe, foto, aceite: true }) : await api("desafio_enviar", { desafio_id: d.id, apelido: ap, valor: sel.valor, detalhe: sel.detalhe, foto, aceite: true }); } catch (x) {}
-      if (r && r.ok) { DSF.form = null; DSF.dados = null; DSF.aviso = du ? "Resultado enviado. Quando o adversário enviar o dele, o placar aparece aqui." : "Resultado enviado. Ele aparece no ranking como aguardando conferência."; render(); window.scrollTo(0, 0); }
+      if (r && r.ok) { DSF.form = null; DSF.dados = null; DSF.aviso = du ? "Resultado enviado. Quando o adversário enviar o dele, o placar aparece aqui." : r.conferencia === "confere" ? "Resultado enviado e conferido automaticamente pela foto do alvo." : r.conferencia === "diverge" ? "Resultado enviado. A contagem lida na foto não bateu com a declarada, então ele fica aguardando a conferência do instrutor." : r.conferencia === "ilegivel" ? "Resultado enviado. Não deu para ler a foto com segurança, então ele fica aguardando a conferência do instrutor." : "Resultado enviado. Ele aparece no ranking como aguardando conferência."; render(); window.scrollTo(0, 0); }
       else { q("#ds-enviar").disabled = false; m.className = "msg erro"; m.textContent = (r && r.erro) || "Não foi possível enviar agora. Tente de novo."; }
     };
     return;
@@ -1673,7 +1718,7 @@ function renderDesafios(c) {
       ${!d.ranking.length ? '<div class="vazio" style="margin-top:10px">Ninguém enviou resultado ainda. Seja o primeiro.</div>' : aba === "geral"
         ? `<div class="lista ds-rank">${d.ranking.map((r, i) => `<div class="linha${r.meu ? " ds-eu" : ""}"><div class="ds-pos">${i + 1}º</div><div style="flex:1"><div class="t">${esc(r.apelido)}${r.meu ? ' <span class="pequeno">(você)</span>' : ""}</div><div class="pequeno">${esc(r.clube || "Sem clube informado")}${r.status === "pendente" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><b>${dsfValor(d, r.valor)}</b></div>`).join("")}</div>`
         : `<div class="lista ds-rank">${lc.map(([k, x], i) => `<div class="linha"><div class="ds-pos">${i + 1}º</div><div style="flex:1"><div class="t">${esc(k)}</div><div class="pequeno">${x.n} participante(s) · melhor resultado do clube</div></div><b>${dsfValor(d, x.v)}</b></div>`).join("")}</div>`}
-      ${R.admin && (d.pendentes || []).length ? `<h3 class="sec-tit" style="margin-top:18px">Conferir (${d.pendentes.length})</h3><div class="lista">${d.pendentes.map((p) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(p.apelido)} · ${dsfValor(d, p.valor)}</div><div class="pequeno">${esc(p.clube || "Sem clube")} · ${new Date(p.criado_em).toLocaleDateString("pt-BR")} · ${dsfDetalhe(d, p.detalhe || {})}</div></div>${p.foto ? `<a href="${p.foto}" target="_blank" rel="noopener">Ver foto</a>` : ""}</div><div class="caca-envia"><button class="btn sec" data-val="validado" data-id="${p.id}">Validar</button><button class="btn sec" data-val="recusado" data-id="${p.id}">Recusar</button></div></div>`).join("")}</div>` : ""}</div>`;
+      ${R.admin && (d.pendentes || []).length ? `<h3 class="sec-tit" style="margin-top:18px">Conferir (${d.pendentes.length})</h3><div class="lista">${d.pendentes.map((p) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(p.apelido)} · ${dsfValor(d, p.valor)}</div><div class="pequeno">${esc(p.clube || "Sem clube")} · ${new Date(p.criado_em).toLocaleDateString("pt-BR")} · ${dsfDetalhe(d, p.detalhe || {})}${dsfConf((p.detalhe || {}).conferencia)}</div></div>${p.foto ? `<a href="${p.foto}" target="_blank" rel="noopener">Ver foto</a>` : ""}</div><div class="caca-envia"><button class="btn sec" data-val="validado" data-id="${p.id}">Validar</button><button class="btn sec" data-val="recusado" data-id="${p.id}">Recusar</button></div></div>`).join("")}</div>` : ""}</div>`;
   }).join("") : '<div class="vazio">Nenhum desafio aberto no momento. Quando abrir um, ele aparece aqui.</div>') +
     dsfDuelosHtml(R) +
     `<p class="pequeno" style="margin-top:14px">Só em estande e seguindo as regras de segurança do clube. O ranking mostra apenas o apelido e o clube. Resultados passam pela conferência da nossa equipe; os que não seguirem a regra saem do ranking.</p><div class="msg" id="ds-amsg"></div>`;
@@ -2005,6 +2050,7 @@ function renderCaca(c, sub) {
         ${C.ativa.gps === false ? "" : `<div class="card" style="margin-top:14px"><div class="rotulo">Trilha e pontos</div><div id="cm-trilha" style="margin-top:10px">${cacaTrilhaAoVivo(C.ativa)}</div>
           <div class="caca-campos"><label>Marcar ponto aqui<select id="cm-tipo">${Object.entries(CACA_MARCAS).map(([k, t]) => `<option value="${k}">${t}</option>`).join("")}</select></label><label>Observação (opcional)<input id="cm-mobs" maxlength="80"></label></div>
           <button class="btn" id="cm-marcar" style="margin-top:12px">Marcar ponto</button><div class="msg" id="cm-mmsg"></div></div>`}
+        <div class="card" style="margin-top:14px" id="cm-equipe">${eqpHtml(C)}</div>
         <div class="card" style="margin-top:14px"><div class="rotulo">Encerrar a saída</div><div class="caca-campos" style="margin-top:8px">
           <label>Animais abatidos (opcional)<input id="cm-n" inputmode="numeric" maxlength="3" placeholder="0"></label>
           <label>Observação (opcional)<input id="cm-obs" maxlength="140"></label></div>
@@ -2014,13 +2060,14 @@ function renderCaca(c, sub) {
         c.querySelector("#cm-marcar").onclick = () => { const A = cacaLer(), m = c.querySelector("#cm-mmsg"); if (!A.ativa) return;
           if (!A.ativa.pos) { m.textContent = "Ainda sem posição do GPS. Aguarde alguns segundos em área aberta."; m.className = "msg erro"; return; }
           (A.ativa.marcas = A.ativa.marcas || []).push({ lat: A.ativa.pos[0], lon: A.ativa.pos[1], t: Date.now(), tipo: c.querySelector("#cm-tipo").value, obs: c.querySelector("#cm-mobs").value.trim() });
-          cacaGravar(A); c.querySelector("#cm-mobs").value = ""; c.querySelector("#cm-trilha").innerHTML = cacaTrilhaAoVivo(A.ativa); m.textContent = "Ponto " + A.ativa.marcas.length + " marcado."; m.className = "msg"; };
+          cacaGravar(A); c.querySelector("#cm-mobs").value = ""; c.querySelector("#cm-trilha").innerHTML = cacaTrilhaAoVivo(A.ativa); m.textContent = "Ponto " + A.ativa.marcas.length + " marcado." + (A.ativa.equipe ? " A equipe foi avisada." : ""); m.className = "msg"; if (A.ativa.equipe) { const u = A.ativa.marcas[A.ativa.marcas.length - 1]; eqpTick({ tipo: u.tipo, obs: u.obs }); } };
       }
+      eqpLigar(); if (C.ativa.equipe && !EQP.tm) eqpIniciar();
       c.querySelector("#cm-cheguei").onclick = () => cacaEnviarTexto("Manejo de javali", primeiroNomeTxt() + " chegou à " + (p.nome || "propriedade") + (p.mun ? " (" + p.mun + ")" : "") + " para o manejo de javali às " + cacaHora(C.ativa.inicio) + ", com previsão de término por volta das " + cacaHora(C.ativa.previsto) + "." + (p.equipe ? " Equipe: " + p.equipe + "." : ""), c.querySelector("#cm-amsg"));
       c.querySelector("#cm-ajuda").onclick = async () => { const m = c.querySelector("#cm-amsg"); m.textContent = "Buscando a sua posição…"; m.className = "msg";
         const A = cacaLer(), pos = (await cacaPosAgora()) || (A.ativa && A.ativa.pos) || null; m.textContent = pos ? "" : "Sem posição do GPS: o pedido vai sem o link do mapa.";
         cacaEnviarTexto("Pedido de ajuda", "PRECISO DE AJUDA. " + primeiroNomeTxt() + ", em manejo de javali na " + (p.nome || "propriedade") + (p.mun ? " (" + p.mun + ")" : "") + ", às " + cacaHora(Date.now()) + "." + (pos ? " Minha posição: https://maps.google.com/?q=" + pos[0] + "," + pos[1] : " Não consegui obter a posição pelo GPS.") + " Em emergência, ligue 193 (Bombeiros) ou 192 (SAMU).", m); };
-      c.querySelector("#cm-fim").onclick = () => { const A = cacaLer(); cacaParar(); A.saidas.unshift({ id: "s" + Date.now().toString(36), prop: A.ativa.prop, inicio: A.ativa.inicio, fim: new Date().toISOString(), animais: Number(c.querySelector("#cm-n").value) || 0, obs: c.querySelector("#cm-obs").value.trim(), trilha: A.ativa.trilha || [], marcas: A.ativa.marcas || [] }); cacaVer = A.saidas[0].id; A.ativa = null; cacaGravar(A); irPara("caca", "saidas"); };
+      c.querySelector("#cm-fim").onclick = () => { const A = cacaLer(); cacaParar(); if (A.ativa && A.ativa.equipe) { try { api("equipe_sair", { codigo: A.ativa.equipe.codigo }); } catch (e) {} eqpParar(); } A.saidas.unshift({ id: "s" + Date.now().toString(36), prop: A.ativa.prop, inicio: A.ativa.inicio, fim: new Date().toISOString(), animais: Number(c.querySelector("#cm-n").value) || 0, obs: c.querySelector("#cm-obs").value.trim(), trilha: A.ativa.trilha || [], marcas: A.ativa.marcas || [] }); cacaVer = A.saidas[0].id; A.ativa = null; cacaGravar(A); irPara("caca", "saidas"); };
       return;
     }
     const ok = C.props.filter((p) => cacaSituacao(C, p).pode), sel = ok.find((p) => p.id === C.escolha) || ok[0];
