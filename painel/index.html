@@ -201,7 +201,7 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 #balx[data-cad]>.aviso,#balx[data-cad]>p.pequeno{display:none}
 @media (max-width:860px){nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}nav button{font-size:10px!important}}
 .nivel-card .chip.ativo{color:var(--ouro);border-color:var(--ouro);background:rgba(226,182,87,.08)}.nivel-card .chip{min-height:44px;padding:10px 18px}
-.caca-ctf-card{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;text-align:left;background:var(--card);border:1px solid var(--line);border-left:4px solid currentColor;padding:16px 18px;margin-bottom:14px;cursor:pointer;font:inherit}.caca-ctf-card b{display:block;font:700 26px "Chakra Petch";text-transform:uppercase;letter-spacing:.04em;margin:4px 0}.caca-ctf-card .rotulo,.caca-ctf-card .pequeno{display:block;color:var(--sub)}.caca-ctf-card .seta{font-size:24px;color:var(--sub)}.hub button[data-s="ctf"],.hub button[data-s="autorizacoes"]{display:none}
+.caca-ctf-card{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;text-align:left;background:var(--card);border:1px solid var(--line);border-left:4px solid currentColor;padding:16px 18px;margin-bottom:14px;cursor:pointer;font:inherit}.caca-ctf-card b{display:block;font:700 26px "Chakra Petch";text-transform:uppercase;letter-spacing:.04em;margin:4px 0}.caca-ctf-card .rotulo,.caca-ctf-card .pequeno{display:block;color:var(--sub)}.caca-ctf-card .seta{font-size:24px;color:var(--sub)}.hub button[data-s="ctf"],.hub button[data-s="autorizacoes"]{display:none}.caca-comp{margin-top:10px;padding:8px 14px;font-size:13px}.caca-comp-p:not(:empty){margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}.caca-comp-p .acoes{flex-wrap:wrap}.caca-comp-p a.btn{text-decoration:none;display:inline-flex;align-items:center}.caca-comp-p select{display:block;width:100%;margin-top:6px;padding:12px;background:var(--card2);color:inherit;border:1px solid var(--line);font:inherit}.caca-comp-p label{display:block;margin-top:10px}
 /* manejo de javali */
 .caca-campos{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:10px}
 .caca-check{display:flex;gap:10px;align-items:flex-start;margin-top:12px;font-size:14px;color:var(--txt)}.caca-check input{width:20px;height:20px;flex:none;margin-top:1px}
@@ -1280,7 +1280,7 @@ function cacaCtfCartao() {
 }
 const CACA_RX = /manejo|javali|simaf|ibama|cadastro t[ée]cnico federal|\bctf\b|cadastro ambiental rural|\bcar\b|ca[çc]ador|ca[çc]a\b|abate|fauna|arrendat|propriet[áa]rio (rural|da (terra|fazenda|propriedade|área))|propriedade rural/i;
 const cacaDocsConta = () => { try { return D.documentos.filter((d) => d.status !== "substituido" && (CACA_TIPOS[d.tipo] || (d.tipo === "OUTRO" || d.tipo === "GT") && CACA_RX.test((d.descricao || "") + " " + (d.destino || "")))); } catch (e) { return []; } };
-const cacaDocLinha = (d) => `<div class="linha"><div><div class="t">${esc(d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.tipo === "GT" ? "Guia de tráfego · " : CACA_TIPOS[d.tipo] ? CACA_TIPOS[d.tipo] + " · " : ""}${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`;
+const cacaDocLinha = (d) => `<div class="linha"><div><div class="t">${esc(d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.tipo === "GT" ? "Guia de tráfego · " : CACA_TIPOS[d.tipo] ? CACA_TIPOS[d.tipo] + " · " : ""}${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div>${d.id && d.link ? `<button class="btn sec caca-comp" data-comp="${d.id}">Compartilhar</button><div class="caca-comp-p" data-compp="${d.id}"></div>` : ""}</div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}</div></div>`;
 let cacaEdit = null, cacaWatch = null, cacaVer = null, cacaPasta = null;
 const cacaDist = (a, b) => { const R = 6371000, r = Math.PI / 180, x = Math.sin((b[0] - a[0]) * r / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin((b[1] - a[1]) * r / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(x)); };
 const cacaKm = (t) => (t || []).reduce((s, p, i) => i ? s + cacaDist(t[i - 1], p) : 0, 0);
@@ -1366,6 +1366,30 @@ function cacaRelSimaf(C, p) {
     "", "Gerado pelo Ática a partir do registro de saídas. Confira antes de preencher no SIMAF."].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
 }
 let cacaRel = null;
+const cacaZap = (v) => { const n = String(v || "").replace(/\D/g, ""); return n.length === 10 || n.length === 11 ? "55" + n : n.length === 12 || n.length === 13 ? n : ""; };
+function cacaContatos() { const L = []; cacaLer().props.forEach((p) => { if (cacaZap(p.zap)) L.push({ nome: (p.dono || "Proprietário ou arrendatário") + " · " + p.nome, zap: cacaZap(p.zap) }); (p.contatos || []).forEach((c) => { if (cacaZap(c.zap)) L.push({ nome: (c.nome || "Contato") + " · " + p.nome, zap: cacaZap(c.zap) }); }); }); return L; }
+async function cacaCompAbrir(id) {
+  const box = document.querySelector('[data-compp="' + id + '"]'); if (!box) return; if (box.innerHTML) { box.innerHTML = ""; return; }
+  document.querySelectorAll("[data-compp]").forEach((x) => x.innerHTML = "");
+  box.innerHTML = '<div class="msg">Gerando o link…</div>';
+  const d = (D.documentos || []).find((x) => String(x.id) === String(id)) || {};
+  let r = null; try { r = await api("doc_link", { id }); } catch (e) {}
+  if (!r || !r.ok) { box.innerHTML = '<div class="msg erro">' + esc((r && r.erro) || "Sem conexão para gerar o link.") + "</div>"; return; }
+  const texto = "Documento de manejo de javali" + (CACA_TIPOS[d.tipo] ? " (" + CACA_TIPOS[d.tipo] + ")" : "") + ": " + String(d.descricao || d.nome_tipo || "").slice(0, 140) + "\nArquivo (link válido por " + r.dias + " dias): " + r.url;
+  const wa = (z) => "https://wa.me/" + z + "?text=" + encodeURIComponent(texto), C = cacaLer(), cts = cacaContatos();
+  box.innerHTML = `<div class="rotulo" style="margin-top:4px">Compartilhar com</div>
+    <div class="acoes" style="margin-top:8px"><button class="btn" data-cg>Grupo ou outro app</button>${cts.map((c) => `<a class="btn sec" href="${wa(c.zap)}" target="_blank" rel="noopener">${esc(c.nome)}</a>`).join("")}</div>
+    <div class="caca-campos" style="margin-top:10px"><label>Outro contato (WhatsApp com DDD)<input data-cn inputmode="tel" maxlength="20" placeholder="(17) 99999-9999"></label><label>Nome (opcional)<input data-cnome maxlength="40"></label></div>
+    ${C.props.length ? `<label>Salvar este contato na propriedade<select data-cs><option value="">Não salvar</option>${C.props.map((p) => `<option value="${p.id}">${esc(p.nome)}</option>`).join("")}</select></label>` : ""}
+    <div class="acoes" style="margin-top:10px"><button class="btn sec" data-co>Abrir conversa no WhatsApp</button></div><div class="msg" data-cm></div>
+    <p class="pequeno" style="margin:6px 0 0">O documento sai do seu WhatsApp, para quem você escolher. O link para de funcionar em ${r.dias} dias. Se o arquivo traz dados de outras pessoas, envie só a quem precisa.</p>`;
+  const q = (x) => box.querySelector(x), m = q("[data-cm]");
+  q("[data-cg]").onclick = () => cacaEnviarTexto("Documento de manejo", texto, m);
+  q("[data-co]").onclick = () => { const z = cacaZap(q("[data-cn]").value); m.className = "msg erro"; if (!z) return void (m.textContent = "Digite o WhatsApp com DDD.");
+    const sel = q("[data-cs]"); if (sel && sel.value) { const A = cacaLer(), pp = A.props.find((x) => x.id === sel.value); if (pp) { pp.contatos = (pp.contatos || []).filter((c) => cacaZap(c.zap) !== z).concat([{ nome: q("[data-cnome]").value.trim().slice(0, 40), zap: z }]).slice(-20); cacaGravar(A); } }
+    m.className = "msg"; m.textContent = "Abrindo o WhatsApp…"; window.open(wa(z), "_blank", "noopener"); };
+}
+if (!window.__cacaComp) { window.__cacaComp = true; document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("[data-comp]"); if (b) { e.preventDefault(); cacaCompAbrir(b.dataset.comp); } }); }
 const EQP = { dados: null, tm: null, msg: "" };
 const EQP_TIPOS = { avistado: "Javali avistado", abatido: "Javali abatido", rastro: "Rastro ou fuçado", ceva: "Ceva ou armadilha", atencao: "Atenção" };
 function eqpParar() { if (EQP.tm) clearInterval(EQP.tm); EQP.tm = null; EQP.dados = null; }
