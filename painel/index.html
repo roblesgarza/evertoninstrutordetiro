@@ -1813,6 +1813,45 @@ async function cacaEnviarTexto(titulo, text, msgEl) {
   try { await navigator.clipboard.writeText(text); msgEl.textContent = "Texto copiado. Cole no WhatsApp ou onde quiser."; msgEl.className = "msg"; } catch (e) { msgEl.textContent = "Não foi possível compartilhar neste aparelho."; msgEl.className = "msg erro"; }
 }
 function cacaPosAgora() { return new Promise((ok) => { if (!navigator.geolocation) return ok(null); navigator.geolocation.getCurrentPosition((p) => ok([+p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6), Math.round(p.coords.accuracy)]), () => ok(null), { enableHighAccuracy: true, timeout: 12000, maximumAge: 15000 }); }); }
+const abtHoje = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+// propriedade ligada a um item da lista do SIMAF; quando a autorização veio como documento, cria a propriedade sozinho
+function smAbtProp(C, x, criar) {
+  if (x.prop) return C.props.find((p) => p.id === x.prop.id) || null;
+  const did = x.doc ? x.doc.id : "", n = cacaSemAc(x.nome || "");
+  let p = C.props.find((q) => q.doc && q.doc === did) || (n ? C.props.find((q) => cacaSemAc(q.nome || "") === n) : null);
+  if (!p && criar) { p = { id: "p" + Date.now().toString(36), nome: x.nome || (x.num ? "Autorização nº " + x.num : "Autorização de manejo"), mun: x.local || "", auto: true }; C.props.push(p); }
+  if (p && p.auto && criar && (x.fim || "") >= (p.fim || "")) { p.doc = did; p.simaf = x.num || ""; p.fim = x.fim || ""; p.titular = x.tit || p.titular || ""; if (x.nome) p.nome = x.nome; if (x.local) p.mun = x.local; }
+  return p;
+}
+function smAbtJanela(x) { const fim = x.fim || ""; let de = String(x.prop ? x.prop.ini || "" : (x.doc && x.doc.emitido_em) || "").slice(0, 10);
+  if (!de && fim) { const t = new Date(fim + "T12:00:00"); t.setDate(t.getDate() - 190); de = t.toISOString().slice(0, 10); } return [de, fim]; }
+function smAbtSaidas(C, x) { const p = smAbtProp(C, x, false); if (!p) return []; const [de, ate] = smAbtJanela(x);
+  return C.saidas.filter((s) => s.prop === p.id && (!de || s.inicio.slice(0, 10) >= de) && (!ate || s.inicio.slice(0, 10) <= ate)); }
+const smAbtN = (s) => Math.max(Number(s.animais) || 0, (s.bichos || []).length);
+function smAbtTexto(C, x) { const L = smAbtSaidas(C, x), tot = L.reduce((a, s) => a + smAbtN(s), 0), dt = (iso) => new Date(iso).toLocaleDateString("pt-BR");
+  return ["RELATÓRIO DE MANEJO DE JAVALI (rascunho para o SIMAF)", "Propriedade: " + (x.nome || "a informar") + (x.local ? " · " + x.local : ""),
+    "Autorização" + (x.num ? " nº " + x.num : "") + (x.fim ? " · válida até " + br(x.fim) : ""), "Saídas com registro: " + L.length, "Animais abatidos: " + tot, abtResumo(L), "",
+    ...L.slice().reverse().flatMap((s) => ["- " + dt(s.inicio) + ": " + (smAbtN(s) ? smAbtN(s) + " abatido(s)" : "sem abate") + (s.obs ? " · " + s.obs : ""), ...(s.bichos || []).map((b, i) => "    " + (i + 1) + ") " + abtTxt(b))]),
+    "", "Gerado pelo Ática. Confira antes de preencher no SIMAF."].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n"); }
+function smAbtHtml(C, x, S) { const L = smAbtSaidas(C, x), B = L.reduce((a, s) => a + smAbtN(s), 0), ab = S.abt === x.id, [de, ate] = smAbtJanela(x), hoje = abtHoje(), mx = ate && ate < hoje ? ate : hoje;
+  const dia = S.abtDia && S.abtDia <= mx && (!de || S.abtDia >= de) ? S.abtDia : mx, venc = x.dias !== null && x.dias < 0;
+  return `<div class="sm-abt" style="margin-top:10px;border-top:1px solid var(--linha,#e3e0d8);padding-top:10px"><div class="rotulo">Abates nesta autorização</div>
+    <div class="pequeno" style="margin:4px 0 8px">${B ? B + " animal(is) em " + L.length + " saída(s). " + esc(abtResumo(L)) : "Nenhum abate lançado ainda."}${venc ? " Autorização vencida: lance o que faltou e envie o relatório no SIMAF." : ""}</div>
+    ${L.map((s) => `<div class="pequeno" style="margin-bottom:4px"><b>${new Date(s.inicio).toLocaleDateString("pt-BR")}</b>: ${(s.bichos || []).length ? (s.bichos || []).map((b, i) => (i + 1) + ") " + esc(abtTxt(b))).join("; ") + (smAbtN(s) > s.bichos.length ? " (+" + (smAbtN(s) - s.bichos.length) + " sem detalhe)" : "") : smAbtN(s) ? smAbtN(s) + " abatido(s), sem detalhe" : "sem abate"}</div>`).join("")}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn${ab ? " sec" : ""}" data-smabt="${x.id}">${ab ? "Fechar" : "Registrar abate"}</button>${L.length ? `<button class="btn sec" data-smabtc="${x.id}">Copiar para o relatório</button>` : ""}</div>
+    ${ab ? `<div class="caca-campos" style="grid-template-columns:1fr;margin-top:10px"><label>Dia da saída<input type="date" data-smabtd value="${dia}"${de ? ` min="${de}"` : ""} max="${mx}"></label></div><div data-smabte style="margin-top:8px"></div>` : ""}<div class="msg" data-smabtm="${x.id}"></div><textarea data-smabtx="${x.id}" readonly style="display:none;width:100%;min-height:150px;margin-top:8px"></textarea></div>`; }
+function smAbtLiga(c, S, itens, re) {
+  c.querySelectorAll("[data-smabt]").forEach((b) => b.onclick = () => { S.abt = S.abt === b.dataset.smabt ? "" : b.dataset.smabt; S.abtDia = ""; re(); });
+  c.querySelectorAll("[data-smabtc]").forEach((b) => b.onclick = async () => { const x = itens.find((y) => y.id === b.dataset.smabtc); if (!x) return; const txt = smAbtTexto(cacaLer(), x), m = c.querySelector(`[data-smabtm="${x.id}"]`), ta = c.querySelector(`[data-smabtx="${x.id}"]`);
+    ta.value = txt; ta.style.display = "block"; try { await navigator.clipboard.writeText(txt); m.textContent = "Copiado. Cole onde precisar ou use como guia para preencher o SIMAF."; m.className = "msg ok"; } catch (e) { m.textContent = "Selecione o texto abaixo e copie."; m.className = "msg"; } });
+  const el = c.querySelector("[data-smabte]"), x = itens.find((y) => y.id === S.abt), di = c.querySelector("[data-smabtd]"); if (!el || !x || !di) return;
+  di.onchange = () => { S.abtDia = di.value; re(); };
+  const dia = di.value, A0 = cacaLer(), p0 = smAbtProp(A0, x, false), s0 = p0 && A0.saidas.find((s) => s.prop === p0.id && s.manual && s.inicio.slice(0, 10) === dia);
+  abtMontar(el, ((s0 && s0.bichos) || []).slice(), (lista, tipo) => { if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return; const A = cacaLer(), p = smAbtProp(A, x, true); let s = A.saidas.find((q) => q.prop === p.id && q.manual && q.inicio.slice(0, 10) === dia);
+    if (!s) { const quando = dia + "T15:00:00.000Z"; s = { id: "s" + Date.now().toString(36), prop: p.id, inicio: quando, fim: quando, animais: 0, bichos: [], obs: "", trilha: [], marcas: [], manual: true }; A.saidas.push(s); A.saidas.sort((a, b) => (a.inicio < b.inicio ? 1 : -1)); }
+    s.bichos = lista.slice(); s.animais = tipo === "mais" ? Math.max(Number(s.animais) || 0, lista.length) : Math.max(lista.length, (Number(s.animais) || 1) - 1);
+    S.abtDia = dia; cacaGravar(A); setTimeout(re, 0); });
+}
 const ABT_SX = { m: "Macho", f: "Fêmea" }, ABT_FX = { j: "Jovem", a: "Adulto" };
 function abtTxt(b) { return [(ABT_SX[b.sx] || "sexo não informado").toLowerCase(), (b.fx === "a" && b.sx === "f" ? "adulta" : ABT_FX[b.fx] || "").toLowerCase(), b.cm ? b.cm + " cm" : ""].filter(Boolean).join(", "); }
 function abtResumo(L) { const B = L.flatMap((s) => s.bichos || []); if (!B.length) return ""; const n = (k, v) => B.filter((b) => b[k] === v).length;
@@ -3445,7 +3484,7 @@ function renderCaca(c, sub) {
       ...C.props.map((p) => ({ id: "p:" + p.id, prop: p, nome: p.nome, local: p.mun || "", num: p.simaf || "", fim: p.fim || "", tit: p.titular || "" })),
     ].filter((x) => { const oc = C.simafOcultos.includes(x.id) || !!(x.doc && x.doc.oculto); return S.verOcultos ? oc : !oc; });
     const dNomes = itens0.filter((x) => x.doc && x.nome).map((x) => [cacaSemAc(x.nome), String(x.num || "").replace(/\D/g, "")]);
-    const itens = itens0.filter((x) => !x.prop || !dNomes.some(([n, num]) => n === cacaSemAc(x.nome) && (!x.num || String(x.num).replace(/\D/g, "") === num)));
+    const itens = itens0.filter((x) => !(x.prop && x.prop.auto && itens0.some((y) => y.doc && (y.doc.id === x.prop.doc || (y.nome && cacaSemAc(y.nome) === cacaSemAc(x.nome)))))).filter((x) => !x.prop || !dNomes.some(([n, num]) => n === cacaSemAc(x.nome) && (!x.num || String(x.num).replace(/\D/g, "") === num)));
     itens.forEach((x) => { x.dias = x.fim ? cacaDias(x.fim) : null; x.rel = x.prop ? cacaSituacao(C, x.prop).relatorio : (x.dias !== null && x.dias < 0 && x.dias >= -90 && !(C.simafInfo[x.id] || {}).rel); });
     const chave = (x) => x.num ? "n" + String(x.num).replace(/\D/g, "") : "f" + cacaSemAc(x.nome) + "|" + x.fim;
     const cont = {}; itens.forEach((x) => { const k = chave(x); cont[k] = (cont[k] || 0) + 1; });
@@ -3474,13 +3513,14 @@ function renderCaca(c, sub) {
             ${p ? `<label>Início<input type="date" data-si="ini" data-p="${p.id}" value="${esc(p.ini || "")}"></label><label>Validade<input type="date" data-si="fim" data-p="${p.id}" value="${esc(p.fim || "")}"></label>` : ""}
           </div>
           ${x.rel ? `<div class="aviso atencao" style="margin-top:8px"><b>Relatório do SIMAF pendente</b><span class="pequeno">A autorização terminou. Envie o relatório no SIMAF, mesmo sem abate.</span><button class="btn sec" data-smrel="${x.id}" style="margin-top:8px;align-self:flex-start">Já enviei o relatório</button></div>` : ""}
+          ${S.verOcultos ? "" : smAbtHtml(C, x, S)}
           ${x.dup ? '<p class="pequeno" style="margin:8px 0 0">Há outra autorização com o mesmo número ou a mesma fazenda e vigência. Se for repetida, exclua uma delas.</p>' : ""}
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
             ${d && d.link ? `<a class="btn sec" href="${esc(d.link)}" target="_blank" rel="noopener" style="min-height:34px;padding:5px 12px">Abrir arquivo</a><button class="btn sec caca-comp" data-comp="${d.id}" style="min-height:34px;padding:5px 12px">Compartilhar</button>` : ""}
             ${S.verOcultos ? `<button class="btn sec" data-smvolta="${x.id}" style="min-height:34px;padding:5px 12px">Restaurar</button>` : `<button class="btn sec" data-smexc="${x.id}" style="min-height:34px;padding:5px 12px;color:#F28B82">Excluir</button>`}
           </div>${d ? `<div class="caca-comp-p" data-compp="${d.id}"></div>` : ""}</div>` : ""}</div>`; };
     const nOcl = new Set([...C.simafOcultos, ...docs.filter((d) => d.oculto).map((d) => "d:" + d.id)]).size;
-    c.innerHTML = topo("SIMAF", "Autorizações de manejo do Ibama. Toque numa fazenda para ver os detalhes.") +
+    c.innerHTML = topo("SIMAF", "Autorizações de manejo do Ibama. Toque numa fazenda para ver os detalhes e registrar abate.") +
       `<div class="envio-doc"><button class="btn" data-sdoc="foto">Fotografar a autorização</button><button class="btn sec" data-sdoc="arq">Enviar arquivo ou PDF</button></div><div id="envio"></div>
       <div class="caca-campos" style="grid-template-columns:2fr 1fr;margin-top:10px"><label>Buscar<input id="sm-busca" placeholder="Fazenda, cidade, nº ou titular" value="${esc(S.busca)}"></label>
         <label>Em nome de<select id="sm-tit"><option value="">Todos</option>${titulares.map((t) => `<option${t === S.tit ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></label></div>
@@ -3497,6 +3537,7 @@ function renderCaca(c, sub) {
     c.querySelector("#sm-tit").onchange = (e) => { S.tit = e.target.value; S.mais = 0; re(); };
     c.querySelectorAll("[data-smf]").forEach((x) => x.onclick = () => { S.filtro = x.dataset.smf; S.mais = 0; re(); });
     c.querySelectorAll("[data-smab]").forEach((x) => x.onclick = () => { S.aberto = S.aberto === x.dataset.smab ? "" : x.dataset.smab; re(); });
+    smAbtLiga(c, S, itens, re);
     c.querySelectorAll("[data-smc]").forEach((i) => i.onchange = () => { const id = i.dataset.id, k = i.dataset.smc, v = i.value.trim();
       if (id.startsWith("p:")) { const p = C.props.find((q) => "p:" + q.id === id); if (p) { if (k === "fazenda") p.nome = v || p.nome; else if (k === "cidade") p.mun = v; else if (k === "num") p.simaf = v; else p.titular = v; } }
       else { const o = (C.simafInfo[id] = C.simafInfo[id] || {}); o[k === "fazenda" ? "fazenda" : k] = v; }
@@ -3566,13 +3607,14 @@ function renderCaca(c, sub) {
     if (!__MS.feito) { __MS.feito = true; manejoSinc(); }
     c.innerHTML = topo("Registro de saídas", "Cada manejo encerrado fica aqui, por propriedade. Use os totais para preencher o relatório do SIMAF.") +
       `<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="t">Registrar abate</div><div class="pequeno">Para uma saída que você não acompanhou pelo app. Os registros ficam guardados na sua conta.</div></div><button class="btn${ABN.aberto ? " sec" : ""}" id="abn-ab">${ABN.aberto ? "Fechar" : "Registrar"}</button></div>
-        ${ABN.aberto ? (C.props.length ? `<div class="caca-campos" style="margin-top:12px"><label>Propriedade<select id="abn-prop">${C.props.map((p) => `<option value="${esc(p.id)}">${esc(p.nome || "Propriedade")}</option>`).join("")}</select></label><label>Data da saída<input type="date" id="abn-data" value="${new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)}" max="${new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)}"></label></div><button class="btn" id="abn-ok" style="margin-top:12px">Continuar e lançar os animais</button><div class="msg" id="abn-msg"></div>` : `<p class="pequeno" style="margin:10px 0 0">Cadastre primeiro a propriedade, em Propriedades.</p>`) : ""}</div>` +
+        ${ABN.aberto ? (C.props.length ? `<div class="caca-campos" style="margin-top:12px"><label>Propriedade<select id="abn-prop">${C.props.map((p) => `<option value="${esc(p.id)}">${esc(p.nome || "Propriedade")}</option>`).join("")}</select></label><label>Data da saída<input type="date" id="abn-data" value="${new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)}" max="${new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)}"></label></div><button class="btn" id="abn-ok" style="margin-top:12px">Continuar e lançar os animais</button><div class="msg" id="abn-msg"></div>` : `<p class="pequeno" style="margin:10px 0 0">Abra o <b>SIMAF</b>, toque na fazenda e use <b>Registrar abate</b>.</p><button class="btn" id="abn-sm" style="margin-top:10px">Abrir o SIMAF</button>`) : ""}</div>` +
       (Object.keys(porProp).map((id) => { const L = porProp[id], tot = L.reduce((a, s) => a + (s.animais || 0), 0);
         const pr = C.props.find((x) => x.id === id);
         return `<h3 class="sec-tit">${esc(nomeProp(id))} · ${L.length} saída(s) · ${tot} animal(is)</h3>${pr ? `<button class="btn sec" data-rsim="${id}" style="margin-bottom:10px">Relatório para o SIMAF</button>${cacaRel === id ? `<div class="card" id="caca-rel" style="margin-bottom:12px"><pre style="white-space:pre-wrap;font:inherit;margin:0">${esc(cacaRelSimaf(C, pr))}</pre><div class="acoes" style="margin-top:12px"><button class="btn" id="rs-comp">Copiar ou compartilhar</button><button class="btn sec" id="rs-x">Fechar</button></div><div class="msg" id="rs-msg"></div><p class="pequeno" style="margin:8px 0 0">Considera as saídas dentro do período da autorização informado em SIMAF. O Ática não envia nada ao Ibama: o relatório é preenchido por você no SIMAF.</p></div>` : ""}` : ""}<div class="lista">${L.map((s) => `<div class="linha"><div><div class="t">${new Date(s.inicio).toLocaleDateString("pt-BR")} · ${s.manual ? "lançada depois" : dur(s)}</div><div class="pequeno">${s.animais ? s.animais + " abatido(s)" : "sem abate"}${(s.trilha || []).length > 1 ? " · " + cacaFmtKm(cacaKm(s.trilha)) : ""}${(s.marcas || []).length ? " · " + s.marcas.length + " ponto(s)" : ""}${s.obs ? " · " + esc(s.obs) : ""}</div></div><div style="text-align:right"><div class="pequeno">${s.manual ? "" : new Date(s.inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) + "–" + new Date(s.fim).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div><button class="btn sec" data-ver="${s.id}" style="min-height:36px;padding:6px 12px;margin-top:6px">${s.manual ? "Abrir" : "Ver trilha"}</button></div></div>`).join("")}</div>`; }).join("")
         || '<div class="vazio">Nenhuma saída registrada ainda. Inicie um manejo para começar o histórico.</div>');
     c.querySelectorAll("[data-ver]").forEach((b) => b.onclick = () => { cacaVer = b.dataset.ver; render(); window.scrollTo(0, 0); });
     c.querySelector("#abn-ab").onclick = () => { ABN.aberto = !ABN.aberto; render(); };
+    if (c.querySelector("#abn-sm")) c.querySelector("#abn-sm").onclick = () => irPara("caca", "simaf");
     if (c.querySelector("#abn-ok")) c.querySelector("#abn-ok").onclick = () => { const dia = c.querySelector("#abn-data").value, pr = c.querySelector("#abn-prop").value, m = c.querySelector("#abn-msg");
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dia) || dia > new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)) { m.textContent = "Informe a data da saída."; m.className = "msg erro"; return; }
       const A = cacaLer(), quando = new Date(dia + "T12:00:00").toISOString(); A.saidas.unshift({ id: "s" + Date.now().toString(36), prop: pr, inicio: quando, fim: quando, animais: 0, bichos: [], obs: "", trilha: [], marcas: [], manual: true });
