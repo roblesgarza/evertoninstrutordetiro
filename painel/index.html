@@ -2494,19 +2494,24 @@ ICON.mapa = '<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 
 HUBS.documentos.itens.push(["mapa", "Clubes, lojas e credenciados", "Mapa com clubes de tiro, lojas, psicólogos e instrutores perto de você.", "mapa"]);
 const MP_TIPOS = { clube: "Clube de tiro", loja: "Loja de armas", estande: "Estande", psicologo: "Psicólogo credenciado", instrutor: "Instrutor credenciado", despachante: "Despachante", armeiro: "Armeiro" };
 const MP_CHAVE = "atica_locais_v1";
-let MP = { itens: null, meus: [], tipo: "", uf: "", busca: "", pos: null, form: false, edit: "", msg: "", mapa: null, camada: null, pend: null };
-try { const c = JSON.parse(localStorage.getItem(MP_CHAVE) || "null"); if (c && c.itens) { MP.itens = c.itens; MP.em = c.em; } } catch {}
+const MP_UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+let MP = { itens: null, meus: [], tipo: "", uf: "SP", busca: "", pos: null, form: false, edit: "", msg: "", mapa: null, camada: null, pend: null };
+try { const u = localStorage.getItem("atica_mapa_uf"); if (u !== null) MP.uf = u; } catch {}
+function mpLerCache() { MP.itens = null; MP.em = 0; try { const c = JSON.parse(localStorage.getItem(MP_CHAVE + "_" + (MP.uf || "BR")) || "null"); if (c && c.itens) { MP.itens = c.itens; MP.em = c.em; } } catch {} }
+mpLerCache();
 const mpDist = (a, b) => { const R = 6371, r = Math.PI / 180, dLa = (b[0] - a[0]) * r, dLo = (b[1] - a[1]) * r; const h = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
 const mpSemAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 async function mpCarregar(forcar) {
   if (MP.itens && !forcar && MP.em && Date.now() - MP.em < 6 * 3600e3) return;
-  const r = await api("locais_listar");
-  if (r && r.ok) { MP.itens = r.itens || []; MP.meus = r.meus || []; MP.em = Date.now(); try { localStorage.setItem(MP_CHAVE, JSON.stringify({ em: MP.em, itens: MP.itens })); } catch {} }
+  const uf = MP.uf;
+  const r = await api("locais_listar", { uf });
+  if (uf !== MP.uf) return;
+  if (r && r.ok) { MP.itens = r.itens || []; MP.meus = r.meus || []; MP.em = Date.now(); try { localStorage.setItem(MP_CHAVE + "_" + (uf || "BR"), JSON.stringify({ em: MP.em, itens: MP.itens })); } catch {} }
   else if (!MP.itens) MP.itens = [];
 }
 function mpFiltrados() {
   const b = mpSemAcento(MP.busca);
-  let L = (MP.itens || []).filter((l) => (!MP.tipo || l.tipo === MP.tipo) && (!MP.uf || l.uf === MP.uf) && (!b || mpSemAcento([l.nome, l.cidade, l.endereco, l.modalidades].join(" ")).includes(b)));
+  let L = (MP.itens || []).filter((l) => (!MP.tipo || l.tipo === MP.tipo) && (!b || mpSemAcento([l.nome, l.cidade, l.endereco, l.modalidades].join(" ")).includes(b)));
   L = L.map((l) => Object.assign({}, l, { km: MP.pos && l.lat !== null && l.lon !== null ? mpDist(MP.pos, [l.lat, l.lon]) : null }));
   L.sort((x, y) => (y.destaque ? 1 : 0) - (x.destaque ? 1 : 0) || (x.km !== null && y.km !== null ? x.km - y.km : 0) || String(x.cidade || "").localeCompare(String(y.cidade || "")) || x.nome.localeCompare(y.nome));
   return L;
@@ -2575,7 +2580,7 @@ async function mpDesenharMapa(L) {
   const Lf = globalThis.L;
   if (MP.mapa) { try { MP.mapa.remove(); } catch {} MP.mapa = null; }
   const centro = MP.pos || [-20.81, -49.38];
-  MP.mapa = Lf.map(box, { zoomControl: true, attributionControl: true }).setView(centro, MP.pos ? 10 : 7);
+  MP.mapa = Lf.map(box, { zoomControl: true, attributionControl: true, preferCanvas: true }).setView(centro, MP.pos ? 10 : 7);
   Lf.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(MP.mapa);
   const cores = { clube: "#E8B54A", loja: "#6E9BF5", psicologo: "#7BD389", instrutor: "#7BD389", armeiro: "#C792EA", despachante: "#F28B82", estande: "#E8B54A" };
   const pts = [];
@@ -2586,16 +2591,15 @@ async function mpDesenharMapa(L) {
     pts.push([l.lat, l.lon]);
   });
   if (MP.pos) Lf.circleMarker(MP.pos, { radius: 7, color: "#fff", weight: 2, fillColor: "#2E7DF6", fillOpacity: 1 }).addTo(MP.mapa).bindPopup("Você está aqui");
-  if (!MP.pos && pts.length && (MP.uf || MP.busca || MP.tipo)) MP.mapa.fitBounds(pts, { padding: [24, 24], maxZoom: 12 });
+  if (!MP.pos && pts.length) MP.mapa.fitBounds(pts, { padding: [24, 24], maxZoom: 12 });
 }
 async function renderMapa(c) {
   const admin = !!(D.assinante && D.assinante.admin);
   if (!MP.itens) { c.innerHTML = maisTopo("Clubes, lojas e credenciados", "Carregando o mapa…"); await mpCarregar(); if (tela !== "documentos" || subTela !== "mapa") return; }
   else mpCarregar().then(() => { if (tela === "documentos" && subTela === "mapa" && !MP.form && !MP.edit) mpLista(); });
-  const ufs = [...new Set((MP.itens || []).map((l) => l.uf).filter(Boolean))].sort();
   c.innerHTML = maisTopo("Clubes, lojas e credenciados", "Encontre clubes de tiro, lojas, psicólogos e instrutores perto de você.") +
     `<div class="caca-campos" style="grid-template-columns:2fr 1fr;margin-bottom:10px"><label>Buscar<input id="mp-busca" placeholder="Nome ou cidade" value="${esc(MP.busca)}"></label>
-      <label>Estado<select id="mp-uf"><option value="">Todos</option>${ufs.map((u) => `<option${u === MP.uf ? " selected" : ""}>${u}</option>`).join("")}</select></label></div>
+      <label>Estado<select id="mp-uf"><option value=""${MP.uf ? "" : " selected"}>Brasil (clubes e lojas)</option>${MP_UFS.map((u) => `<option${u === MP.uf ? " selected" : ""}>${u}</option>`).join("")}</select></label></div>
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${[["", "Todos"], ["clube", "Clubes"], ["loja", "Lojas"], ["psicologo", "Psicólogos"], ["instrutor", "Instrutores"], ["armeiro", "Armeiros"], ["despachante", "Despachantes"]].map(([k, t]) => `<button class="btn ${MP.tipo === k ? "" : "sec"}" data-mptipo="${k}" style="min-height:34px;padding:5px 12px">${t}</button>`).join("")}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button class="btn sec" id="mp-perto">${MP.pos ? "Atualizar minha posição" : "Perto de mim"}</button><button class="btn sec" id="mp-sugerir">Sugerir local</button></div>
     <div id="mp-msg">${MP.msg ? `<div class="aviso info" style="margin-bottom:10px"><span class="pequeno">${esc(MP.msg)}</span></div>` : ""}</div>
@@ -2603,7 +2607,7 @@ async function renderMapa(c) {
     ${admin ? '<div id="mp-admin"></div>' : ""}
     <div id="mp-mapa" style="height:320px;border-radius:12px;overflow:hidden;margin-bottom:12px;background:#15151a"></div>
     <div id="mp-lista"></div>
-    <p class="pequeno" style="margin-top:14px">Base inicial com dados do OpenStreetMap (ODbL) e cadastro do Ática. Viu algo errado ou faltando? Toque em "Sugerir local". Confirme horários e regras direto com o local.</p>`;
+    <p class="pequeno" style="margin-top:14px">Clubes e lojas: OpenStreetMap (ODbL) e cadastro do Ática. Psicólogos, instrutores e armeiros: listas oficiais da Polícia Federal, com posição aproximada pela cidade. Viu algo errado ou faltando? Toque em "Sugerir local". Confirme horários e regras direto com o local.</p>`;
   mpLista(); mpLigar(c, admin);
   if (admin) mpAdmin();
 }
@@ -2612,13 +2616,13 @@ function mpLista() {
   const admin = !!(D.assinante && D.assinante.admin);
   box.innerHTML = `${MP.meus && MP.meus.length ? `<div class="aviso info" style="margin-bottom:10px"><b>${MP.meus.length} sugestão(ões) sua(s) aguardando conferência</b><span class="pequeno">${MP.meus.map((m) => esc(m.nome)).join(", ")}</span></div>` : ""}
     <div class="pequeno" style="margin-bottom:6px">${L.length} local(is)${MP.em ? " · atualizado " + new Date(MP.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</div>
-    <div class="lista">${L.slice(0, 150).map((l) => mpCartao(l, admin)).join("") || '<div class="vazio">Nenhum local com esse filtro ainda. Que tal sugerir um?</div>'}</div>${L.length > 150 ? '<p class="pequeno">Mostrando os 150 primeiros. Use a busca ou o filtro de estado.</p>' : ""}`;
+    <div class="lista">${L.slice(0, 150).map((l) => mpCartao(l, admin)).join("") || (!MP.uf && MP.tipo && !['clube','loja','estande'].includes(MP.tipo) ? '<div class="vazio">Escolha um estado para ver psicólogos, instrutores, armeiros e despachantes.</div>' : '<div class="vazio">Nenhum local com esse filtro ainda. Que tal sugerir um?</div>')}</div>${L.length > 150 ? '<p class="pequeno">Mostrando os 150 primeiros. Use a busca ou o filtro de estado.</p>' : ""}`;
   mpDesenharMapa(L);
 }
 function mpLigar(c, admin) {
   const busca = c.querySelector("#mp-busca"); let t;
   busca.oninput = () => { clearTimeout(t); t = setTimeout(() => { MP.busca = busca.value; mpLista(); }, 250); };
-  c.querySelector("#mp-uf").onchange = (e) => { MP.uf = e.target.value; mpLista(); };
+  c.querySelector("#mp-uf").onchange = (e) => { MP.uf = e.target.value; try { localStorage.setItem("atica_mapa_uf", MP.uf); } catch {} mpLerCache(); render(); };
   c.querySelectorAll("[data-mptipo]").forEach((b) => b.onclick = () => { MP.tipo = b.dataset.mptipo; render(); });
   c.querySelector("#mp-perto").onclick = () => {
     if (!navigator.geolocation) { MP.msg = "Este aparelho não informa a localização."; return render(); }
@@ -2659,6 +2663,114 @@ async function mpAdmin() {
   const box = $("#mp-admin"); if (!box) return;
   const r = await api("locais_admin_listar"); if (!r || !r.ok || !$("#mp-admin")) return;
   box.innerHTML = r.pendentes.length ? `<div class="card" style="margin-bottom:12px"><div class="rotulo">Sugestões para aprovar (${r.pendentes.length})</div><div class="lista" style="margin-top:8px">${r.pendentes.map((l) => `<div class="linha" style="flex-wrap:wrap;gap:8px"><div style="flex:1;min-width:200px"><div class="t">${esc(l.nome)}</div><div class="pequeno">${MP_TIPOS[l.tipo] || ""} · ${esc(l.cidade || "")}${l.uf ? "/" + esc(l.uf) : ""}${l.endereco ? " · " + esc(l.endereco) : ""}${l.whatsapp ? " · " + esc(l.whatsapp) : ""}${l.lat !== null ? " · com localização" : " · sem localização"}</div></div><div style="display:flex;gap:6px"><button class="btn" style="min-height:34px;padding:5px 12px" data-mpaprovar="${l.id}">Aprovar</button><button class="btn sec" style="min-height:34px;padding:5px 12px" data-mprecusar="${l.id}">Recusar</button></div></div>`).join("")}</div><p class="pequeno" style="margin:8px 0 0">Sugestão sem localização aparece só na lista. Para pôr no mapa, aprove e depois use "Editar" para preencher latitude e longitude.</p></div>` : `<p class="pequeno" style="margin:0 0 10px">${r.aprovados} locais no mapa. Nenhuma sugestão aguardando aprovação.</p>`;
+}
+// ---- assistente de legislação
+ICON.assistente = '<path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/>';
+HUBS.documentos.itens.unshift(["assistente", "Assistente de legislação", "Pergunte sobre CR, guias, transporte, aquisição e manejo. A resposta cita a lei.", "assistente"]);
+const AS_CHAVE = "atica_assistente_v1";
+let AS = { itens: null, restantes: null, emRevisao: false, carregando: false, ultima: null, nAdm: { norma: "", status: "rascunho", itens: [], resumo: {}, sel: {} } };
+try { const c = JSON.parse(localStorage.getItem(AS_CHAVE) || "null"); if (c) { AS.itens = c.itens || []; } } catch {}
+const asTexto = (s) => esc(s || "").replace(/\n/g, "<br>");
+function asCartao(it, aberto) {
+  return `<div class="card" style="margin-bottom:10px"><div class="pequeno" style="margin-bottom:6px">${it.criado_em ? new Date(it.criado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</div>
+    <div class="t" style="margin-bottom:8px">${esc(it.pergunta)}</div>
+    ${aberto ? `<div style="line-height:1.55">${asTexto(it.resposta)}</div>
+    ${(it.artigos || []).length ? `<div class="pequeno" style="margin-top:10px">Base consultada: ${(it.artigos || []).map((a) => a.link ? `<a href="${esc(a.link)}" target="_blank" rel="noopener">${esc(a.norma)}, ${esc(a.artigo)}</a>` : esc(a.norma + ", " + a.artigo)).join(" · ")}</div>` : ""}
+    ${it.id ? `<div style="display:flex;gap:6px;margin-top:10px;align-items:center"><span class="pequeno">Ajudou?</span><button class="btn ${it.util === true ? "" : "sec"}" data-asutil="${it.id}" data-v="1" style="min-height:32px;padding:4px 12px">Sim</button><button class="btn ${it.util === false ? "" : "sec"}" data-asutil="${it.id}" data-v="0" style="min-height:32px;padding:4px 12px">Não</button></div>` : ""}` : `<button class="btn sec" data-asver="${it.id}" style="min-height:32px;padding:4px 12px">Ver resposta</button>`}</div>`;
+}
+async function renderAssistente(c) {
+  const admin = !!(D.assinante && D.assinante.admin);
+  const semRede = navigator.onLine === false || !!D._offline;
+  c.innerHTML = maisTopo("Assistente de legislação", "Dúvidas sobre CR, guias de trânsito, transporte, aquisição e manejo, respondidas com base nas normas revisadas.") +
+    `${admin ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button class="btn sec" id="as-normas">Revisar normas do assistente</button></div>` : ""}
+    <div class="card" style="margin-bottom:12px"><label class="pequeno" for="as-perg">Sua pergunta</label>
+      <textarea id="as-perg" rows="3" maxlength="600" style="width:100%;margin-top:6px" placeholder="Ex.: Posso levar minha arma para um clube em outro estado com a guia que tenho?">${esc(AS.rascunho || "")}</textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap"><button class="btn" id="as-enviar"${semRede ? " disabled" : ""}>Perguntar</button><span class="pequeno" id="as-rest">${semRede ? "Sem internet: veja abaixo as respostas já guardadas." : AS.restantes !== null ? AS.restantes + " pergunta(s) restante(s) nas próximas 24 horas" : ""}</span></div>
+      <div id="as-resp" style="margin-top:12px"></div></div>
+    <h3 class="sec-tit">Suas perguntas</h3><div id="as-hist"></div>
+    <p class="pequeno" style="margin-top:14px">O assistente responde só com o que está na base de normas revisada pela equipe do Ática e cita a norma. É uma orientação geral e não substitui um advogado ou despachante.</p>`;
+  const hist = () => { const box = $("#as-hist"); if (box) box.innerHTML = (AS.itens || []).map((it, i) => asCartao(it, i < 3 || it._aberto)).join("") || '<div class="vazio">Nenhuma pergunta ainda.</div>'; };
+  hist();
+  const env = $("#as-enviar"), ta = $("#as-perg");
+  ta.oninput = () => { AS.rascunho = ta.value; };
+  env.onclick = async () => {
+    const p = ta.value.trim(); if (p.length < 8) { $("#as-resp").innerHTML = '<div class="aviso atencao"><span class="pequeno">Escreva a pergunta com um pouco mais de detalhe.</span></div>'; return; }
+    env.disabled = true; $("#as-resp").innerHTML = '<div class="pequeno"><span class="carregando"></span>Consultando as normas…</div>';
+    const r = await api("assistente_perguntar", { pergunta: p });
+    env.disabled = false;
+    if (!r || !r.ok) { $("#as-resp").innerHTML = `<div class="aviso atencao"><span class="pequeno">${esc((r && r.erro) || "Não foi possível responder agora.")}</span></div>`; if (r && r.restantes === 0) { AS.restantes = 0; $("#as-rest").textContent = "0 pergunta(s) restante(s) nas próximas 24 horas"; } return; }
+    if (typeof r.restantes === "number") { AS.restantes = r.restantes; $("#as-rest").textContent = r.restantes + " pergunta(s) restante(s) nas próximas 24 horas"; }
+    const it = { id: r.id, pergunta: p, resposta: r.resposta, artigos: r.artigos || [], criado_em: new Date().toISOString() };
+    $("#as-resp").innerHTML = asCartao(it, true);
+    if (r.id) { AS.itens = [it].concat(AS.itens || []).slice(0, 20); try { localStorage.setItem(AS_CHAVE, JSON.stringify({ itens: AS.itens })); } catch {} }
+    ta.value = ""; AS.rascunho = ""; hist();
+  };
+  c.onclick = async (e) => {
+    const b = e.target.closest("[data-asutil],[data-asver],#as-normas"); if (!b) return;
+    if (b.id === "as-normas") { if (!HUBS.documentos.itens.some((i) => i[0] === "normas")) HUBS.documentos.itens.push(["normas", "Normas do assistente (admin)", "Revisar e aprovar os artigos usados pelo assistente.", "assistente"]); return irPara("documentos", "normas"); }
+    if (b.dataset.asver) { const it = (AS.itens || []).find((x) => x.id === b.dataset.asver); if (it) { it._aberto = true; hist(); } return; }
+    const util = b.dataset.v === "1"; api("assistente_util", { id: b.dataset.asutil, util });
+    const it = (AS.itens || []).find((x) => x.id === b.dataset.asutil); if (it) it.util = util;
+    b.parentElement.querySelectorAll("button").forEach((x) => x.className = "btn " + ((x.dataset.v === "1") === util ? "" : "sec"));
+  };
+  if (!semRede) {
+    const r = await api("assistente_historico");
+    if (r && r.ok && tela === "documentos" && subTela === "assistente") {
+      AS.itens = r.itens || []; AS.restantes = r.restantes; AS.emRevisao = r.emRevisao;
+      try { localStorage.setItem(AS_CHAVE, JSON.stringify({ itens: AS.itens })); } catch {}
+      const rest = $("#as-rest"); if (rest) rest.textContent = AS.emRevisao ? "A base de normas ainda está em revisão pela equipe." : r.restantes + " pergunta(s) restante(s) nas próximas 24 horas";
+      hist();
+    }
+  }
+}
+// revisão das normas (administradores)
+async function renderNormas(c) {
+  if (!(D.assinante && D.assinante.admin)) { subTela = "assistente"; return render(); }
+  if (!HUBS.documentos.itens.some((i) => i[0] === "normas")) HUBS.documentos.itens.push(["normas", "Normas do assistente (admin)", "Revisar e aprovar os artigos usados pelo assistente.", "assistente"]);
+  const N = AS.nAdm;
+  c.innerHTML = maisTopo("Normas do assistente", "Só os artigos aprovados entram nas respostas do assistente.") +
+    `<div class="card" style="margin-bottom:12px"><div class="rotulo">Importar uma norma</div>
+      <div class="caca-campos" style="grid-template-columns:1fr;margin-top:8px">
+        <label>Link oficial (Planalto, DOU ou gov.br)<input id="nm-url" placeholder="https://www.planalto.gov.br/..."></label>
+        <label>Nome da norma<input id="nm-nome" placeholder="Ex.: Decreto 11.615/2023"></label>
+        <label>Tema<select id="nm-tema"><option value="geral">Geral (CAC)</option><option value="transporte">Transporte e guias</option><option value="aquisicao">Aquisição e registro</option><option value="manejo">Manejo de javali</option><option value="clubes">Clubes e habitualidade</option></select></label></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn" id="nm-imp">Importar artigos como rascunho</button><button class="btn sec" id="nm-base">Importar Estatuto e Decreto 11.615</button></div>
+      <div id="nm-msg" class="pequeno" style="margin-top:8px"></div></div>
+    <div id="nm-resumo"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0">${[["rascunho", "Para revisar"], ["aprovado", "Aprovados"], ["revogado", "Revogados"]].map(([k, t]) => `<button class="btn ${N.status === k ? "" : "sec"}" data-nmst="${k}" style="min-height:34px;padding:5px 12px">${t}</button>`).join("")}</div>
+    <div id="nm-lista"><p class="pequeno"><span class="carregando"></span>Carregando…</p></div>`;
+  const carregar = async () => {
+    const r = await api("normas_listar", { status: N.status, norma: N.norma });
+    if (!r || !r.ok) { $("#nm-lista").innerHTML = `<div class="aviso atencao"><span class="pequeno">${esc((r && r.erro) || "Falha ao carregar.")}</span></div>`; return; }
+    N.itens = r.itens; N.resumo = r.resumo; N.sel = {};
+    $("#nm-resumo").innerHTML = Object.keys(r.resumo).length ? `<div class="lista">${Object.entries(r.resumo).map(([n, s]) => `<div class="linha"><div><div class="t">${esc(n)}</div><div class="pequeno">${s.rascunho || 0} para revisar · ${s.aprovado || 0} aprovados · ${s.revogado || 0} revogados</div></div><button class="btn ${N.norma === n ? "" : "sec"}" data-nmnorma="${esc(n)}" style="min-height:34px;padding:5px 12px">${N.norma === n ? "Mostrando" : "Ver"}</button></div>`).join("")}</div>${N.norma ? '<button class="btn sec" data-nmnorma="" style="min-height:32px;padding:4px 12px;margin-top:6px">Ver todas</button>' : ""}` : '<p class="pequeno">Nenhuma norma importada ainda.</p>';
+    $("#nm-lista").innerHTML = N.itens.length ? `${N.status === "rascunho" ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button class="btn" id="nm-aprovar-sel">Aprovar selecionados</button>${N.norma ? `<button class="btn sec" id="nm-aprovar-tudo">Aprovar todos de ${esc(N.norma)}</button>` : ""}</div>` : ""}
+      ${N.itens.map((n) => `<div class="card" style="margin-bottom:8px"><div style="display:flex;gap:10px;align-items:flex-start">${N.status === "rascunho" ? `<input type="checkbox" data-nmsel="${n.id}" style="margin-top:4px">` : ""}<div style="flex:1"><div class="t">${esc(n.norma)} · ${esc(n.artigo)}</div><div class="pequeno">${esc(n.tema || "")}${n.revisado_por ? " · revisado por " + esc(n.revisado_por) : ""}${n.link ? ` · <a href="${esc(n.link)}" target="_blank" rel="noopener">fonte</a>` : ""}</div>
+        <details style="margin-top:6px"><summary class="pequeno">Ver e editar o texto</summary><textarea data-nmtxt="${n.id}" rows="8" style="width:100%;margin-top:6px">${esc(n.texto)}</textarea></details>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${n.status !== "aprovado" ? `<button class="btn" data-nmac="aprovado" data-id="${n.id}" style="min-height:32px;padding:4px 12px">Aprovar</button>` : ""}${n.status !== "rascunho" ? `<button class="btn sec" data-nmac="rascunho" data-id="${n.id}" style="min-height:32px;padding:4px 12px">Voltar para revisão</button>` : ""}${n.status !== "revogado" ? `<button class="btn sec" data-nmac="revogado" data-id="${n.id}" style="min-height:32px;padding:4px 12px">Marcar como revogado</button>` : ""}</div></div></div></div>`).join("")}` : '<div class="vazio">Nada aqui.</div>';
+  };
+  carregar();
+  const msg = (t) => { const m = $("#nm-msg"); if (m) m.textContent = t; };
+  const importar = async (url, nome, tema) => { msg("Importando " + nome + "…"); const r = await api("normas_importar", { url, norma: nome, tema }); msg(r && r.ok ? `${nome}: ${r.encontrados} artigos encontrados, ${r.novos} novos para revisar.` : (r && r.erro) || "Falha ao importar."); };
+  $("#nm-imp").onclick = async () => { await importar($("#nm-url").value.trim(), $("#nm-nome").value.trim(), $("#nm-tema").value); N.status = "rascunho"; carregar(); };
+  $("#nm-base").onclick = async () => {
+    await importar("https://www.planalto.gov.br/ccivil_03/leis/2003/l10.826.htm", "Lei 10.826/2003 (Estatuto do Desarmamento)", "geral");
+    await importar("https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/decreto/D11615.htm", "Decreto 11.615/2023", "geral");
+    N.status = "rascunho"; carregar();
+  };
+  c.onclick = async (e) => {
+    const b = e.target.closest("[data-nmst],[data-nmnorma],[data-nmac],#nm-aprovar-sel,#nm-aprovar-tudo"); if (!b) return;
+    if (b.dataset.nmst) { N.status = b.dataset.nmst; return renderNormas(c); }
+    if (b.dataset.nmnorma !== undefined) { N.norma = b.dataset.nmnorma; return carregar(); }
+    let ids = [], status = "aprovado", texto;
+    if (b.id === "nm-aprovar-sel") ids = [...c.querySelectorAll("[data-nmsel]:checked")].map((x) => x.dataset.nmsel);
+    else if (b.id === "nm-aprovar-tudo") { if (!confirm(`Aprovar todos os ${N.itens.length} artigos de ${N.norma}? Confirme que você e o advogado revisaram.`)) return; ids = N.itens.map((x) => x.id); }
+    else { ids = [b.dataset.id]; status = b.dataset.nmac; const t = c.querySelector(`[data-nmtxt="${b.dataset.id}"]`); const orig = (N.itens.find((x) => x.id === b.dataset.id) || {}).texto; if (t && t.value !== orig) texto = t.value; }
+    if (!ids.length) return;
+    b.disabled = true; const r = await api("norma_revisar", { ids, status, texto }); b.disabled = false;
+    if (!r || !r.ok) return alert((r && r.erro) || "Falha ao salvar.");
+    carregar();
+  };
 }
 function renderAbordagem(c) {
   const cr = D.resumo.cr, crafs = D.documentos.filter((d) => d.tipo === "CRAF"), gts = D.documentos.filter((d) => d.tipo === "GT");
@@ -3297,7 +3409,9 @@ function renderTela(c, a, primeiro, docs) {
     return;
   }
   const item = hub.itens.find((i) => i[0] === subTela);
-  if (tela === "documentos" && subTela === "mapa") renderMapa(c);
+  if (tela === "documentos" && subTela === "assistente") renderAssistente(c);
+  else if (tela === "documentos" && subTela === "normas") renderNormas(c);
+  else if (tela === "documentos" && subTela === "mapa") renderMapa(c);
   else if (tela === "documentos" && subTela === "checklist") renderChecklist(c);
   else if (tela === "documentos" && subTela === "abordagem") renderAbordagem(c);
   else if (tela === "documentos" && subTela === "relatorio") renderRelatorio(c);
