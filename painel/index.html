@@ -1669,6 +1669,7 @@ const cacaLer = () => { let c = {}; try { c = JSON.parse(localStorage.getItem("a
   return c; };
 const CACA_TIPOS = { AUT_PROPRIEDADE: "Autorização do proprietário", SIMAF: "Autorização de manejo (SIMAF)", CTF: "Certificado do CTF/Ibama", CAR: "CAR da propriedade" };
 const cacaGravar = (c) => { try { localStorage.setItem("atica_caca_v1", JSON.stringify(c)); } catch (e) {} };
+const cacaSemAc = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 const cacaDias = (iso) => iso ? Math.round((new Date(iso + "T12:00:00") - new Date(D.hoje + "T12:00:00")) / 864e5) : null;
 function cacaSituacao(C, p) {
   const da = cacaDias(p.fim), dc = cacaDias(C.ctf), falta = [];
@@ -3349,18 +3350,81 @@ function renderCaca(c, sub) {
     return;
   }
   if (sub === "simaf") {
-    const daConta = cacaDocsConta().filter((d) => d.tipo === "SIMAF");
-    c.innerHTML = topo("SIMAF", "Autorização de manejo emitida pelo Ibama. Uma por propriedade, com validade de até 3 meses.") +
+    const S = (globalThis.__SM = globalThis.__SM || { busca: "", filtro: "todas", tit: "", aberto: "", mais: 0, verOcultos: false });
+    C.simafInfo = C.simafInfo || {}; C.simafOcultos = C.simafOcultos || [];
+    const ufRx = /([A-Za-zÀ-ÿ'][A-Za-zÀ-ÿ' .-]{2,40}?)\s*[\/–-]\s*([A-Z]{2})\b/;
+    const docs = cacaDocsConta().filter((d) => d.tipo === "SIMAF");
+    const smMarca = (id, v) => { try { const d = D.documentos.find((q) => "d:" + q.id === id); if (d) d.oculto = v; } catch (e) {} };
+    const itens = [
+      ...docs.map((d) => { const inf = C.simafInfo["d:" + d.id] || {}, m = String(d.descricao || "").match(ufRx); return { id: "d:" + d.id, doc: d, nome: inf.fazenda || (String(d.descricao || "Autorização de manejo").replace(/^autoriza[çc][ãa]o de manejo\s*[-–:]?\s*/i, "").replace(m ? m[0] : "\u0000", "").replace(/[\s,;–-]+$/, "").trim() || "Autorização de manejo").slice(0, 80), local: inf.cidade || (m ? m[1].trim() + "/" + m[2] : ""), num: inf.num || d.numero || "", fim: d.validade || "", tit: inf.tit || "" }; }),
+      ...C.props.map((p) => ({ id: "p:" + p.id, prop: p, nome: p.nome, local: p.mun || "", num: p.simaf || "", fim: p.fim || "", tit: p.titular || "" })),
+    ].filter((x) => { const oc = C.simafOcultos.includes(x.id) || !!(x.doc && x.doc.oculto); return S.verOcultos ? oc : !oc; });
+    itens.forEach((x) => { x.dias = x.fim ? cacaDias(x.fim) : null; x.rel = x.prop ? cacaSituacao(C, x.prop).relatorio : (x.dias !== null && x.dias < 0 && x.dias >= -90 && !(C.simafInfo[x.id] || {}).rel); });
+    const chave = (x) => x.num ? "n" + String(x.num).replace(/\D/g, "") : "f" + cacaSemAc(x.nome) + "|" + x.fim;
+    const cont = {}; itens.forEach((x) => { const k = chave(x); cont[k] = (cont[k] || 0) + 1; });
+    itens.forEach((x) => { x.dup = cont[chave(x)] > 1; });
+    const titulares = [...new Set(itens.map((x) => x.tit).filter(Boolean))].sort();
+    const est = (x) => x.dias === null ? "info" : x.dias < 0 ? "vencida" : x.dias <= 30 ? "vencendo" : "vigente";
+    const filtros = [["todas", "Todas"], ["vigente", "Vigentes"], ["vencendo", "Vencem em 30 dias"], ["vencida", "Vencidas"], ["rel", "Relatório pendente"], ["dup", "Possíveis duplicados"]];
+    const passa = (x, f) => f === "todas" || (f === "rel" ? x.rel : f === "dup" ? x.dup : est(x) === f);
+    const b = cacaSemAc(S.busca);
+    const L = itens.filter((x) => passa(x, S.filtro) && (!S.tit || x.tit === S.tit) && (!b || cacaSemAc([x.nome, x.local, x.num, x.tit].join(" ")).includes(b)))
+      .sort((a, c2) => (a.dias === null ? 1e6 : a.dias < 0 ? 5e5 - a.dias : a.dias) - (c2.dias === null ? 1e6 : c2.dias < 0 ? 5e5 - c2.dias : c2.dias));
+    const lim = 40 + S.mais;
+    const tag = (x) => x.dias === null ? ["", "sem data"] : x.dias < 0 ? ["cr", "vencida"] : x.dias <= 30 ? ["at", x.dias === 0 ? "vence hoje" : x.dias + " dias"] : ["ok", "até " + br(x.fim).slice(0, 5)];
+    const linha = (x) => { const t = tag(x), ab = S.aberto === x.id, d = x.doc, p = x.prop, inf = C.simafInfo[x.id] || {};
+      return `<div class="linha sm-l${ab ? " sm-ab" : ""}" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px">
+        <div data-smab="${x.id}" style="display:flex;justify-content:space-between;gap:10px;cursor:pointer;align-items:center">
+          <div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.nome || "Fazenda")}</div>
+          <div class="pequeno" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${[x.num ? "nº " + esc(x.num) : "", esc(x.local), x.fim ? "até " + br(x.fim) : "", x.tit ? "em nome de " + esc(x.tit) : ""].filter(Boolean).join(" · ")}</div></div>
+          <div style="display:flex;gap:4px;flex-shrink:0">${x.dup ? '<span class="etiqueta at">duplicado?</span>' : ""}${x.rel ? '<span class="etiqueta at">relatório</span>' : ""}<span class="etiqueta ${t[0]}">${t[1]}</span></div></div>
+        ${ab ? `<div class="sm-det">
+          <div class="caca-campos" style="grid-template-columns:1fr 1fr">
+            <label>Fazenda<input data-smc="fazenda" data-id="${x.id}" value="${esc(p ? p.nome : inf.fazenda || x.nome)}"></label>
+            <label>Cidade/UF<input data-smc="cidade" data-id="${x.id}" placeholder="Ex.: Uberaba/MG" value="${esc(p ? p.mun || "" : inf.cidade || x.local)}"></label>
+            <label>Nº do SIMAF<input data-smc="num" data-id="${x.id}" value="${esc(x.num)}"></label>
+            <label>Em nome de<input data-smc="tit" data-id="${x.id}" list="sm-tits" placeholder="Titular da autorização" value="${esc(x.tit)}"></label>
+            ${p ? `<label>Início<input type="date" data-si="ini" data-p="${p.id}" value="${esc(p.ini || "")}"></label><label>Validade<input type="date" data-si="fim" data-p="${p.id}" value="${esc(p.fim || "")}"></label>` : ""}
+          </div>
+          ${x.rel ? `<div class="aviso atencao" style="margin-top:8px"><b>Relatório do SIMAF pendente</b><span class="pequeno">A autorização terminou. Envie o relatório no SIMAF, mesmo sem abate.</span><button class="btn sec" data-smrel="${x.id}" style="margin-top:8px;align-self:flex-start">Já enviei o relatório</button></div>` : ""}
+          ${x.dup ? '<p class="pequeno" style="margin:8px 0 0">Há outra autorização com o mesmo número ou a mesma fazenda e vigência. Se for repetida, exclua uma delas.</p>' : ""}
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+            ${d && d.link ? `<a class="btn sec" href="${esc(d.link)}" target="_blank" rel="noopener" style="min-height:34px;padding:5px 12px">Abrir arquivo</a><button class="btn sec caca-comp" data-comp="${d.id}" style="min-height:34px;padding:5px 12px">Compartilhar</button>` : ""}
+            ${S.verOcultos ? `<button class="btn sec" data-smvolta="${x.id}" style="min-height:34px;padding:5px 12px">Restaurar</button>` : `<button class="btn sec" data-smexc="${x.id}" style="min-height:34px;padding:5px 12px;color:#F28B82">Excluir</button>`}
+          </div>${d ? `<div class="caca-comp-p" data-compp="${d.id}"></div>` : ""}</div>` : ""}</div>`; };
+    const nOcl = new Set([...C.simafOcultos, ...docs.filter((d) => d.oculto).map((d) => "d:" + d.id)]).size;
+    c.innerHTML = topo("SIMAF", "Autorizações de manejo do Ibama. Toque numa fazenda para ver os detalhes.") +
       `<div class="envio-doc"><button class="btn" data-sdoc="foto">Fotografar a autorização</button><button class="btn sec" data-sdoc="arq">Enviar arquivo ou PDF</button></div><div id="envio"></div>
-      <div class="lista" id="simaf-props">${C.props.map((p) => { const s = cacaSituacao(C, p), st = !p.fim ? ["at", "A informar"] : s.da < 0 ? ["cr", "Vencida"] : s.da <= 30 ? ["at", "Vence " + prazo(s.da)] : ["ok", "Em dia"]; return `<div class="card caca-prop">
-        <div class="caca-topo"><div><div class="tit" style="font-size:17px">${esc(p.nome)}</div><div class="pequeno">${esc([p.mun, p.car ? "CAR " + p.car : "CAR a informar"].filter(Boolean).join(" · "))}</div></div><span class="etiqueta ${st[0]}">${st[1]}</span></div>
-        <div class="caca-campos" style="margin-top:8px"><label>Início da autorização<input type="date" data-si="ini" data-p="${p.id}" value="${esc(p.ini || "")}"></label><label>Validade<input type="date" data-si="fim" data-p="${p.id}" value="${esc(p.fim || "")}"></label></div>
-        ${s.relatorio ? `<div class="aviso atencao" style="margin-top:10px"><b>Relatório do SIMAF pendente</b><span class="pequeno">A autorização terminou. Envie o relatório no SIMAF, mesmo sem abate; sem ele não sai autorização nova.</span><button class="btn sec" data-rel="${p.id}" style="margin-top:8px;align-self:flex-start">Já enviei o relatório</button></div>` : ""}</div>`; }).join("") || '<div class="vazio">Cadastre primeiro a propriedade, com o número do CAR. Depois informe aqui a validade da autorização do SIMAF. <a href="#" id="simaf-props-ir">Ir para Propriedades</a></div>'}</div>
-      ${daConta.length ? `<h3 class="sec-tit">Autorizações do SIMAF na sua conta</h3><div class="lista">${daConta.map(cacaDocLinha).join("")}</div>` : ""}
-      <p class="pequeno" style="margin-top:12px">A autorização é pedida no site do SIMAF/Ibama, uma para cada propriedade, e vale no máximo 3 meses. Ao terminar, o relatório precisa ser entregue no próprio SIMAF. O Ática só acompanha os prazos e guarda os arquivos.</p>`;
-    c.querySelectorAll("[data-si]").forEach((i) => i.onchange = () => { const p = C.props.find((x) => x.id === i.dataset.p); if (i.dataset.si === "fim" && p.fim !== i.value) p.relatorio = false; p[i.dataset.si] = i.value; cacaGravar(C); render(); });
-    c.querySelectorAll("[data-rel]").forEach((b) => b.onclick = () => { C.props.find((p) => p.id === b.dataset.rel).relatorio = true; cacaGravar(C); render(); });
-    c.querySelectorAll("[data-sdoc]").forEach((b) => b.onclick = () => { cacaDocAlvo = { lista: true, volta: "simaf" }; b.dataset.sdoc === "foto" ? fotografar() : $("#arq").click(); });
+      <div class="caca-campos" style="grid-template-columns:2fr 1fr;margin-top:10px"><label>Buscar<input id="sm-busca" placeholder="Fazenda, cidade, nº ou titular" value="${esc(S.busca)}"></label>
+        <label>Em nome de<select id="sm-tit"><option value="">Todos</option>${titulares.map((t) => `<option${t === S.tit ? " selected" : ""}>${esc(t)}</option>`).join("")}</select></label></div>
+      <datalist id="sm-tits">${titulares.map((t) => `<option value="${esc(t)}">`).join("")}</datalist>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0">${filtros.map(([k, t]) => { const n = itens.filter((x) => passa(x, k)).length; return k !== "todas" && !n ? "" : `<button class="btn ${S.filtro === k ? "" : "sec"}" data-smf="${k}" style="min-height:32px;padding:4px 10px">${t} (${n})</button>`; }).join("")}</div>
+      ${S.verOcultos ? `<div class="aviso info" style="margin-bottom:10px"><b>Autorizações excluídas</b><span class="pequeno">Ficam guardadas aqui e podem ser restauradas.</span><button class="btn sec" id="sm-sair" style="margin-top:8px;align-self:flex-start">Voltar para a lista</button></div>` : ""}
+      <div class="pequeno" style="margin-bottom:6px">${L.length} de ${itens.length} autorização(ões)</div>
+      <div class="lista" id="simaf-props">${L.slice(0, lim).map(linha).join("") || (itens.length ? '<div class="vazio">Nada com esse filtro.</div>' : '<div class="vazio">Nenhuma autorização ainda. Envie o PDF do SIMAF acima ou cadastre a propriedade. <a href="#" id="simaf-props-ir">Ir para Propriedades</a></div>')}</div>
+      ${L.length > lim ? `<button class="btn sec" id="sm-mais" style="margin-top:10px">Mostrar mais ${Math.min(40, L.length - lim)}</button>` : ""}
+      ${!S.verOcultos && nOcl ? `<p class="pequeno" style="margin-top:10px"><a href="#" id="sm-ocl">Ver excluídas (${nOcl})</a></p>` : ""}
+      <p class="pequeno" style="margin-top:12px">A autorização é pedida no SIMAF/Ibama, uma por propriedade, e vale no máximo 3 meses. Ao terminar, o relatório é entregue no próprio SIMAF. O Ática acompanha os prazos e guarda os arquivos.</p>`;
+    const re = () => render();
+    const bs = c.querySelector("#sm-busca"); let tm; bs.oninput = () => { clearTimeout(tm); tm = setTimeout(() => { S.busca = bs.value; S.mais = 0; re(); setTimeout(() => { const n = $("#sm-busca"); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }, 0); }, 300); };
+    c.querySelector("#sm-tit").onchange = (e) => { S.tit = e.target.value; S.mais = 0; re(); };
+    c.querySelectorAll("[data-smf]").forEach((x) => x.onclick = () => { S.filtro = x.dataset.smf; S.mais = 0; re(); });
+    c.querySelectorAll("[data-smab]").forEach((x) => x.onclick = () => { S.aberto = S.aberto === x.dataset.smab ? "" : x.dataset.smab; re(); });
+    c.querySelectorAll("[data-smc]").forEach((i) => i.onchange = () => { const id = i.dataset.id, k = i.dataset.smc, v = i.value.trim();
+      if (id.startsWith("p:")) { const p = C.props.find((q) => "p:" + q.id === id); if (p) { if (k === "fazenda") p.nome = v || p.nome; else if (k === "cidade") p.mun = v; else if (k === "num") p.simaf = v; else p.titular = v; } }
+      else { const o = (C.simafInfo[id] = C.simafInfo[id] || {}); o[k === "fazenda" ? "fazenda" : k] = v; }
+      cacaGravar(C); re(); });
+    c.querySelectorAll("[data-si]").forEach((i) => i.onchange = () => { const p = C.props.find((x) => x.id === i.dataset.p); if (i.dataset.si === "fim" && p.fim !== i.value) p.relatorio = false; p[i.dataset.si] = i.value; cacaGravar(C); re(); });
+    c.querySelectorAll("[data-smrel]").forEach((x) => x.onclick = () => { const id = x.dataset.smrel; if (id.startsWith("p:")) { const p = C.props.find((q) => "p:" + q.id === id); if (p) p.relatorio = true; } else (C.simafInfo[id] = C.simafInfo[id] || {}).rel = true; cacaGravar(C); re(); });
+    c.querySelectorAll("[data-smexc]").forEach((x) => x.onclick = async () => { const id = x.dataset.smexc;
+      if (id.startsWith("p:")) { if (!confirm("Excluir esta propriedade e a autorização dela da lista?")) return; C.props = C.props.filter((q) => "p:" + q.id !== id); }
+      else { if (!confirm("Excluir esta autorização da lista? O arquivo fica guardado e pode ser restaurado em \"Ver excluídas\".")) return; C.simafOcultos.push(id); smMarca(id, true); try { Promise.resolve(api("documento_ocultar", { id: id.slice(2), ocultar: true })).catch(() => {}); } catch (e) {} }
+      S.aberto = ""; cacaGravar(C); re(); });
+    c.querySelectorAll("[data-smvolta]").forEach((x) => x.onclick = () => { const id = x.dataset.smvolta; C.simafOcultos = C.simafOcultos.filter((q) => q !== id); smMarca(id, false); try { Promise.resolve(api("documento_ocultar", { id: id.slice(2), ocultar: false })).catch(() => {}); } catch (e) {} cacaGravar(C); re(); });
+    if (c.querySelector("#sm-mais")) c.querySelector("#sm-mais").onclick = () => { S.mais += 40; re(); };
+    if (c.querySelector("#sm-ocl")) c.querySelector("#sm-ocl").onclick = (e) => { e.preventDefault(); S.verOcultos = true; S.aberto = ""; re(); };
+    if (c.querySelector("#sm-sair")) c.querySelector("#sm-sair").onclick = () => { S.verOcultos = false; S.aberto = ""; re(); };
+    c.querySelectorAll("[data-sdoc]").forEach((b2) => b2.onclick = () => { cacaDocAlvo = { lista: true, volta: "simaf" }; b2.dataset.sdoc === "foto" ? fotografar() : $("#arq").click(); });
     if (c.querySelector("#simaf-props-ir")) c.querySelector("#simaf-props-ir").onclick = (e) => { e.preventDefault(); irPara("caca", "propriedades"); };
     return;
   }
