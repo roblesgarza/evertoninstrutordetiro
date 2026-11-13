@@ -255,6 +255,16 @@ nav button.destaque{color:var(--ouro)}nav button.destaque svg{filter:drop-shadow
 .comp-marca{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-around;align-items:center;overflow:hidden}.comp-marca span{transform:rotate(-24deg);white-space:nowrap;font:700 14px Inter,sans-serif;color:rgba(200,30,30,.28)}
 
 .lote-arq{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 10px;padding:10px 12px;background:var(--card2);overflow-wrap:anywhere}.lote-arq>div:first-child{flex:1 1 60%;min-width:0}.lote-arq>.pequeno{flex:1 1 100%;order:3}
+
+.mp-dest{border-color:var(--ouro,#E8B54A)!important;box-shadow:0 0 0 1px rgba(232,181,74,.35)}
+#mp-mapa .leaflet-popup-content{color:#111}
+
+#off-faixa{position:sticky;top:0;z-index:50;background:#3a2f12;color:#F4D58D;font-size:13px;padding:8px 14px;text-align:center}
+#off-faixa button{margin-left:8px;background:#E8B54A;color:#111;border:0;border-radius:6px;padding:3px 10px;font-weight:600}
+#off-ver{position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column}
+#off-ver .off-ver-topo{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;color:#ddd;font-size:14px;background:#111}
+#off-ver .off-ver-topo button{background:#E8B54A;color:#111;border:0;border-radius:6px;padding:6px 12px;font-weight:600}
+#off-ver img{flex:1;min-height:0;object-fit:contain;width:100%;touch-action:pinch-zoom}
 </style>
 <meta name="theme-color" content="#0A0A0C">
 <link rel="manifest" href="/app/manifest.webmanifest">
@@ -342,6 +352,133 @@ const br = (iso) => iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—
 const prazo = (d) => d === null || d === undefined ? "" : d < 0 ? `venceu há ${-d} dias` : d === 0 ? "vence hoje" : d < 60 ? `em ${d} dias` : `em ~${Math.round(d / 30)} meses`;
 const cor = (d) => d === null || d === undefined ? "" : d < 0 ? "cr" : d <= 60 ? "at" : "ok";
 
+// ---- modo offline: fila de envios e documentos guardados no aparelho
+const OFF_DB = "atica_offline";
+function offDb() {
+  return new Promise((ok, erro) => {
+    try { const r = globalThis.indexedDB.open(OFF_DB, 1);
+      r.onupgradeneeded = () => { const db = r.result; if (!db.objectStoreNames.contains("fila")) db.createObjectStore("fila", { keyPath: "id", autoIncrement: true }); if (!db.objectStoreNames.contains("arquivos")) db.createObjectStore("arquivos", { keyPath: "id" }); };
+      r.onsuccess = () => ok(r.result); r.onerror = () => erro(r.error);
+    } catch (e) { erro(e); }
+  });
+}
+async function offOp(loja, modo, fn) { const db = await offDb(); return new Promise((ok, erro) => { const t = db.transaction(loja, modo), s = t.objectStore(loja); let res; const q = fn(s); if (q) q.onsuccess = () => { res = q.result; }; t.oncomplete = () => ok(res); t.onerror = () => erro(t.error); }); }
+const offTodos = (loja) => offOp(loja, "readonly", (s) => s.getAll()).catch(() => []);
+const OFF_FILA = (acao, extra) => ["enviar_documento", "local_sugerir", "caca_contatos_salvar"].includes(acao) || (acao === "alvos" && extra && extra.op === "salvar");
+const OFF_ROTULO = { enviar_documento: "documento", local_sugerir: "sugestão de local", caca_contatos_salvar: "contatos do manejo", alvos: "alvo da caderneta" };
+let offN = 0, offEnviando = false;
+const _apiOnline = api;
+api = async function (acao, extra = {}) {
+  const fila = OFF_FILA(acao, extra);
+  if (fila && navigator.onLine === false) return offGuardar(acao, extra);
+  const r = await _apiOnline(acao, extra);
+  if (fila && r && r.offline) return offGuardar(acao, extra);
+  return r;
+};
+async function offGuardar(acao, extra) {
+  try {
+    if (acao === "caca_contatos_salvar") await offOp("fila", "readwrite", (s) => { s.openCursor().onsuccess = (e) => { const cur = e.target.result; if (cur) { if (cur.value.acao === acao) cur.delete(); cur.continue(); } }; });
+    await offOp("fila", "readwrite", (s) => s.add({ acao, extra, em: Date.now(), lid: extra && extra.dados && extra.dados.id || "" }));
+  } catch { return { ok: false, offline: true, erro: "Sem conexão com a internet." }; }
+  offContar();
+  return { ok: false, offline: true, enfileirado: true, erro: "Sem internet: ficou guardado neste aparelho e vai sozinho quando o sinal voltar." };
+}
+async function offContar() { const L = await offTodos("fila"); offN = L.length; offFaixa(); return L; }
+function offFaixa() {
+  const d = globalThis.document; let f = d.querySelector("#off-faixa");
+  const semRede = navigator.onLine === false || !!(typeof D === "object" && D && D._offline);
+  if (!offN && !semRede) { if (f) f.remove(); return; }
+  if (!f) { f = d.createElement("div"); f.id = "off-faixa"; const app = d.querySelector("#app"); if (!app) return; app.insertBefore(f, app.firstChild); }
+  const quando = D && D._offline ? new Date(D._offline).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+  f.innerHTML = `${semRede ? `Sem internet${quando ? " · dados de " + quando : ""}` : "Conectado"}${offN ? ` · ${offN} envio(s) aguardando sinal` : ""}${offN && !semRede ? ' <button id="off-agora">Enviar agora</button>' : ""}`;
+  const b = f.querySelector("#off-agora"); if (b) b.onclick = () => offEnviar(true);
+}
+async function offEnviar(manual) {
+  if (offEnviando || navigator.onLine === false) return;
+  offEnviando = true;
+  let feitos = 0, docs = 0;
+  try {
+    const L = await offTodos("fila");
+    for (const it of L) {
+      const r = await _apiOnline(it.acao, it.extra);
+      if (r && r.offline) break;
+      await offOp("fila", "readwrite", (s) => s.delete(it.id));
+      feitos++;
+      if (it.acao === "enviar_documento" && r && r.ok) docs++;
+      if (it.acao === "alvos" && r && r.ok && r.id && it.lid) { try { const a = (typeof ALVOS !== "undefined" ? ALVOS : []).find((x) => x.id === it.lid); if (a) { a.sid = r.id; alvosGravar(); } } catch {} }
+    }
+  } catch {}
+  offEnviando = false;
+  await offContar();
+  if (feitos && (docs || manual)) { try { await carregar(); } catch {} }
+  if (feitos && typeof statusEnvio === "function" && docs) statusEnvio(`<div class="aviso info"><b>${docs} documento(s) enviado(s) quando o sinal voltou ✓</b></div>`);
+}
+globalThis.addEventListener("online", () => { offFaixa(); setTimeout(() => offEnviar(false), 1500); });
+globalThis.addEventListener("offline", offFaixa);
+setInterval(() => { if (offN && navigator.onLine !== false) offEnviar(false); }, 60000);
+
+// documentos de porte obrigatório guardados no aparelho
+const OFF_TIPOS = ["CR", "CRAF", "GT", "CTF", "SIMAF", "AUT_PROPRIEDADE", "IDENTIDADE"];
+const OFF_LIMITE = 60 * 1024 * 1024;
+let offArq = {}; // id -> { link, tam, mime, em }
+async function offMapa() { const L = await offTodos("arquivos"); offArq = {}; L.forEach((a) => { offArq[a.id] = { link: a.link, tam: a.tam, mime: a.mime, em: a.em }; }); return offArq; }
+const offLigado = () => guardar.get("atica_off_docs") !== "0";
+async function offGuardarDocs() {
+  if (!offLigado() || navigator.onLine === false || !D || D._offline || !Array.isArray(D.documentos)) return;
+  await offMapa();
+  const quer = D.documentos.filter((d) => d.id && d.link && OFF_TIPOS.includes(d.tipo) && d.status !== "substituido" && (d.dias === null || d.dias === undefined || d.dias >= -30));
+  const ids = new Set(quer.map((d) => d.id));
+  for (const id of Object.keys(offArq)) if (!ids.has(id)) await offOp("arquivos", "readwrite", (s) => s.delete(id)).catch(() => {});
+  let total = Object.values(offArq).filter((a, i) => ids.has(Object.keys(offArq)[i])).reduce((t, a) => t + (a.tam || 0), 0);
+  for (const d of quer) {
+    if (offArq[d.id]) { if (offArq[d.id].link !== d.link) await offOp("arquivos", "readwrite", (s) => { const g = s.get(d.id); g.onsuccess = () => { if (g.result) { g.result.link = d.link; s.put(g.result); } }; }).catch(() => {}); continue; }
+    try {
+      const r = await fetch(d.link); if (!r.ok) continue;
+      const b = await r.blob(); if (total + b.size > OFF_LIMITE) break;
+      await offOp("arquivos", "readwrite", (s) => s.put({ id: d.id, link: d.link, blob: b, mime: b.type || "", tam: b.size, em: Date.now(), nome: (d.nome_tipo || d.tipo) + (d.numero ? " " + d.numero : "") }));
+      total += b.size;
+    } catch {}
+  }
+  await offMapa();
+}
+async function offAbrir(id) {
+  const a = await offOp("arquivos", "readonly", (s) => s.get(id)).catch(() => null);
+  if (!a || !a.blob) return false;
+  const mime = a.mime || a.blob.type || "";
+  if (/^image\//.test(mime)) {
+    const u = URL.createObjectURL(a.blob), d = globalThis.document, ov = d.createElement("div");
+    ov.id = "off-ver"; ov.innerHTML = `<div class="off-ver-topo"><span>${esc(a.nome || "Documento")} · guardado no aparelho</span><button>Fechar</button></div><img src="${u}" alt="Documento">`;
+    ov.querySelector("button").onclick = () => { ov.remove(); URL.revokeObjectURL(u); };
+    d.body.appendChild(ov); return true;
+  }
+  if (NATIVO && NATIVO.abrirArquivo) {
+    const b64 = await new Promise((ok) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(",")[1] || ""); fr.onerror = () => ok(""); fr.readAsDataURL(a.blob); });
+    const r = await NATIVO.abrirArquivo(b64, mime || "application/pdf", (a.nome || "documento").replace(/[^\w\- ]+/g, "") + (/pdf/.test(mime) ? ".pdf" : ""));
+    if (r && r.ok) return true;
+  }
+  const u = URL.createObjectURL(a.blob); globalThis.open(u, "_blank"); setTimeout(() => URL.revokeObjectURL(u), 60000); return true;
+}
+// sem internet, os links dos documentos abrem a cópia guardada no aparelho
+globalThis.document.addEventListener("click", async (e) => {
+  const a = e.target.closest && e.target.closest("a[href]"); if (!a || !D || !Array.isArray(D.documentos)) return;
+  const semRede = navigator.onLine === false || !!D._offline;
+  if (!semRede) return;
+  const d = D.documentos.find((x) => x.link && x.link === a.getAttribute("href")); if (!d || !offArq[d.id]) return;
+  e.preventDefault(); offAbrir(d.id);
+}, true);
+function offCartao() {
+  const n = Object.keys(offArq).length, mb = Object.values(offArq).reduce((t, a) => t + (a.tam || 0), 0) / 1048576;
+  return `<div class="opcao"><div><div class="t">Documentos sem internet</div><div class="pequeno">Guarda neste aparelho CR, CRAFs, guias, CTF, SIMAF e autorizações para abrir sem sinal (até 60 MB). ${offLigado() ? (n ? `${n} documento(s) guardado(s), ${mb.toFixed(1)} MB.` : "Os documentos são baixados na próxima vez que o app abrir com internet.") : "Desligado."}</div></div><input type="checkbox" class="chave" id="ck-offdocs" ${offLigado() ? "checked" : ""}></div>`;
+}
+globalThis.document.addEventListener("change", async (e) => {
+  if (!e.target || e.target.id !== "ck-offdocs") return;
+  guardar.set("atica_off_docs", e.target.checked ? "1" : "0");
+  if (!e.target.checked) { try { await offOp("arquivos", "readwrite", (s) => s.clear()); } catch {} await offMapa(); }
+  else await offGuardarDocs();
+  if (tela === "conta") render();
+});
+offMapa().catch(() => {}); offContar().catch(() => {});
+
 // ---------- login ----------
 function mostrarLogin() { $("#app").style.display = "none"; $("#login").style.display = "grid"; passo(0); }
 $("#bt-codigo").onclick = async () => {
@@ -416,11 +553,12 @@ async function carregar() {
   const r = await api("dados");
   if (!r.ok) {
     const cache = (() => { try { return JSON.parse(guardar.get("cac_cache") || "null"); } catch { return null; } })();
-    if (r.offline && cache && cache.D) { D = cache.D; D._offline = cache.em; montarMenu(); render(); return; }
+    if (r.offline && cache && cache.D) { D = cache.D; D._offline = cache.em; montarMenu(); render(); offFaixa(); return; }
     if (r.erro) $("#conteudo").innerHTML = `<p class="cr">${esc(r.erro)}</p>`; return;
   }
   D = r; montarMenu(); render();
   guardar.set("cac_cache", JSON.stringify({ em: Date.now(), D: r }));
+  offFaixa(); setTimeout(() => { offEnviar(false); offGuardarDocs(); }, 2500);
   if (NATIVO && guardar.get("cac_lembretes") !== "0") NATIVO.agendarLembretes(r.calendario).catch(() => {});
 }
 
@@ -2351,6 +2489,177 @@ function renderChecklist(c) {
   c.querySelectorAll("[data-ck]").forEach((b) => b.onclick = () => { ckServ = b.dataset.ck; render(); });
   c.querySelector("#ck-enviar").onclick = () => irPara("documentos", "documentos");
 }
+// ---- mapa de clubes, lojas e credenciados
+ICON.mapa = '<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>';
+HUBS.documentos.itens.push(["mapa", "Clubes, lojas e credenciados", "Mapa com clubes de tiro, lojas, psicólogos e instrutores perto de você.", "mapa"]);
+const MP_TIPOS = { clube: "Clube de tiro", loja: "Loja de armas", estande: "Estande", psicologo: "Psicólogo credenciado", instrutor: "Instrutor credenciado", despachante: "Despachante", armeiro: "Armeiro" };
+const MP_CHAVE = "atica_locais_v1";
+let MP = { itens: null, meus: [], tipo: "", uf: "", busca: "", pos: null, form: false, edit: "", msg: "", mapa: null, camada: null, pend: null };
+try { const c = JSON.parse(localStorage.getItem(MP_CHAVE) || "null"); if (c && c.itens) { MP.itens = c.itens; MP.em = c.em; } } catch {}
+const mpDist = (a, b) => { const R = 6371, r = Math.PI / 180, dLa = (b[0] - a[0]) * r, dLo = (b[1] - a[1]) * r; const h = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLo / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); };
+const mpSemAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+async function mpCarregar(forcar) {
+  if (MP.itens && !forcar && MP.em && Date.now() - MP.em < 6 * 3600e3) return;
+  const r = await api("locais_listar");
+  if (r && r.ok) { MP.itens = r.itens || []; MP.meus = r.meus || []; MP.em = Date.now(); try { localStorage.setItem(MP_CHAVE, JSON.stringify({ em: MP.em, itens: MP.itens })); } catch {} }
+  else if (!MP.itens) MP.itens = [];
+}
+function mpFiltrados() {
+  const b = mpSemAcento(MP.busca);
+  let L = (MP.itens || []).filter((l) => (!MP.tipo || l.tipo === MP.tipo) && (!MP.uf || l.uf === MP.uf) && (!b || mpSemAcento([l.nome, l.cidade, l.endereco, l.modalidades].join(" ")).includes(b)));
+  L = L.map((l) => Object.assign({}, l, { km: MP.pos && l.lat !== null && l.lon !== null ? mpDist(MP.pos, [l.lat, l.lon]) : null }));
+  L.sort((x, y) => (y.destaque ? 1 : 0) - (x.destaque ? 1 : 0) || (x.km !== null && y.km !== null ? x.km - y.km : 0) || String(x.cidade || "").localeCompare(String(y.cidade || "")) || x.nome.localeCompare(y.nome));
+  return L;
+}
+function mpCartao(l, admin) {
+  const zap = l.whatsapp ? (l.whatsapp.length <= 11 ? "55" + l.whatsapp : l.whatsapp) : "";
+  const tel = l.telefone ? String(l.telefone).split(/[;,/]/)[0].replace(/[^\d+]/g, "") : "";
+  const rota = l.lat !== null && l.lon !== null ? `https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lon}` : (l.endereco ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent([l.nome, l.endereco, l.cidade, l.uf].filter(Boolean).join(", ")) : "");
+  return `<div class="linha mp-item${l.destaque ? " mp-dest" : ""}" data-mpid="${l.id}" style="flex-wrap:wrap;gap:10px">
+    <div style="flex:1;min-width:200px">${l.destaque ? '<span class="etiqueta ok" style="margin-bottom:6px;display:inline-block">Parceiro Ática</span>' : ""}
+      <div class="t">${esc(l.nome)}</div>
+      <div class="pequeno">${MP_TIPOS[l.tipo] || "Local"}${l.cidade ? " · " + esc(l.cidade) : ""}${l.uf ? "/" + esc(l.uf) : ""}${l.km !== null && l.km !== undefined ? " · " + (l.km < 10 ? l.km.toFixed(1) : Math.round(l.km)) + " km" : ""}</div>
+      ${l.endereco ? `<div class="pequeno">${esc(l.endereco)}</div>` : ""}${l.horario ? `<div class="pequeno">Horário: ${esc(l.horario)}</div>` : ""}${l.modalidades ? `<div class="pequeno">${esc(l.modalidades)}</div>` : ""}
+      ${l.destaque && l.cupom ? `<div class="pequeno" style="color:var(--ouro,#E8B54A)">Cupom para assinantes: <b>${esc(l.cupom)}</b></div>` : ""}${l.descricao ? `<div class="pequeno">${esc(l.descricao)}</div>` : ""}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start">
+      ${rota ? `<a class="btn sec" style="min-height:36px;padding:6px 12px" href="${rota}" target="_blank" rel="noopener">Como chegar</a>` : ""}
+      ${zap ? `<a class="btn sec" style="min-height:36px;padding:6px 12px" href="https://wa.me/${zap}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
+      ${!zap && tel ? `<a class="btn sec" style="min-height:36px;padding:6px 12px" href="tel:${tel}">Ligar</a>` : ""}
+      ${l.site ? `<a class="btn sec" style="min-height:36px;padding:6px 12px" href="${esc(l.site)}" target="_blank" rel="noopener">Site</a>` : ""}
+      ${admin ? `<button class="btn sec" style="min-height:36px;padding:6px 12px" data-mpedit="${l.id}">Editar</button>` : ""}
+    </div>
+    ${admin && MP.edit === l.id ? mpEditor(l) : ""}</div>`;
+}
+function mpEditor(l) {
+  const v = (k) => esc(l[k] === null || l[k] === undefined ? "" : l[k]);
+  return `<div class="caca-campos" style="flex-basis:100%;grid-template-columns:1fr 1fr" data-mpform="${l.id}">
+    <label>Nome<input data-k="nome" value="${v("nome")}"></label>
+    <label>Tipo<select data-k="tipo">${Object.entries(MP_TIPOS).map(([k, t]) => `<option value="${k}"${l.tipo === k ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+    <label>Cidade<input data-k="cidade" value="${v("cidade")}"></label><label>UF<input data-k="uf" maxlength="2" value="${v("uf")}"></label>
+    <label style="grid-column:1/-1">Endereço<input data-k="endereco" value="${v("endereco")}"></label>
+    <label>WhatsApp<input data-k="whatsapp" inputmode="tel" value="${v("whatsapp")}"></label><label>Telefone<input data-k="telefone" value="${v("telefone")}"></label>
+    <label>Site<input data-k="site" value="${v("site")}"></label><label>Horário<input data-k="horario" value="${v("horario")}"></label>
+    <label>Modalidades<input data-k="modalidades" value="${v("modalidades")}"></label><label>Latitude, longitude<input data-k="latlon" value="${l.lat !== null ? l.lat + ", " + l.lon : ""}"></label>
+    <label style="grid-column:1/-1">Descrição<input data-k="descricao" value="${v("descricao")}"></label>
+    <label class="opcao" style="grid-column:1/-1"><span>Parceiro Ática (aparece em destaque)</span><input type="checkbox" class="chave" data-k="parceiro"${l.parceiro ? " checked" : ""}></label>
+    <label>Cupom<input data-k="cupom" value="${v("cupom")}"></label><label>Destaque até<input type="date" data-k="destaque_ate" value="${v("destaque_ate")}"></label>
+    <div style="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" data-mpsalvar="${l.id}">Salvar</button><button class="btn sec" data-mpocultar="${l.id}">Tirar do mapa</button><button class="btn sec" data-mpfechar="1">Fechar</button></div></div>`;
+}
+function mpFormSugerir() {
+  return `<div class="card" style="margin-bottom:12px"><div class="rotulo">Sugerir um local</div>
+    <div class="caca-campos" style="grid-template-columns:1fr 1fr;margin-top:10px">
+      <label>Tipo<select id="ms-tipo">${Object.entries(MP_TIPOS).map(([k, t]) => `<option value="${k}">${t}</option>`).join("")}</select></label>
+      <label>Nome<input id="ms-nome" maxlength="120"></label>
+      <label>Cidade<input id="ms-cidade" maxlength="80"></label><label>UF<input id="ms-uf" maxlength="2" value="SP"></label>
+      <label style="grid-column:1/-1">Endereço<input id="ms-end" maxlength="200"></label>
+      <label>WhatsApp<input id="ms-zap" inputmode="tel" maxlength="20"></label><label>Site<input id="ms-site" maxlength="200" placeholder="https://"></label>
+      <label class="opcao" style="grid-column:1/-1"><span>Estou no local agora (usar minha localização)</span><input type="checkbox" class="chave" id="ms-aqui"></label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px"><button class="btn" id="ms-enviar">Enviar sugestão</button><button class="btn sec" id="ms-cancelar">Cancelar</button></div>
+    <p class="pequeno" style="margin:8px 0 0">A sugestão aparece no mapa depois de conferida pela equipe do Ática.</p></div>`;
+}
+function mpLeaflet() {
+  return new Promise((ok) => {
+    if (globalThis.L && globalThis.L.map) return ok(true);
+    const d = globalThis.document;
+    if (!d.querySelector("#lf-css")) { const l = d.createElement("link"); l.id = "lf-css"; l.rel = "stylesheet"; l.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"; d.head.appendChild(l); }
+    const s = d.createElement("script"); s.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"; s.onload = () => ok(true); s.onerror = () => ok(false); d.head.appendChild(s);
+    setTimeout(() => ok(!!(globalThis.L && globalThis.L.map)), 8000);
+  });
+}
+async function mpDesenharMapa(L) {
+  const box = $("#mp-mapa"); if (!box) return;
+  const tem = await mpLeaflet();
+  if (!tem || !$("#mp-mapa")) { box.innerHTML = '<p class="pequeno" style="padding:14px">O mapa precisa de internet. A lista abaixo funciona mesmo assim.</p>'; box.style.height = "auto"; return; }
+  const Lf = globalThis.L;
+  if (MP.mapa) { try { MP.mapa.remove(); } catch {} MP.mapa = null; }
+  const centro = MP.pos || [-20.81, -49.38];
+  MP.mapa = Lf.map(box, { zoomControl: true, attributionControl: true }).setView(centro, MP.pos ? 10 : 7);
+  Lf.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(MP.mapa);
+  const cores = { clube: "#E8B54A", loja: "#6E9BF5", psicologo: "#7BD389", instrutor: "#7BD389", armeiro: "#C792EA", despachante: "#F28B82", estande: "#E8B54A" };
+  const pts = [];
+  L.filter((l) => l.lat !== null && l.lon !== null).forEach((l) => {
+    const m = Lf.circleMarker([l.lat, l.lon], { radius: l.destaque ? 9 : 6, color: "#0A0A0C", weight: 1.5, fillColor: cores[l.tipo] || "#E8B54A", fillOpacity: 0.95 }).addTo(MP.mapa);
+    m.bindPopup(`<b>${esc(l.nome)}</b><br>${MP_TIPOS[l.tipo] || ""}${l.cidade ? " · " + esc(l.cidade) : ""}`);
+    m.on("click", () => { const el = globalThis.document.querySelector(`[data-mpid="${l.id}"]`); if (el) el.scrollIntoView({ behavior: "smooth", block: "center" }); });
+    pts.push([l.lat, l.lon]);
+  });
+  if (MP.pos) Lf.circleMarker(MP.pos, { radius: 7, color: "#fff", weight: 2, fillColor: "#2E7DF6", fillOpacity: 1 }).addTo(MP.mapa).bindPopup("Você está aqui");
+  if (!MP.pos && pts.length && (MP.uf || MP.busca || MP.tipo)) MP.mapa.fitBounds(pts, { padding: [24, 24], maxZoom: 12 });
+}
+async function renderMapa(c) {
+  const admin = !!(D.assinante && D.assinante.admin);
+  if (!MP.itens) { c.innerHTML = maisTopo("Clubes, lojas e credenciados", "Carregando o mapa…"); await mpCarregar(); if (tela !== "documentos" || subTela !== "mapa") return; }
+  else mpCarregar().then(() => { if (tela === "documentos" && subTela === "mapa" && !MP.form && !MP.edit) mpLista(); });
+  const ufs = [...new Set((MP.itens || []).map((l) => l.uf).filter(Boolean))].sort();
+  c.innerHTML = maisTopo("Clubes, lojas e credenciados", "Encontre clubes de tiro, lojas, psicólogos e instrutores perto de você.") +
+    `<div class="caca-campos" style="grid-template-columns:2fr 1fr;margin-bottom:10px"><label>Buscar<input id="mp-busca" placeholder="Nome ou cidade" value="${esc(MP.busca)}"></label>
+      <label>Estado<select id="mp-uf"><option value="">Todos</option>${ufs.map((u) => `<option${u === MP.uf ? " selected" : ""}>${u}</option>`).join("")}</select></label></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${[["", "Todos"], ["clube", "Clubes"], ["loja", "Lojas"], ["psicologo", "Psicólogos"], ["instrutor", "Instrutores"], ["armeiro", "Armeiros"], ["despachante", "Despachantes"]].map(([k, t]) => `<button class="btn ${MP.tipo === k ? "" : "sec"}" data-mptipo="${k}" style="min-height:34px;padding:5px 12px">${t}</button>`).join("")}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button class="btn sec" id="mp-perto">${MP.pos ? "Atualizar minha posição" : "Perto de mim"}</button><button class="btn sec" id="mp-sugerir">Sugerir local</button></div>
+    <div id="mp-msg">${MP.msg ? `<div class="aviso info" style="margin-bottom:10px"><span class="pequeno">${esc(MP.msg)}</span></div>` : ""}</div>
+    ${MP.form ? mpFormSugerir() : ""}
+    ${admin ? '<div id="mp-admin"></div>' : ""}
+    <div id="mp-mapa" style="height:320px;border-radius:12px;overflow:hidden;margin-bottom:12px;background:#15151a"></div>
+    <div id="mp-lista"></div>
+    <p class="pequeno" style="margin-top:14px">Base inicial com dados do OpenStreetMap (ODbL) e cadastro do Ática. Viu algo errado ou faltando? Toque em "Sugerir local". Confirme horários e regras direto com o local.</p>`;
+  mpLista(); mpLigar(c, admin);
+  if (admin) mpAdmin();
+}
+function mpLista() {
+  const L = mpFiltrados(), box = $("#mp-lista"); if (!box) return;
+  const admin = !!(D.assinante && D.assinante.admin);
+  box.innerHTML = `${MP.meus && MP.meus.length ? `<div class="aviso info" style="margin-bottom:10px"><b>${MP.meus.length} sugestão(ões) sua(s) aguardando conferência</b><span class="pequeno">${MP.meus.map((m) => esc(m.nome)).join(", ")}</span></div>` : ""}
+    <div class="pequeno" style="margin-bottom:6px">${L.length} local(is)${MP.em ? " · atualizado " + new Date(MP.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</div>
+    <div class="lista">${L.slice(0, 150).map((l) => mpCartao(l, admin)).join("") || '<div class="vazio">Nenhum local com esse filtro ainda. Que tal sugerir um?</div>'}</div>${L.length > 150 ? '<p class="pequeno">Mostrando os 150 primeiros. Use a busca ou o filtro de estado.</p>' : ""}`;
+  mpDesenharMapa(L);
+}
+function mpLigar(c, admin) {
+  const busca = c.querySelector("#mp-busca"); let t;
+  busca.oninput = () => { clearTimeout(t); t = setTimeout(() => { MP.busca = busca.value; mpLista(); }, 250); };
+  c.querySelector("#mp-uf").onchange = (e) => { MP.uf = e.target.value; mpLista(); };
+  c.querySelectorAll("[data-mptipo]").forEach((b) => b.onclick = () => { MP.tipo = b.dataset.mptipo; render(); });
+  c.querySelector("#mp-perto").onclick = () => {
+    if (!navigator.geolocation) { MP.msg = "Este aparelho não informa a localização."; return render(); }
+    navigator.geolocation.getCurrentPosition((p) => { MP.pos = [p.coords.latitude, p.coords.longitude]; MP.msg = ""; render(); }, () => { MP.msg = "Não foi possível pegar sua localização. Verifique a permissão do app."; render(); }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 });
+  };
+  c.querySelector("#mp-sugerir").onclick = () => { MP.form = !MP.form; render(); };
+  const env = c.querySelector("#ms-enviar");
+  if (env) {
+    c.querySelector("#ms-cancelar").onclick = () => { MP.form = false; render(); };
+    env.onclick = async () => {
+      const dados = { tipo: $("#ms-tipo").value, nome: $("#ms-nome").value, cidade: $("#ms-cidade").value, uf: $("#ms-uf").value, endereco: $("#ms-end").value, whatsapp: $("#ms-zap").value, site: $("#ms-site").value };
+      const enviar = async () => {
+        env.disabled = true; const r = await api("local_sugerir", dados);
+        if (r && r.ok) { MP.form = false; MP.msg = "Obrigado! Sua sugestão foi enviada e aparece no mapa depois de conferida."; await mpCarregar(true); render(); }
+        else if (r && r.enfileirado) { MP.form = false; MP.msg = "Sem internet: a sugestão ficou guardada e vai sozinha quando o sinal voltar."; render(); }
+        else { env.disabled = false; MP.msg = (r && r.erro) || "Não foi possível enviar."; const m = $("#mp-msg"); if (m) m.innerHTML = `<div class="aviso atencao" style="margin-bottom:10px"><span class="pequeno">${esc(MP.msg)}</span></div>`; }
+      };
+      if ($("#ms-aqui").checked && navigator.geolocation) navigator.geolocation.getCurrentPosition((p) => { dados.lat = p.coords.latitude; dados.lon = p.coords.longitude; enviar(); }, () => enviar(), { timeout: 10000 });
+      else enviar();
+    };
+  }
+  if (admin) {
+    c.onclick = async (e) => {
+      const b = e.target.closest("[data-mpedit],[data-mpsalvar],[data-mpocultar],[data-mpfechar],[data-mpaprovar],[data-mprecusar]"); if (!b) return;
+      if (b.dataset.mpedit) { MP.edit = MP.edit === b.dataset.mpedit ? "" : b.dataset.mpedit; return mpLista(); }
+      if (b.dataset.mpfechar) { MP.edit = ""; return mpLista(); }
+      if (b.dataset.mpaprovar || b.dataset.mprecusar) { b.disabled = true; await api("local_admin", { id: b.dataset.mpaprovar || b.dataset.mprecusar, op: b.dataset.mpaprovar ? "aprovar" : "recusar" }); await mpCarregar(true); return render(); }
+      const id = b.dataset.mpsalvar || b.dataset.mpocultar, f = globalThis.document.querySelector(`[data-mpform="${id}"]`); if (!f) return;
+      const g = (k) => { const el = f.querySelector(`[data-k="${k}"]`); return el ? (el.type === "checkbox" ? el.checked : el.value) : ""; };
+      const ll = String(g("latlon")).split(",").map((x) => parseFloat(x));
+      b.disabled = true;
+      const r = await api("local_admin", { id, op: "editar", nome: g("nome"), tipo: g("tipo"), cidade: g("cidade"), uf: g("uf"), endereco: g("endereco"), whatsapp: g("whatsapp"), telefone: g("telefone"), site: g("site"), horario: g("horario"), modalidades: g("modalidades"), descricao: g("descricao"), lat: ll[0], lon: ll[1], parceiro: g("parceiro"), cupom: g("cupom"), destaque_ate: g("destaque_ate"), status: b.dataset.mpocultar ? "recusado" : "aprovado" });
+      MP.edit = ""; MP.msg = r && r.ok ? "Local atualizado." : (r && r.erro) || "Não foi possível salvar."; await mpCarregar(true); render();
+    };
+  }
+}
+async function mpAdmin() {
+  const box = $("#mp-admin"); if (!box) return;
+  const r = await api("locais_admin_listar"); if (!r || !r.ok || !$("#mp-admin")) return;
+  box.innerHTML = r.pendentes.length ? `<div class="card" style="margin-bottom:12px"><div class="rotulo">Sugestões para aprovar (${r.pendentes.length})</div><div class="lista" style="margin-top:8px">${r.pendentes.map((l) => `<div class="linha" style="flex-wrap:wrap;gap:8px"><div style="flex:1;min-width:200px"><div class="t">${esc(l.nome)}</div><div class="pequeno">${MP_TIPOS[l.tipo] || ""} · ${esc(l.cidade || "")}${l.uf ? "/" + esc(l.uf) : ""}${l.endereco ? " · " + esc(l.endereco) : ""}${l.whatsapp ? " · " + esc(l.whatsapp) : ""}${l.lat !== null ? " · com localização" : " · sem localização"}</div></div><div style="display:flex;gap:6px"><button class="btn" style="min-height:34px;padding:5px 12px" data-mpaprovar="${l.id}">Aprovar</button><button class="btn sec" style="min-height:34px;padding:5px 12px" data-mprecusar="${l.id}">Recusar</button></div></div>`).join("")}</div><p class="pequeno" style="margin:8px 0 0">Sugestão sem localização aparece só na lista. Para pôr no mapa, aprove e depois use "Editar" para preencher latitude e longitude.</p></div>` : `<p class="pequeno" style="margin:0 0 10px">${r.aprovados} locais no mapa. Nenhuma sugestão aguardando aprovação.</p>`;
+}
 function renderAbordagem(c) {
   const cr = D.resumo.cr, crafs = D.documentos.filter((d) => d.tipo === "CRAF"), gts = D.documentos.filter((d) => d.tipo === "GT");
   if (!crafs.some((d) => d.id === abArma)) abArma = crafs.length ? crafs[0].id : "";
@@ -2988,7 +3297,8 @@ function renderTela(c, a, primeiro, docs) {
     return;
   }
   const item = hub.itens.find((i) => i[0] === subTela);
-  if (tela === "documentos" && subTela === "checklist") renderChecklist(c);
+  if (tela === "documentos" && subTela === "mapa") renderMapa(c);
+  else if (tela === "documentos" && subTela === "checklist") renderChecklist(c);
   else if (tela === "documentos" && subTela === "abordagem") renderAbordagem(c);
   else if (tela === "documentos" && subTela === "relatorio") renderRelatorio(c);
   else if (tela === "caderneta" && subTela === "seco") renderSeco(c);
@@ -3175,6 +3485,7 @@ function renderTela0(c, a, primeiro, docs) {
         ${NATIVO ? `<div class="opcao" id="op-trava" style="display:none"><div><div class="t">Trava com digital ou Face ID</div><div class="pequeno">Pede sua biometria ao abrir o app.</div></div><input type="checkbox" class="chave" id="ck-trava" ${guardar.get("cac_trava") === "1" ? "checked" : ""}></div>
         <div class="opcao"><div><div class="t">Lembretes no celular</div><div class="pequeno">Aviso 30 dias, 7 dias e no dia de cada vencimento, às 9h.</div></div><input type="checkbox" class="chave" id="ck-lembretes" ${guardar.get("cac_lembretes") !== "0" ? "checked" : ""}></div>` : ""}
         ${D.assinante && D.assinante.admin ? '<div class="opcao"><div><div class="t">Administração</div><div class="pequeno">Assinantes, acessos, uso por função e erros.</div></div><button class="btn sec" id="bt-admin">Abrir</button></div><div class="opcao"><div><div class="t">Enviar em lote</div><div class="pequeno">Mandar vários documentos para a conta de um cliente.</div></div><button class="btn sec" id="bt-lote">Abrir</button></div>' : ""}
+        ${offCartao()}
         <div class="opcao"><div><div class="t">Despachantes e instrutores</div><div class="pequeno">Autorize quem cuida dos seus processos e laudos.</div></div><button class="btn sec" id="bt-desp">Abrir</button></div>
         <div class="opcao"><div><div class="t">Falar com o Ática</div><div class="pequeno">Dúvidas, documentos e atendimento pelo WhatsApp.</div></div><a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">WhatsApp</a></div>
         <div class="opcao"><div><div class="t">Política de privacidade</div><div class="pequeno">Como seus dados e documentos são guardados.</div></div><a href="${SITE}/privacidade/" target="_blank" rel="noopener">Abrir</a></div>
@@ -3246,6 +3557,7 @@ function statusEnvio(html) { const el = $("#envio"); if (el) el.innerHTML = html
 async function enviarDocumento(base64, mime) {
   statusEnvio('<div class="card"><span class="carregando"></span>Lendo o documento… isso leva alguns segundos.</div>');
   const r = await api("enviar_documento", { arquivo: base64, mime });
+  if (r.enfileirado) { statusEnvio(`<div class="aviso info"><b>Sem internet agora</b><span class="pequeno">O documento ficou guardado neste aparelho e será enviado sozinho quando o sinal voltar.</span></div>`); return; }
   if (!r.ok && /já está na sua conta/.test(r.erro || "")) { statusEnvio(`<div class="aviso info"><b>Documento já enviado</b><span class="pequeno">${esc(r.erro)}</span></div>`); return; }
   if (!r.ok) { usoReg("erro", "documento", r.erro || "falha no envio"); statusEnvio(`<div class="aviso critico"><b>Não deu certo</b><span class="pequeno">${esc(r.erro || "Tente de novo.")}</span></div>`); return; }
   await carregar();
