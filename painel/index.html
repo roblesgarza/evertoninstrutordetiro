@@ -1669,7 +1669,16 @@ const cacaLer = () => { let c = {}; try { c = JSON.parse(localStorage.getItem("a
   return c; };
 const CACA_TIPOS = { AUT_PROPRIEDADE: "Autorização do proprietário", SIMAF: "Autorização de manejo (SIMAF)", CTF: "Certificado do CTF/Ibama", CAR: "CAR da propriedade" };
 const cacaGravar = (c) => { try { localStorage.setItem("atica_caca_v1", JSON.stringify(c)); } catch (e) {} };
-const cacaSemAc = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+const cacaSemAc = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
+const cacaLe = (t) => { t = String(t || ""); const o = { faz: "", cid: "", tit: "", dono: "" };
+  const UF = "(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)", NM = "[A-ZÀ-Ý][A-Za-zÀ-ÿ'.]+(?: (?:d[aeo]s? )?[A-ZÀ-Ý][A-Za-zÀ-ÿ'.]+){0,4}", PES = "[A-ZÀ-Ý][a-zà-ÿ]+(?: (?:d[aeo]s? |e )?[A-ZÀ-Ý][a-zà-ÿ]+){1,5}";
+  const c = t.match(new RegExp("(" + NM + ")\\s*[\\/-]\\s*" + UF + "\\b")); if (c) o.cid = c[1].trim() + "/" + c[2];
+  const pl = t.match(/\b((?:fazendas|s[ií]tios)\s+[A-ZÀ-Ý][^().;]{2,90}?)\s*(?:\(|\.|;|$)/i);
+  const f = t.match(/\b((?:Fazenda|S[ií]tio|Ch[áa]cara|Est[âa]ncia|Rancho|Granja|Haras|Gleba|Retiro)\s+[A-ZÀ-Ý0-9][^,.;()\/]{1,50}?)(?=\s*(?:,|\.|;|\(|\/|–| - | autoriza| em | para | permite|$))/);
+  if (pl) o.faz = pl[1].trim().replace(/^./, (x) => x.toUpperCase()); else if (f) o.faz = f[1].trim();
+  const n = t.match(/(?:em nome de|Solicitante(?: e Manejador)?:?)\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ' ]{4,60}?)\s*(?:\(|,|\.|com )/); if (n) o.tit = n[1].trim();
+  const d = t.match(new RegExp("(?:propriet[áa]ri[oa]|arrendat[áa]ri[oa])\\s+(" + PES + ")")) || t.match(new RegExp(":\\s*(" + PES + "),\\s*(?:titular|propriet|arrendat)")); if (d) o.dono = d[1].trim();
+  return o; };
 const cacaDias = (iso) => iso ? Math.round((new Date(iso + "T12:00:00") - new Date(D.hoje + "T12:00:00")) / 864e5) : null;
 function cacaSituacao(C, p) {
   const da = cacaDias(p.fim), dc = cacaDias(C.ctf), falta = [];
@@ -3277,9 +3286,10 @@ function renderCaca(c, sub) {
       <div class="envio-doc"><button class="btn" data-ldoc="foto">Fotografar documento</button><button class="btn sec" data-ldoc="arq">Enviar arquivo ou PDF</button></div>${cacaPasta ? "" : '<div id="envio"></div>'}
       ${(() => { const dd = cacaDocsConta().filter((d) => d.tipo !== "SIMAF" && d.tipo !== "CTF"); const P = globalThis.__PR, bq = cacaSemAc(P.busca), Ld = dd.filter((d) => !bq || cacaSemAc([d.descricao, d.nome_tipo, d.numero].join(" ")).includes(bq)), lim = 40 + P.dmais;
         const tg = (d) => !d.validade ? "" : `<span class="etiqueta ${d.dias < 0 ? "cr" : d.dias <= 30 ? "at" : "ok"}" style="flex-shrink:0;white-space:nowrap">${d.dias < 0 ? "vencido" : d.dias <= 30 ? (d.dias === 0 ? "vence hoje" : d.dias + " dias") : "até " + br(d.validade).slice(0, 5)}</span>`;
-        const ln = (d) => { const ab = P.daberto === d.id; return `<div class="linha" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px"><div data-pdab="${d.id}" style="cursor:pointer"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t" style="min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25">${esc(String(d.descricao || "").replace(/^autoriza[çc][ãa]o (d[oe] )?(propriet[áa]rio|arrendat[áa]rio|propriedade|acesso)( ou arrendat[áa]rio)?\s*[-–:]?\s*/i, "").trim() || d.descricao || d.nome_tipo)}</div>${tg(d)}</div>
-          <div class="pequeno" style="margin-top:3px;overflow-wrap:anywhere">${[d.tipo === "GT" ? "Guia de trânsito" : CACA_TIPOS[d.tipo] || "", d.numero ? "nº " + esc(d.numero) : "", d.emitido_em ? "emitido em " + br(d.emitido_em) : "", d.validade ? "vale até " + br(d.validade) : "", d.status === "pendente_conferencia" ? '<span class="at">aguardando conferência</span>' : ""].filter(Boolean).join(" · ")}</div></div>
-          ${ab && d.link ? `<div style="display:flex;gap:6px;flex-wrap:wrap"><a class="btn sec" href="${esc(d.link)}" target="_blank" rel="noopener" style="min-height:34px;padding:5px 12px">Abrir arquivo</a><button class="btn sec caca-comp" data-comp="${d.id}" style="min-height:34px;padding:5px 12px">Compartilhar</button></div><div class="caca-comp-p" data-compp="${d.id}"></div>` : ""}</div>`; };
+        const ln = (d) => { const ab = P.daberto === d.id, le = cacaLe(d.descricao), tit = [le.cid, le.faz].filter(Boolean).join(" · ") || (le.dono ? "Autorização de " + le.dono : String(d.descricao || d.nome_tipo || "").slice(0, 70));
+          return `<div class="linha" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px"><div data-pdab="${d.id}" style="cursor:pointer"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t" style="min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25">${esc(tit)}</div>${tg(d)}</div>
+          <div class="pequeno" style="margin-top:3px;overflow-wrap:anywhere">${[d.tipo === "GT" ? "Guia de trânsito" : CACA_TIPOS[d.tipo] || esc(d.nome_tipo || ""), le.dono && (le.cid || le.faz) ? esc(le.dono) : "", d.numero ? "nº " + esc(d.numero) : "", d.emitido_em ? "emitido em " + br(d.emitido_em) : "", d.validade ? "vale até " + br(d.validade) : "", d.status === "pendente_conferencia" ? '<span class="at">aguardando conferência</span>' : ""].filter(Boolean).join(" · ")}</div></div>
+          ${ab ? `<div class="pequeno" style="overflow-wrap:anywhere">${esc(d.descricao || "")}</div>${d.link ? `<div style="display:flex;gap:6px;flex-wrap:wrap"><a class="btn sec" href="${esc(d.link)}" target="_blank" rel="noopener" style="min-height:34px;padding:5px 12px">Abrir arquivo</a><button class="btn sec caca-comp" data-comp="${d.id}" style="min-height:34px;padding:5px 12px">Compartilhar</button></div><div class="caca-comp-p" data-compp="${d.id}"></div>` : ""}` : ""}</div>`; };
         return dd.length ? `<div class="lista" id="caca-docs-prop">${Ld.slice(0, lim).map(ln).join("") || '<div class="vazio">Nada com essa busca.</div>'}</div>${Ld.length > lim ? `<button class="btn sec" id="pd-mais" style="margin-top:10px">Mostrar mais ${Math.min(40, Ld.length - lim)}</button>` : ""}` : '<div class="vazio">Nenhum documento enviado ainda. Envie a autorização do proprietário ou arrendatário e o CAR.</div>'; })()}
       <p class="pequeno" style="margin-top:14px">Leve sempre: documento com foto, autorização do SIMAF, certificado do CTF em dia, declaração do proprietário e a guia de trânsito. O Ática organiza prazos e registros; a autorização é emitida pelo Ibama no SIMAF.</p>`;
     const g = (i) => c.querySelector("#" + i);
@@ -3370,19 +3380,15 @@ function renderCaca(c, sub) {
     C.simafInfo = C.simafInfo || {}; C.simafOcultos = C.simafOcultos || [];
     const ufRx = /([A-Za-zÀ-ÿ'][A-Za-zÀ-ÿ' .-]{2,40}?)\s*[\/–-]\s*([A-Z]{2})\b/;
     const docs = cacaDocsConta().filter((d) => d.tipo === "SIMAF");
-    const smLe = (t) => { t = String(t || ""); const o = { faz: "", cid: "", tit: "" };
-      const f = t.match(/\b((?:Fazenda|S[ií]tio|Ch[áa]cara|Est[âa]ncia|Rancho|Granja|Haras|Gleba|Agropecu[áa]ria|Retiro|Propriedade)\s+[^,.;()\/]{2,60}?)\s*(?:,|-|–|em)\s*([A-ZÀ-Ý][A-Za-zÀ-ÿ' .-]{1,40}?)\s*\/\s*([A-Z]{2})\b/);
-      if (f) { o.faz = f[1].trim(); o.cid = f[2].trim() + "/" + f[3]; }
-      else { const m = t.match(/([A-ZÀ-Ý][A-Za-zÀ-ÿ'.-]+(?: (?:d[aeo]s? )?[A-ZÀ-Ý][A-Za-zÀ-ÿ'.-]+){0,4})\s*\/\s*([A-Z]{2})\b/); if (m) o.cid = m[1].trim() + "/" + m[2];
-        const g = t.match(/\b((?:Fazenda|S[ií]tio|Ch[áa]cara|Est[âa]ncia|Rancho|Granja|Haras)\s+[^,.;()\/]{2,60})/); if (g) o.faz = g[1].trim(); }
-      const n = t.match(/(?:em nome de|Solicitante(?: e Manejador)?:?)\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ' ]{4,60}?)\s*(?:\(|,|\.|com )/); if (n) o.tit = n[1].trim();
-      return o; };
+    const smLe = cacaLe;
 
     const smMarca = (id, v) => { try { const d = D.documentos.find((q) => "d:" + q.id === id); if (d) d.oculto = v; } catch (e) {} };
-    const itens = [
+    const itens0 = [
       ...docs.map((d) => { const inf = C.simafInfo["d:" + d.id] || {}, le = smLe(d.descricao); return { id: "d:" + d.id, doc: d, nome: (inf.fazenda || le.faz || "").slice(0, 80), local: inf.cidade || le.cid, num: inf.num || d.numero || "", fim: d.validade || "", tit: inf.tit || le.tit }; }),
       ...C.props.map((p) => ({ id: "p:" + p.id, prop: p, nome: p.nome, local: p.mun || "", num: p.simaf || "", fim: p.fim || "", tit: p.titular || "" })),
     ].filter((x) => { const oc = C.simafOcultos.includes(x.id) || !!(x.doc && x.doc.oculto); return S.verOcultos ? oc : !oc; });
+    const dNomes = itens0.filter((x) => x.doc && x.nome).map((x) => [cacaSemAc(x.nome), String(x.num || "").replace(/\D/g, "")]);
+    const itens = itens0.filter((x) => !x.prop || !dNomes.some(([n, num]) => n === cacaSemAc(x.nome) && (!x.num || String(x.num).replace(/\D/g, "") === num)));
     itens.forEach((x) => { x.dias = x.fim ? cacaDias(x.fim) : null; x.rel = x.prop ? cacaSituacao(C, x.prop).relatorio : (x.dias !== null && x.dias < 0 && x.dias >= -90 && !(C.simafInfo[x.id] || {}).rel); });
     const chave = (x) => x.num ? "n" + String(x.num).replace(/\D/g, "") : "f" + cacaSemAc(x.nome) + "|" + x.fim;
     const cont = {}; itens.forEach((x) => { const k = chave(x); cont[k] = (cont[k] || 0) + 1; });
