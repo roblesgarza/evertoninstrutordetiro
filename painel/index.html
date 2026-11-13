@@ -1823,6 +1823,17 @@ function smAbtProp(C, x, criar) {
   if (p && p.auto && criar && (x.fim || "") >= (p.fim || "")) { p.doc = did; p.simaf = x.num || ""; p.fim = x.fim || ""; p.titular = x.tit || p.titular || ""; if (x.nome) p.nome = x.nome; if (x.local) p.mun = x.local; }
   return p;
 }
+// monta sozinho as propriedades a partir das autorizações do SIMAF enviadas (sem cadastro manual)
+function smSincProps(C) { try { C.simafInfo = C.simafInfo || {}; C.simafOcultos = C.simafOcultos || []; const hoje = abtHoje(), todos = cacaDocsConta(); let mudou = false;
+    const decls = todos.filter((d) => d.tipo === "AUT_PROPRIEDADE").map((d) => cacaSemAc((d.descricao || "") + " " + (cacaLe(d.descricao).faz || "")));
+    for (const d of todos.filter((x) => x.tipo === "SIMAF" && !x.oculto && !C.simafOcultos.includes("d:" + x.id) && x.validade && x.validade >= hoje)) {
+      const inf = C.simafInfo["d:" + d.id] || {}, le = cacaLe(d.descricao), x = { id: "d:" + d.id, doc: d, nome: (inf.fazenda || le.faz || "").slice(0, 80), local: inf.cidade || le.cid, num: inf.num || d.numero || "", fim: d.validade, tit: inf.tit || le.tit };
+      const n0 = C.props.length, p = smAbtProp(C, x, true); if (!p) continue; const antes = n0 === C.props.length ? JSON.stringify(p) : "";
+      if (!p.auto && !p.fim) { p.fim = x.fim; if (!p.simaf) p.simaf = x.num; }
+      if (!p.decl && x.nome && decls.some((t) => t.includes(cacaSemAc(x.nome)))) p.decl = true;
+      if (JSON.stringify(p) !== antes) mudou = true; }
+    if (mudou) cacaGravar(C); } catch (e) {} }
+const smSoDecl = (C, p) => { const f = cacaSituacao(C, p).falta; return !p.decl && f.length === 1 && f[0].indexOf("autorização assinada") === 0; };
 function smAbtJanela(x) { const fim = x.fim || ""; let de = String(x.prop ? x.prop.ini || "" : (x.doc && x.doc.emitido_em) || "").slice(0, 10);
   if (!de && fim) { const t = new Date(fim + "T12:00:00"); t.setDate(t.getDate() - 190); de = t.toISOString().slice(0, 10); } return [de, fim]; }
 function smAbtSaidas(C, x) { const p = smAbtProp(C, x, false); if (!p) return []; const [de, ate] = smAbtJanela(x);
@@ -3344,7 +3355,7 @@ function renderLote(c) {
 function renderCaca(c, sub) {
   const C = cacaLer(), topo = (t, s) => `<div class="topo"><div><h2>${t}</h2><p>${s}</p></div></div>`;
   const nomeProp = (id) => (C.props.find((p) => p.id === id) || {}).nome || "Propriedade removida";
-  if (sub === "propriedades") {
+  if (sub === "propriedades") { smSincProps(C);
     const dc = cacaDias(C.ctf);
     c.innerHTML = topo("Propriedades (CAR) e autorizações", "Cada propriedade entra pelo número do CAR, com a autorização do proprietário ou arrendatário. A autorização do Ibama fica em SIMAF.") +
       `<div id="caca-comigo"></div><div class="card" style="margin-bottom:14px"><div class="rotulo">Certificado de Regularidade do CTF/Ibama</div>
@@ -3420,7 +3431,7 @@ function renderCaca(c, sub) {
     }
     return;
   }
-  if (sub === "manejo") {
+  if (sub === "manejo") { smSincProps(C);
     const hora = (iso) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
     if (C.ativa) {
       const p = C.props.find((x) => x.id === C.ativa.prop) || {}, av = p.avisar && p.fone;
@@ -3455,20 +3466,21 @@ function renderCaca(c, sub) {
       c.querySelector("#cm-fim").onclick = () => { const A = cacaLer(); cacaParar(); if (A.ativa && A.ativa.equipe) { try { api("equipe_sair", { codigo: A.ativa.equipe.codigo }); } catch (e) {} eqpParar(); } A.saidas.unshift({ id: "s" + Date.now().toString(36), prop: A.ativa.prop, inicio: A.ativa.inicio, fim: new Date().toISOString(), animais: Math.max(Number(c.querySelector("#cm-n").value) || 0, (A.ativa.bichos || []).length), bichos: A.ativa.bichos || [], obs: c.querySelector("#cm-obs").value.trim(), trilha: A.ativa.trilha || [], marcas: A.ativa.marcas || [] }); cacaVer = A.saidas[0].id; A.ativa = null; cacaGravar(A); irPara("caca", "saidas"); };
       return;
     }
-    const ok = C.props.filter((p) => cacaSituacao(C, p).pode), sel = ok.find((p) => p.id === C.escolha) || ok[0];
-    c.innerHTML = topo("Manejo em andamento", "Registre o início e o fim de cada saída. Só propriedades com a documentação em dia aparecem aqui.") + (!ok.length
-      ? `<div class="aviso atencao"><b>Nenhuma propriedade liberada</b><span class="pequeno">Cadastre a propriedade e confira a autorização do SIMAF, o certificado do CTF e a declaração do proprietário.</span></div><button class="btn" id="cm-props" style="margin-top:12px">Ver propriedades</button>`
+    const ok = C.props.filter((p) => cacaSituacao(C, p).pode || smSoDecl(C, p)), sel = ok.find((p) => p.id === C.escolha) || ok[0];
+    c.innerHTML = topo("Manejo em andamento", "Registre o início e o fim de cada saída. As fazendas vêm das autorizações do SIMAF que você enviou; não precisa cadastrar de novo.") + (!ok.length
+      ? `<div class="aviso atencao"><b>Nenhuma fazenda liberada</b><span class="pequeno">${C.ctf && cacaDias(C.ctf) >= 0 ? "Envie a autorização do SIMAF (foto ou PDF). O app monta a fazenda sozinho." : "Envie a autorização do SIMAF e o certificado do CTF/Ibama válidos (foto ou PDF). O app monta a fazenda sozinho."}</span></div><button class="btn" id="cm-sm" style="margin-top:12px">Abrir o SIMAF</button> <button class="btn sec" id="cm-props" style="margin-top:12px">Ver propriedades</button>`
       : `<div class="card"><div class="caca-campos"><label>Propriedade<select id="cm-prop">${ok.map((p) => `<option value="${p.id}" ${sel.id === p.id ? "selected" : ""}>${esc(p.nome)}</option>`).join("")}</select></label>
           <label>Previsão de término<select id="cm-h">${[2, 4, 6, 8, 12].map((h) => `<option value="${h}" ${h === 6 ? "selected" : ""}>em ${h} horas</option>`).join("")}</select></label></div>
           <label class="caca-check"><input type="checkbox" id="cm-gpsck" checked> Gravar a trilha por GPS e permitir marcar pontos (fica só neste aparelho)</label>
-          <div id="cm-aviso" style="margin-top:12px"></div>
+          <div id="cm-decl"></div><div class="msg" id="cm-dmsg"></div><div id="cm-aviso" style="margin-top:12px"></div>
           <button class="btn" id="cm-ini" style="margin-top:12px">Iniciar manejo</button></div>`);
-    if (!ok.length) { c.querySelector("#cm-props").onclick = () => irPara("caca", "propriedades"); return; }
+    if (!ok.length) { c.querySelector("#cm-props").onclick = () => irPara("caca", "propriedades"); c.querySelector("#cm-sm").onclick = () => irPara("caca", "simaf"); return; }
     const previa = () => { const p = ok.find((x) => x.id === c.querySelector("#cm-prop").value), h = Number(c.querySelector("#cm-h").value), fim = new Date(Date.now() + h * 36e5);
       c.querySelector("#cm-aviso").innerHTML = p.avisar && p.fone ? `<div class="aviso info"><b>Aviso ao proprietário pelo WhatsApp</b><span class="pequeno">Modelo da mensagem (o envio entra na próxima etapa, depois que ele aceitar receber): "Olá, ${esc(p.dono || "")}. Aqui é o Ática. ${primeiroNome()} iniciou agora o manejo de javali na ${esc(p.nome)}, com previsão de término às ${fim.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}. Equipe: ${esc(p.equipe || primeiroNome())}. Você recebe outro aviso no encerramento."</span></div>`
         : `<div class="aviso"><b>Sem aviso ao proprietário</b><span class="pequeno">Para avisar, cadastre o WhatsApp dele e ligue a opção na propriedade.</span></div>`; };
-    c.querySelector("#cm-prop").onchange = previa; c.querySelector("#cm-h").onchange = previa; previa();
-    c.querySelector("#cm-ini").onclick = () => { const h = Number(c.querySelector("#cm-h").value); C.ativa = { prop: c.querySelector("#cm-prop").value, inicio: new Date().toISOString(), previsto: new Date(Date.now() + h * 36e5).toISOString(), gps: c.querySelector("#cm-gpsck").checked, trilha: [], marcas: [] }; cacaGravar(C); render(); };
+    const previa2 = () => { previa(); const p = ok.find((x) => x.id === c.querySelector("#cm-prop").value); c.querySelector("#cm-dmsg").textContent = ""; c.querySelector("#cm-decl").innerHTML = (p ? `<div class="pequeno" style="margin-top:10px">${esc([p.mun, p.simaf ? "SIMAF nº " + p.simaf : "", p.fim ? "válida até " + br(p.fim) : ""].filter(Boolean).join(" · "))}</div>` : "") + (p && !p.decl ? `<label class="caca-check"><input type="checkbox" id="cm-declck"> Tenho a autorização de acesso assinada pelo proprietário ou arrendatário</label>` : ""); };
+    c.querySelector("#cm-prop").onchange = previa2; c.querySelector("#cm-h").onchange = previa2; previa2();
+    c.querySelector("#cm-ini").onclick = () => { const h = Number(c.querySelector("#cm-h").value); const pp = C.props.find((x) => x.id === c.querySelector("#cm-prop").value), dk = c.querySelector("#cm-declck"); if (pp && !pp.decl) { if (!dk || !dk.checked) { const m = c.querySelector("#cm-dmsg"); m.textContent = "Marque que você tem a autorização assinada do proprietário."; m.className = "msg erro"; return; } pp.decl = true; } C.ativa = { prop: c.querySelector("#cm-prop").value, inicio: new Date().toISOString(), previsto: new Date(Date.now() + h * 36e5).toISOString(), gps: c.querySelector("#cm-gpsck").checked, trilha: [], marcas: [] }; cacaGravar(C); render(); };
     return;
   }
   if (sub === "simaf") {
