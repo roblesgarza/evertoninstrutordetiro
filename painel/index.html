@@ -1770,6 +1770,7 @@ function cacaTexto(s, nome) {
   const dur = Math.round((new Date(s.fim) - new Date(s.inicio)) / 6e4), L = [`Manejo de javali · ${nome}`, `${new Date(s.inicio).toLocaleDateString("pt-BR")}, das ${cacaHora(s.inicio)} às ${cacaHora(s.fim)} (${dur >= 60 ? Math.floor(dur / 60) + "h" + String(dur % 60).padStart(2, "0") : dur + " min"})`];
   if ((s.trilha || []).length > 1) L.push(`Percorrido: ${cacaFmtKm(cacaKm(s.trilha))}`);
   if (s.animais) L.push(`Abatidos: ${s.animais}`);
+  (s.bichos || []).forEach((b, i) => L.push(`   ${i + 1}) ${abtTxt(b)}`));
   (s.marcas || []).forEach((m, i) => L.push(`${i + 1}. ${CACA_MARCAS[m.tipo] || "Ponto"} às ${cacaHora(m.t)}${m.obs ? " (" + m.obs + ")" : ""}: https://maps.google.com/?q=${m.lat},${m.lon}`));
   if ((s.trilha || []).length) L.push(`Início da trilha: https://maps.google.com/?q=${s.trilha[0][0]},${s.trilha[0][1]}`);
   return L.join("\n") + "\nRegistrado no Ática.";
@@ -1788,14 +1789,35 @@ async function cacaEnviarTexto(titulo, text, msgEl) {
   try { await navigator.clipboard.writeText(text); msgEl.textContent = "Texto copiado. Cole no WhatsApp ou onde quiser."; msgEl.className = "msg"; } catch (e) { msgEl.textContent = "Não foi possível compartilhar neste aparelho."; msgEl.className = "msg erro"; }
 }
 function cacaPosAgora() { return new Promise((ok) => { if (!navigator.geolocation) return ok(null); navigator.geolocation.getCurrentPosition((p) => ok([+p.coords.latitude.toFixed(6), +p.coords.longitude.toFixed(6), Math.round(p.coords.accuracy)]), () => ok(null), { enableHighAccuracy: true, timeout: 12000, maximumAge: 15000 }); }); }
+const ABT_SX = { m: "Macho", f: "Fêmea" }, ABT_FX = { j: "Jovem", a: "Adulto" };
+function abtTxt(b) { return [(ABT_SX[b.sx] || "sexo não informado").toLowerCase(), (b.fx === "a" && b.sx === "f" ? "adulta" : ABT_FX[b.fx] || "").toLowerCase(), b.cm ? b.cm + " cm" : ""].filter(Boolean).join(", "); }
+function abtResumo(L) { const B = L.flatMap((s) => s.bichos || []); if (!B.length) return ""; const n = (k, v) => B.filter((b) => b[k] === v).length;
+  return "Detalhados: " + B.length + " (machos " + n("sx", "m") + ", fêmeas " + n("sx", "f") + "; jovens " + n("fx", "j") + ", adultos " + n("fx", "a") + ")"; }
+// editor da lista de animais: desenha dentro de "el" e chama aoMudar(lista, tipo) a cada inclusão ou retirada
+function abtMontar(el, lista, aoMudar) {
+  if (!el) return; const st = el.__st || (el.__st = { sx: "", fx: "", cm: "" });
+  const bt = (grupo, k, t) => `<button type="button" class="btn sec" data-abt-${grupo}="${k}" style="flex:1;min-height:46px;${st[grupo] === k ? "background:var(--verde);color:#06210f;border-color:var(--verde);font-weight:700" : ""}">${t}</button>`;
+  el.innerHTML = (lista.length ? `<div class="lista" style="margin-bottom:10px">${lista.map((b, i) => `<div class="linha" style="padding:8px 12px"><div><div class="t">${i + 1}. ${esc(ABT_SX[b.sx] || "Sexo não informado")}${b.fx ? " · " + (b.fx === "a" && b.sx === "f" ? "Adulta" : esc(ABT_FX[b.fx])) : ""}</div><div class="pequeno">${b.cm ? "Comprimento: " + esc(String(b.cm)) + " cm" : "Comprimento não informado"}</div></div><button type="button" class="btn sec" data-abt-tira="${i}" style="min-height:34px;padding:5px 12px">Tirar</button></div>`).join("")}</div>` : `<div class="pequeno" style="margin-bottom:10px">Nenhum animal lançado nesta saída.</div>`) +
+    `<div class="pequeno" style="margin-bottom:4px">Sexo</div><div style="display:flex;gap:8px">${bt("sx", "m", "♂ Macho")}${bt("sx", "f", "♀ Fêmea")}</div>
+     <div class="pequeno" style="margin:10px 0 4px">Faixa etária</div><div style="display:flex;gap:8px">${bt("fx", "j", "Jovem")}${bt("fx", "a", "Adulto")}</div>
+     <label style="display:block;margin-top:10px"><span class="pequeno">Comprimento, do focinho à base da cauda (cm)</span><input data-abt-cm inputmode="numeric" maxlength="3" placeholder="ex.: 120" value="${esc(st.cm)}" style="width:100%"></label>
+     <button type="button" class="btn" data-abt-mais style="margin-top:10px;width:100%">+ Adicionar animal</button><div class="msg" data-abt-msg></div>`;
+  el.querySelector("[data-abt-cm]").oninput = (e) => { st.cm = e.target.value.replace(/\D/g, "").slice(0, 3); e.target.value = st.cm; };
+  ["sx", "fx"].forEach((g) => el.querySelectorAll("[data-abt-" + g + "]").forEach((b) => b.onclick = () => { st[g] = st[g] === b.getAttribute("data-abt-" + g) ? "" : b.getAttribute("data-abt-" + g); abtMontar(el, lista, aoMudar); }));
+  el.querySelectorAll("[data-abt-tira]").forEach((b) => b.onclick = () => { lista.splice(Number(b.dataset.abtTira), 1); aoMudar(lista, "tira"); abtMontar(el, lista, aoMudar); });
+  el.querySelector("[data-abt-mais]").onclick = () => { const m = el.querySelector("[data-abt-msg]");
+    if (!st.sx || !st.fx) { m.textContent = "Escolha o sexo e a faixa etária."; m.className = "msg erro"; return; }
+    const cm = Number(st.cm) || 0; if (st.cm && (cm < 20 || cm > 300)) { m.textContent = "Confira o comprimento (em centímetros)."; m.className = "msg erro"; return; }
+    lista.push({ sx: st.sx, fx: st.fx, cm: cm || null }); st.sx = ""; st.fx = ""; st.cm = ""; aoMudar(lista, "mais"); abtMontar(el, lista, aoMudar); };
+}
 function cacaRelSimaf(C, p) {
   const todas = C.saidas.filter((x) => x.prop === p.id), noPer = todas.filter((x) => (!p.ini || x.inicio.slice(0, 10) >= p.ini) && (!p.fim || x.inicio.slice(0, 10) <= p.fim));
   const L = (p.ini || p.fim) ? noPer : todas, tot = L.reduce((a, x) => a + (x.animais || 0), 0), dias = new Set(L.map((x) => x.inicio.slice(0, 10))).size;
   const dt = (iso) => new Date(iso).toLocaleDateString("pt-BR");
   return ["RELATÓRIO DE MANEJO DE JAVALI (rascunho para o SIMAF)", "Propriedade: " + p.nome + (p.mun ? " · " + p.mun : ""), "CAR: " + (p.car || "a informar"),
     "Autorização: " + (p.ini ? br(p.ini) : "início a informar") + " a " + (p.fim ? br(p.fim) : "validade a informar"), p.equipe ? "Equipe: " + p.equipe : "",
-    "Saídas no período: " + L.length + " (em " + dias + " dia(s))", "Animais abatidos: " + tot, "",
-    ...L.slice().reverse().map((x) => "- " + dt(x.inicio) + ", " + cacaHora(x.inicio) + "–" + cacaHora(x.fim) + ": " + (x.animais ? x.animais + " abatido(s)" : "sem abate") + (x.obs ? " · " + x.obs : "")),
+    "Saídas no período: " + L.length + " (em " + dias + " dia(s))", "Animais abatidos: " + tot, abtResumo(L), "",
+    ...L.slice().reverse().flatMap((x) => ["- " + dt(x.inicio) + (x.manual ? "" : ", " + cacaHora(x.inicio) + "–" + cacaHora(x.fim)) + ": " + (x.animais ? x.animais + " abatido(s)" : "sem abate") + (x.obs ? " · " + x.obs : ""), ...(x.bichos || []).map((b, i) => "    " + (i + 1) + ") " + abtTxt(b))]),
     "", "Gerado pelo Ática a partir do registro de saídas. Confira antes de preencher no SIMAF."].filter((l, i, a) => l !== "" || a[i - 1] !== "").join("\n");
 }
 let cacaRel = null;
@@ -3349,10 +3371,12 @@ function renderCaca(c, sub) {
           <div class="caca-campos"><label>Marcar ponto aqui<select id="cm-tipo">${Object.entries(CACA_MARCAS).map(([k, t]) => `<option value="${k}">${t}</option>`).join("")}</select></label><label>Observação (opcional)<input id="cm-mobs" maxlength="80"></label></div>
           <button class="btn" id="cm-marcar" style="margin-top:12px">Marcar ponto</button><div class="msg" id="cm-mmsg"></div></div>`}
         <div class="card" style="margin-top:14px" id="cm-equipe">${eqpHtml(C)}</div>
+        <div class="card" style="margin-top:14px"><div class="rotulo">Animais abatidos nesta saída</div><p class="pequeno" style="margin:6px 0 10px">Lance cada animal agora, para não esquecer. Esses dados entram no relatório do SIMAF. Pode completar depois, no registro de saídas.</p><div id="cm-abt"></div></div>
         <div class="card" style="margin-top:14px"><div class="rotulo">Encerrar a saída</div><div class="caca-campos" style="margin-top:8px">
-          <label>Animais abatidos (opcional)<input id="cm-n" inputmode="numeric" maxlength="3" placeholder="0"></label>
+          <label>Total de animais abatidos<input id="cm-n" inputmode="numeric" maxlength="3" placeholder="0" value="${(C.ativa.bichos || []).length || ""}"></label>
           <label>Observação (opcional)<input id="cm-obs" maxlength="140"></label></div>
           <button class="btn" id="cm-fim" style="margin-top:12px">Encerrar manejo</button></div>`;
+      abtMontar(c.querySelector("#cm-abt"), (C.ativa.bichos || []).slice(), (lista) => { const A = cacaLer(); if (A.ativa) { A.ativa.bichos = lista.slice(); cacaGravar(A); } const n = c.querySelector("#cm-n"); if (n) n.value = lista.length || ""; });
       if (C.ativa.gps !== false) {
         cacaRastrear();
         c.querySelector("#cm-marcar").onclick = () => { const A = cacaLer(), m = c.querySelector("#cm-mmsg"); if (!A.ativa) return;
@@ -3365,7 +3389,7 @@ function renderCaca(c, sub) {
       c.querySelector("#cm-ajuda").onclick = async () => { const m = c.querySelector("#cm-amsg"); m.textContent = "Buscando a sua posição…"; m.className = "msg";
         const A = cacaLer(), pos = (await cacaPosAgora()) || (A.ativa && A.ativa.pos) || null; m.textContent = pos ? "" : "Sem posição do GPS: o pedido vai sem o link do mapa.";
         cacaEnviarTexto("Pedido de ajuda", "PRECISO DE AJUDA. " + primeiroNomeTxt() + ", em manejo de javali na " + (p.nome || "propriedade") + (p.mun ? " (" + p.mun + ")" : "") + ", às " + cacaHora(Date.now()) + "." + (pos ? " Minha posição: https://maps.google.com/?q=" + pos[0] + "," + pos[1] : " Não consegui obter a posição pelo GPS.") + " Em emergência, ligue 193 (Bombeiros) ou 192 (SAMU).", m); };
-      c.querySelector("#cm-fim").onclick = () => { const A = cacaLer(); cacaParar(); if (A.ativa && A.ativa.equipe) { try { api("equipe_sair", { codigo: A.ativa.equipe.codigo }); } catch (e) {} eqpParar(); } A.saidas.unshift({ id: "s" + Date.now().toString(36), prop: A.ativa.prop, inicio: A.ativa.inicio, fim: new Date().toISOString(), animais: Number(c.querySelector("#cm-n").value) || 0, obs: c.querySelector("#cm-obs").value.trim(), trilha: A.ativa.trilha || [], marcas: A.ativa.marcas || [] }); cacaVer = A.saidas[0].id; A.ativa = null; cacaGravar(A); irPara("caca", "saidas"); };
+      c.querySelector("#cm-fim").onclick = () => { const A = cacaLer(); cacaParar(); if (A.ativa && A.ativa.equipe) { try { api("equipe_sair", { codigo: A.ativa.equipe.codigo }); } catch (e) {} eqpParar(); } A.saidas.unshift({ id: "s" + Date.now().toString(36), prop: A.ativa.prop, inicio: A.ativa.inicio, fim: new Date().toISOString(), animais: Math.max(Number(c.querySelector("#cm-n").value) || 0, (A.ativa.bichos || []).length), bichos: A.ativa.bichos || [], obs: c.querySelector("#cm-obs").value.trim(), trilha: A.ativa.trilha || [], marcas: A.ativa.marcas || [] }); cacaVer = A.saidas[0].id; A.ativa = null; cacaGravar(A); irPara("caca", "saidas"); };
       return;
     }
     const ok = C.props.filter((p) => cacaSituacao(C, p).pode), sel = ok.find((p) => p.id === C.escolha) || ok[0];
@@ -3496,25 +3520,37 @@ function renderCaca(c, sub) {
     const sv = cacaVer && C.saidas.find((x) => x.id === cacaVer);
     if (sv) {
       const nome = nomeProp(sv.prop);
-      c.innerHTML = topo("Trilha da saída", esc(nome) + " · " + new Date(sv.inicio).toLocaleDateString("pt-BR") + ", " + cacaHora(sv.inicio) + "–" + cacaHora(sv.fim)) +
+      c.innerHTML = topo(sv.manual ? "Registro de abate" : "Trilha da saída", esc(nome) + " · " + new Date(sv.inicio).toLocaleDateString("pt-BR") + (sv.manual ? "" : ", " + cacaHora(sv.inicio) + "–" + cacaHora(sv.fim))) +
         `<div class="card">${cacaMapa(sv.trilha, sv.marcas, (C.props.find((x) => x.id === sv.prop) || {}).limite)}
-          <div class="dados-caca"><div><span>Percorrido</span><b>${cacaFmtKm(cacaKm(sv.trilha))}</b></div><div><span>Pontos marcados</span><b>${(sv.marcas || []).length}</b></div><div><span>Abatidos</span><b>${sv.animais || 0}</b></div></div>
+          <div class="dados-caca"><div><span>Percorrido</span><b>${cacaFmtKm(cacaKm(sv.trilha))}</b></div><div><span>Pontos marcados</span><b>${(sv.marcas || []).length}</b></div><div><span>Abatidos</span><b id="cs-nab">${sv.animais || 0}</b></div></div>
+          <div style="margin-top:14px;border-top:1px solid var(--linha,#e3e0d8);padding-top:12px"><div class="rotulo">Animais abatidos</div><p class="pequeno" style="margin:6px 0 10px">Sexo, faixa etária e comprimento de cada animal, como o relatório do SIMAF pede.</p><div id="cs-abt"></div></div>
           ${(sv.marcas || []).length ? `<div class="lista" style="margin-top:12px">${sv.marcas.map((m, i) => `<div class="linha"><div><div class="t">${i + 1}. ${CACA_MARCAS[m.tipo] || "Ponto"}</div><div class="pequeno">${cacaHora(m.t)} · ${m.lat.toFixed(5)}, ${m.lon.toFixed(5)}${m.obs ? " · " + esc(m.obs) : ""}</div></div><a href="https://maps.google.com/?q=${m.lat},${m.lon}" target="_blank" rel="noopener">Abrir no mapa</a></div>`).join("")}</div>` : ""}
           <div class="acoes" style="margin-top:14px"><button class="btn" id="cs-comp">Compartilhar</button><button class="btn sec" id="cs-gpx">Baixar GPX</button><button class="btn sec" id="cs-volta">Voltar às saídas</button></div><div class="msg" id="cs-msg"></div><div id="cs-box" style="margin-top:10px"></div>
           <p class="pequeno" style="margin:10px 0 0">Você escolhe com quem compartilhar. O resumo leva os pontos marcados com link de mapa; o arquivo GPX abre em apps de trilha e mapas.</p></div>`;
       c.querySelector("#cs-volta").onclick = () => { cacaVer = null; render(); };
+      abtMontar(c.querySelector("#cs-abt"), (sv.bichos || []).slice(), (lista, tipo) => { const A = cacaLer(), s = A.saidas.find((x) => x.id === sv.id); if (!s) return;
+        s.bichos = lista.slice(); s.animais = tipo === "mais" ? Math.max(Number(s.animais) || 0, lista.length) : Math.max(lista.length, (Number(s.animais) || 1) - 1); cacaGravar(A);
+        sv.bichos = s.bichos; sv.animais = s.animais; const e = c.querySelector("#cs-nab"); if (e) e.textContent = s.animais; });
       c.querySelector("#cs-comp").onclick = () => { const bx = c.querySelector("#cs-box"); if (bx.innerHTML) { bx.innerHTML = ""; return; } cacaPainelComp(bx, "Manejo de javali · " + nome, cacaTexto(sv, nome), ""); };
       c.querySelector("#cs-gpx").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([cacaGpx(sv, nome)], { type: "application/gpx+xml" })); a.download = "manejo-" + sv.inicio.slice(0, 10) + ".gpx"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
       return;
     }
     const porProp = {}; for (const s of C.saidas) (porProp[s.prop] = porProp[s.prop] || []).push(s);
     const dur = (s) => { const m = Math.round((new Date(s.fim) - new Date(s.inicio)) / 6e4); return m >= 60 ? Math.floor(m / 60) + "h" + String(m % 60).padStart(2, "0") : m + " min"; };
+    const ABN = (globalThis.__ABN = globalThis.__ABN || { aberto: false });
     c.innerHTML = topo("Registro de saídas", "Cada manejo encerrado fica aqui, por propriedade. Use os totais para preencher o relatório do SIMAF.") +
+      `<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="t">Registrar abate</div><div class="pequeno">Para uma saída que você não acompanhou pelo app.</div></div><button class="btn${ABN.aberto ? " sec" : ""}" id="abn-ab">${ABN.aberto ? "Fechar" : "Registrar"}</button></div>
+        ${ABN.aberto ? (C.props.length ? `<div class="caca-campos" style="margin-top:12px"><label>Propriedade<select id="abn-prop">${C.props.map((p) => `<option value="${esc(p.id)}">${esc(p.nome || "Propriedade")}</option>`).join("")}</select></label><label>Data da saída<input type="date" id="abn-data" value="${new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)}" max="${new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)}"></label></div><button class="btn" id="abn-ok" style="margin-top:12px">Continuar e lançar os animais</button><div class="msg" id="abn-msg"></div>` : `<p class="pequeno" style="margin:10px 0 0">Cadastre primeiro a propriedade, em Propriedades.</p>`) : ""}</div>` +
       (Object.keys(porProp).map((id) => { const L = porProp[id], tot = L.reduce((a, s) => a + (s.animais || 0), 0);
         const pr = C.props.find((x) => x.id === id);
-        return `<h3 class="sec-tit">${esc(nomeProp(id))} · ${L.length} saída(s) · ${tot} animal(is)</h3>${pr ? `<button class="btn sec" data-rsim="${id}" style="margin-bottom:10px">Relatório para o SIMAF</button>${cacaRel === id ? `<div class="card" id="caca-rel" style="margin-bottom:12px"><pre style="white-space:pre-wrap;font:inherit;margin:0">${esc(cacaRelSimaf(C, pr))}</pre><div class="acoes" style="margin-top:12px"><button class="btn" id="rs-comp">Copiar ou compartilhar</button><button class="btn sec" id="rs-x">Fechar</button></div><div class="msg" id="rs-msg"></div><p class="pequeno" style="margin:8px 0 0">Considera as saídas dentro do período da autorização informado em SIMAF. O Ática não envia nada ao Ibama: o relatório é preenchido por você no SIMAF.</p></div>` : ""}` : ""}<div class="lista">${L.map((s) => `<div class="linha"><div><div class="t">${new Date(s.inicio).toLocaleDateString("pt-BR")} · ${dur(s)}</div><div class="pequeno">${s.animais ? s.animais + " abatido(s)" : "sem abate"}${(s.trilha || []).length > 1 ? " · " + cacaFmtKm(cacaKm(s.trilha)) : ""}${(s.marcas || []).length ? " · " + s.marcas.length + " ponto(s)" : ""}${s.obs ? " · " + esc(s.obs) : ""}</div></div><div style="text-align:right"><div class="pequeno">${new Date(s.inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}–${new Date(s.fim).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div><button class="btn sec" data-ver="${s.id}" style="min-height:36px;padding:6px 12px;margin-top:6px">Ver trilha</button></div></div>`).join("")}</div>`; }).join("")
+        return `<h3 class="sec-tit">${esc(nomeProp(id))} · ${L.length} saída(s) · ${tot} animal(is)</h3>${pr ? `<button class="btn sec" data-rsim="${id}" style="margin-bottom:10px">Relatório para o SIMAF</button>${cacaRel === id ? `<div class="card" id="caca-rel" style="margin-bottom:12px"><pre style="white-space:pre-wrap;font:inherit;margin:0">${esc(cacaRelSimaf(C, pr))}</pre><div class="acoes" style="margin-top:12px"><button class="btn" id="rs-comp">Copiar ou compartilhar</button><button class="btn sec" id="rs-x">Fechar</button></div><div class="msg" id="rs-msg"></div><p class="pequeno" style="margin:8px 0 0">Considera as saídas dentro do período da autorização informado em SIMAF. O Ática não envia nada ao Ibama: o relatório é preenchido por você no SIMAF.</p></div>` : ""}` : ""}<div class="lista">${L.map((s) => `<div class="linha"><div><div class="t">${new Date(s.inicio).toLocaleDateString("pt-BR")} · ${s.manual ? "lançada depois" : dur(s)}</div><div class="pequeno">${s.animais ? s.animais + " abatido(s)" : "sem abate"}${(s.trilha || []).length > 1 ? " · " + cacaFmtKm(cacaKm(s.trilha)) : ""}${(s.marcas || []).length ? " · " + s.marcas.length + " ponto(s)" : ""}${s.obs ? " · " + esc(s.obs) : ""}</div></div><div style="text-align:right"><div class="pequeno">${s.manual ? "" : new Date(s.inicio).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) + "–" + new Date(s.fim).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</div><button class="btn sec" data-ver="${s.id}" style="min-height:36px;padding:6px 12px;margin-top:6px">${s.manual ? "Abrir" : "Ver trilha"}</button></div></div>`).join("")}</div>`; }).join("")
         || '<div class="vazio">Nenhuma saída registrada ainda. Inicie um manejo para começar o histórico.</div>');
     c.querySelectorAll("[data-ver]").forEach((b) => b.onclick = () => { cacaVer = b.dataset.ver; render(); window.scrollTo(0, 0); });
+    c.querySelector("#abn-ab").onclick = () => { ABN.aberto = !ABN.aberto; render(); };
+    if (c.querySelector("#abn-ok")) c.querySelector("#abn-ok").onclick = () => { const dia = c.querySelector("#abn-data").value, pr = c.querySelector("#abn-prop").value, m = c.querySelector("#abn-msg");
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dia) || dia > new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)) { m.textContent = "Informe a data da saída."; m.className = "msg erro"; return; }
+      const A = cacaLer(), quando = new Date(dia + "T12:00:00").toISOString(); A.saidas.unshift({ id: "s" + Date.now().toString(36), prop: pr, inicio: quando, fim: quando, animais: 0, bichos: [], obs: "", trilha: [], marcas: [], manual: true });
+      A.saidas.sort((a, b) => (a.inicio < b.inicio ? 1 : -1)); cacaVer = A.saidas.find((x) => x.manual && x.inicio === quando && x.prop === pr).id; cacaGravar(A); ABN.aberto = false; render(); window.scrollTo(0, 0); };
     c.querySelectorAll("[data-rsim]").forEach((b) => b.onclick = () => { cacaRel = cacaRel === b.dataset.rsim ? null : b.dataset.rsim; render(); });
     if (c.querySelector("#rs-x")) { c.querySelector("#rs-x").onclick = () => { cacaRel = null; render(); }; c.querySelector("#rs-comp").onclick = () => cacaEnviarTexto("Relatório de manejo", cacaRelSimaf(C, C.props.find((x) => x.id === cacaRel)), c.querySelector("#rs-msg")); }
     return;
