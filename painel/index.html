@@ -3258,21 +3258,37 @@ function renderCaca(c, sub) {
         <div class="pequeno ${dc === null ? "at" : dc < 0 ? "cr" : dc <= 15 ? "at" : "ok"}" style="align-self:end;padding-bottom:12px">${dc === null ? "Informe a validade: ele precisa estar em dia no dia do manejo." : dc < 0 ? "Vencido: renove no site do Ibama antes de sair." : "Vence " + prazo(dc) + "."}</div></div></div>
       ${cacaPasta && C.props.find((p) => p.id === cacaPasta) ? cacaPastaHtml(C, C.props.find((p) => p.id === cacaPasta)) : ""}
       ${cacaEdit ? cacaForm(cacaEdit) : '<button class="btn" id="caca-nova" style="margin:14px 0">+ Adicionar propriedade</button>'}
-      <div class="lista">${C.props.map((p) => { const s = cacaSituacao(C, p); return `<div class="card caca-prop">
-        <div class="caca-topo"><div><div class="tit" style="font-size:17px">${esc(p.nome)}</div><div class="pequeno">${esc([p.mun, p.car ? "CAR " + p.car : "CAR a informar", p.dono ? "Proprietário: " + p.dono : ""].filter(Boolean).join(" · "))}</div></div>
-          <span class="etiqueta ${s.cor}">${s.pode ? (s.cor === "at" ? "Atenção ao prazo" : "Liberada") : "Pendente"}</span></div>
-        <div class="dados-caca"><div><span>CAR</span><b class="${p.car ? "ok" : "at"}">${p.car ? "Informado" : "A informar"}</b></div>
+      ${(() => { const P = (globalThis.__PR = globalThis.__PR || { busca: "", aberto: "", mais: 0, dmais: 0, daberto: "" }); const bq = cacaSemAc(P.busca);
+        const Lp = C.props.filter((p) => !bq || cacaSemAc([p.nome, p.mun, p.car, p.dono, p.titular].join(" ")).includes(bq)), lim = 40 + P.mais;
+        return (C.props.length > 6 ? `<div class="caca-campos" style="grid-template-columns:1fr;margin-bottom:8px"><label>Buscar<input id="pr-busca" placeholder="Fazenda, cidade, CAR ou proprietário" value="${esc(P.busca)}"></label></div><div class="pequeno" style="margin-bottom:6px">${Lp.length} de ${C.props.length} propriedade(s). Toque para ver os detalhes.</div>` : "") +
+        `<div class="lista">${Lp.slice(0, lim).map((p) => { const s = cacaSituacao(C, p), ab = P.aberto === p.id || C.props.length === 1; return `<div class="linha caca-prop" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px">
+        <div data-prab="${p.id}" style="cursor:pointer"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t" style="min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25">${p.mun ? esc(p.mun) + ' <span style="font-weight:500;color:var(--sub)">·</span> ' : ""}${esc(p.nome)}</div>
+          <span class="etiqueta ${s.cor}" style="flex-shrink:0;white-space:nowrap">${s.pode ? (s.cor === "at" ? "Atenção" : "Liberada") : "Pendente"}</span></div>
+          <div class="pequeno" style="margin-top:3px;overflow-wrap:anywhere">${esc([p.car ? "CAR " + p.car : "CAR a informar", p.dono ? "Proprietário: " + p.dono : ""].filter(Boolean).join(" · "))}</div></div>
+        ${ab ? `<div class="pr-det"><div class="dados-caca"><div><span>CAR</span><b class="${p.car ? "ok" : "at"}">${p.car ? "Informado" : "A informar"}</b></div>
           <div><span>Autorização de acesso</span><b class="${p.decl ? "ok" : "cr"}">${p.decl ? "Em mãos" : "Falta"}</b></div>
           <div><span>Aviso ao proprietário</span><b>${p.avisar && p.fone ? "Ligado" : "Desligado"}</b></div></div>
         ${s.falta.length ? `<div class="aviso critico" style="margin-top:10px"><b>Não saia para esta propriedade ainda</b><span class="pequeno">Falta: ${esc(s.falta.join("; "))}.</span></div>` : ""}
         ${p.limite ? `<div style="margin-top:10px;max-width:360px">${cacaMapa([], [], p.limite)}</div><div class="pequeno" style="margin-top:6px">Limite pelo CAR${p.carInfo && p.carInfo.area ? ": " + String(p.carInfo.area).replace(".", ",") + " ha" : ""}${p.carInfo && p.carInfo.mun ? " · " + esc(p.carInfo.mun) : ""}${p.carInfo && p.carInfo.cond ? " · " + esc(p.carInfo.cond) : ""}. Fonte: base pública do SICAR; é o perímetro declarado, não vale como divisa legal.</div>` : ""}
         <div class="msg" data-lmsg="${p.id}"></div>
-        <div class="acoes" style="margin-top:12px"><button class="btn sec" data-ed="${p.id}">Editar</button>${p.car ? `<button class="btn sec" data-lim="${p.id}">${p.limite ? "Atualizar limite" : "Buscar limite pelo CAR"}</button>` : ""}<button class="btn sec" data-pasta="${p.id}">Documentos</button>${s.pode ? `<button class="btn" data-ir="${p.id}">Iniciar manejo</button>` : ""}</div></div>`; }).join("") || '<div class="vazio">Nenhuma propriedade cadastrada. Adicione a primeira com o número do CAR.</div>'}</div>
+        <div class="acoes" style="margin-top:12px"><button class="btn sec" data-ed="${p.id}">Editar</button>${p.car ? `<button class="btn sec" data-lim="${p.id}">${p.limite ? "Atualizar limite" : "Buscar limite pelo CAR"}</button>` : ""}<button class="btn sec" data-pasta="${p.id}">Documentos</button>${s.pode ? `<button class="btn" data-ir="${p.id}">Iniciar manejo</button>` : ""}</div></div>` : ""}</div>`; }).join("") || (C.props.length ? '<div class="vazio">Nada com essa busca.</div>' : '<div class="vazio">Nenhuma propriedade cadastrada. Adicione a primeira com o número do CAR.</div>')}</div>` +
+        (Lp.length > lim ? `<button class="btn sec" id="pr-mais" style="margin-top:10px">Mostrar mais ${Math.min(40, Lp.length - lim)}</button>` : ""); })()}
       <h3 class="sec-tit">Documentos das propriedades</h3>
       <div class="envio-doc"><button class="btn" data-ldoc="foto">Fotografar documento</button><button class="btn sec" data-ldoc="arq">Enviar arquivo ou PDF</button></div>${cacaPasta ? "" : '<div id="envio"></div>'}
-      ${(() => { const dd = cacaDocsConta().filter((d) => d.tipo !== "SIMAF" && d.tipo !== "CTF"); return dd.length ? `<div class="lista" id="caca-docs-prop">${dd.map(cacaDocLinha).join("")}</div>` : '<div class="vazio">Nenhum documento enviado ainda. Envie a autorização do proprietário ou arrendatário e o CAR.</div>'; })()}
+      ${(() => { const dd = cacaDocsConta().filter((d) => d.tipo !== "SIMAF" && d.tipo !== "CTF"); const P = globalThis.__PR, bq = cacaSemAc(P.busca), Ld = dd.filter((d) => !bq || cacaSemAc([d.descricao, d.nome_tipo, d.numero].join(" ")).includes(bq)), lim = 40 + P.dmais;
+        const tg = (d) => !d.validade ? "" : `<span class="etiqueta ${d.dias < 0 ? "cr" : d.dias <= 30 ? "at" : "ok"}" style="flex-shrink:0;white-space:nowrap">${d.dias < 0 ? "vencido" : d.dias <= 30 ? (d.dias === 0 ? "vence hoje" : d.dias + " dias") : "até " + br(d.validade).slice(0, 5)}</span>`;
+        const ln = (d) => { const ab = P.daberto === d.id; return `<div class="linha" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px"><div data-pdab="${d.id}" style="cursor:pointer"><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t" style="min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25">${esc(String(d.descricao || "").replace(/^autoriza[çc][ãa]o (d[oe] )?(propriet[áa]rio|arrendat[áa]rio|propriedade|acesso)( ou arrendat[áa]rio)?\s*[-–:]?\s*/i, "").trim() || d.descricao || d.nome_tipo)}</div>${tg(d)}</div>
+          <div class="pequeno" style="margin-top:3px;overflow-wrap:anywhere">${[d.tipo === "GT" ? "Guia de trânsito" : CACA_TIPOS[d.tipo] || "", d.numero ? "nº " + esc(d.numero) : "", d.emitido_em ? "emitido em " + br(d.emitido_em) : "", d.validade ? "vale até " + br(d.validade) : "", d.status === "pendente_conferencia" ? '<span class="at">aguardando conferência</span>' : ""].filter(Boolean).join(" · ")}</div></div>
+          ${ab && d.link ? `<div style="display:flex;gap:6px;flex-wrap:wrap"><a class="btn sec" href="${esc(d.link)}" target="_blank" rel="noopener" style="min-height:34px;padding:5px 12px">Abrir arquivo</a><button class="btn sec caca-comp" data-comp="${d.id}" style="min-height:34px;padding:5px 12px">Compartilhar</button></div><div class="caca-comp-p" data-compp="${d.id}"></div>` : ""}</div>`; };
+        return dd.length ? `<div class="lista" id="caca-docs-prop">${Ld.slice(0, lim).map(ln).join("") || '<div class="vazio">Nada com essa busca.</div>'}</div>${Ld.length > lim ? `<button class="btn sec" id="pd-mais" style="margin-top:10px">Mostrar mais ${Math.min(40, Ld.length - lim)}</button>` : ""}` : '<div class="vazio">Nenhum documento enviado ainda. Envie a autorização do proprietário ou arrendatário e o CAR.</div>'; })()}
       <p class="pequeno" style="margin-top:14px">Leve sempre: documento com foto, autorização do SIMAF, certificado do CTF em dia, declaração do proprietário e a guia de trânsito. O Ática organiza prazos e registros; a autorização é emitida pelo Ibama no SIMAF.</p>`;
     const g = (i) => c.querySelector("#" + i);
+    { const P = globalThis.__PR;
+      c.querySelectorAll("[data-prab]").forEach((x) => x.onclick = () => { P.aberto = P.aberto === x.dataset.prab ? "" : x.dataset.prab; render(); });
+      c.querySelectorAll("[data-pdab]").forEach((x) => x.onclick = () => { P.daberto = P.daberto === x.dataset.pdab ? "" : x.dataset.pdab; render(); });
+      const bs = g("pr-busca"); let tm; if (bs) bs.oninput = () => { clearTimeout(tm); tm = setTimeout(() => { P.busca = bs.value; P.mais = 0; P.dmais = 0; render(); setTimeout(() => { const n = $("#pr-busca"); if (n) { n.focus(); n.setSelectionRange(n.value.length, n.value.length); } }, 0); }, 300); };
+      if (g("pr-mais")) g("pr-mais").onclick = () => { P.mais += 40; render(); };
+      if (g("pd-mais")) g("pd-mais").onclick = () => { P.dmais += 40; render(); }; }
     g("caca-ctf").onchange = () => { C.ctf = g("caca-ctf").value; cacaGravar(C); render(); };
     if (g("caca-nova")) g("caca-nova").onclick = () => { cacaEdit = {}; render(); };
     c.querySelectorAll("[data-ed]").forEach((b) => b.onclick = () => { cacaEdit = { ...C.props.find((p) => p.id === b.dataset.ed) }; render(); window.scrollTo(0, 0); });
@@ -3293,7 +3309,7 @@ function renderCaca(c, sub) {
       g("cp-salvar").onclick = () => {
         const nome = g("cp-nome").value.trim(); if (nome.length < 2) { g("cp-msg").textContent = "Informe o nome da propriedade."; g("cp-msg").className = "msg erro"; return; }
         const p = { id: cacaEdit.id || "p" + Date.now().toString(36), nome, mun: g("cp-mun").value.trim(), car: g("cp-car").value.trim(), ini: g("cp-ini").value, fim: g("cp-fim").value, equipe: g("cp-eq").value.trim(), dono: g("cp-dono").value.trim(), fone: g("cp-fone").value.replace(/\D/g, ""), decl: g("cp-decl").checked, avisar: g("cp-avisar").checked, relatorio: cacaEdit.fim === g("cp-fim").value ? !!cacaEdit.relatorio : false };
-        if (cacaEdit.limite && cacaCarNorm(cacaEdit.car) === cacaCarNorm(p.car)) { p.limite = cacaEdit.limite; p.carInfo = cacaEdit.carInfo; } if (cacaEdit.contatos) p.contatos = cacaEdit.contatos;
+        if (cacaEdit.limite && cacaCarNorm(cacaEdit.car) === cacaCarNorm(p.car)) { p.limite = cacaEdit.limite; p.carInfo = cacaEdit.carInfo; } if (cacaEdit.contatos) p.contatos = cacaEdit.contatos; if (cacaEdit.simaf) p.simaf = cacaEdit.simaf; if (cacaEdit.titular) p.titular = cacaEdit.titular;
         const i = C.props.findIndex((x) => x.id === p.id); if (i >= 0) C.props[i] = p; else C.props.push(p);
         cacaGravar(C); cacaEdit = null; render();
       };
@@ -3354,9 +3370,17 @@ function renderCaca(c, sub) {
     C.simafInfo = C.simafInfo || {}; C.simafOcultos = C.simafOcultos || [];
     const ufRx = /([A-Za-zÀ-ÿ'][A-Za-zÀ-ÿ' .-]{2,40}?)\s*[\/–-]\s*([A-Z]{2})\b/;
     const docs = cacaDocsConta().filter((d) => d.tipo === "SIMAF");
+    const smLe = (t) => { t = String(t || ""); const o = { faz: "", cid: "", tit: "" };
+      const f = t.match(/\b((?:Fazenda|S[ií]tio|Ch[áa]cara|Est[âa]ncia|Rancho|Granja|Haras|Gleba|Agropecu[áa]ria|Retiro|Propriedade)\s+[^,.;()\/]{2,60}?)\s*(?:,|-|–|em)\s*([A-ZÀ-Ý][A-Za-zÀ-ÿ' .-]{1,40}?)\s*\/\s*([A-Z]{2})\b/);
+      if (f) { o.faz = f[1].trim(); o.cid = f[2].trim() + "/" + f[3]; }
+      else { const m = t.match(/([A-ZÀ-Ý][A-Za-zÀ-ÿ'.-]+(?: (?:d[aeo]s? )?[A-ZÀ-Ý][A-Za-zÀ-ÿ'.-]+){0,4})\s*\/\s*([A-Z]{2})\b/); if (m) o.cid = m[1].trim() + "/" + m[2];
+        const g = t.match(/\b((?:Fazenda|S[ií]tio|Ch[áa]cara|Est[âa]ncia|Rancho|Granja|Haras)\s+[^,.;()\/]{2,60})/); if (g) o.faz = g[1].trim(); }
+      const n = t.match(/(?:em nome de|Solicitante(?: e Manejador)?:?)\s+([A-ZÀ-Ý][A-Za-zÀ-ÿ' ]{4,60}?)\s*(?:\(|,|\.|com )/); if (n) o.tit = n[1].trim();
+      return o; };
+
     const smMarca = (id, v) => { try { const d = D.documentos.find((q) => "d:" + q.id === id); if (d) d.oculto = v; } catch (e) {} };
     const itens = [
-      ...docs.map((d) => { const inf = C.simafInfo["d:" + d.id] || {}, m = String(d.descricao || "").match(ufRx); return { id: "d:" + d.id, doc: d, nome: inf.fazenda || (String(d.descricao || "Autorização de manejo").replace(/^autoriza[çc][ãa]o de manejo\s*[-–:]?\s*/i, "").replace(m ? m[0] : "\u0000", "").replace(/[\s,;–-]+$/, "").trim() || "Autorização de manejo").slice(0, 80), local: inf.cidade || (m ? m[1].trim() + "/" + m[2] : ""), num: inf.num || d.numero || "", fim: d.validade || "", tit: inf.tit || "" }; }),
+      ...docs.map((d) => { const inf = C.simafInfo["d:" + d.id] || {}, le = smLe(d.descricao); return { id: "d:" + d.id, doc: d, nome: (inf.fazenda || le.faz || "").slice(0, 80), local: inf.cidade || le.cid, num: inf.num || d.numero || "", fim: d.validade || "", tit: inf.tit || le.tit }; }),
       ...C.props.map((p) => ({ id: "p:" + p.id, prop: p, nome: p.nome, local: p.mun || "", num: p.simaf || "", fim: p.fim || "", tit: p.titular || "" })),
     ].filter((x) => { const oc = C.simafOcultos.includes(x.id) || !!(x.doc && x.doc.oculto); return S.verOcultos ? oc : !oc; });
     itens.forEach((x) => { x.dias = x.fim ? cacaDias(x.fim) : null; x.rel = x.prop ? cacaSituacao(C, x.prop).relatorio : (x.dias !== null && x.dias < 0 && x.dias >= -90 && !(C.simafInfo[x.id] || {}).rel); });
@@ -3374,10 +3398,10 @@ function renderCaca(c, sub) {
     const tag = (x) => x.dias === null ? ["", "sem data"] : x.dias < 0 ? ["cr", "vencida"] : x.dias <= 30 ? ["at", x.dias === 0 ? "vence hoje" : x.dias + " dias"] : ["ok", "até " + br(x.fim).slice(0, 5)];
     const linha = (x) => { const t = tag(x), ab = S.aberto === x.id, d = x.doc, p = x.prop, inf = C.simafInfo[x.id] || {};
       return `<div class="linha sm-l${ab ? " sm-ab" : ""}" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px 12px">
-        <div data-smab="${x.id}" style="display:flex;justify-content:space-between;gap:10px;cursor:pointer;align-items:center">
-          <div style="min-width:0"><div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.nome || "Fazenda")}</div>
-          <div class="pequeno" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${[x.num ? "nº " + esc(x.num) : "", esc(x.local), x.fim ? "até " + br(x.fim) : "", x.tit ? "em nome de " + esc(x.tit) : ""].filter(Boolean).join(" · ")}</div></div>
-          <div style="display:flex;gap:4px;flex-shrink:0">${x.dup ? '<span class="etiqueta at">duplicado?</span>' : ""}${x.rel ? '<span class="etiqueta at">relatório</span>' : ""}<span class="etiqueta ${t[0]}">${t[1]}</span></div></div>
+        <div data-smab="${x.id}" style="cursor:pointer">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start"><div class="t" style="min-width:0;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25">${x.local ? esc(x.local) : ""}${x.local && x.nome ? ' <span style="font-weight:500;color:var(--sub)">·</span> ' : ""}${esc(x.nome || (x.local ? "" : "Autorização de manejo"))}</div>
+            <span class="etiqueta ${t[0]}" style="flex-shrink:0;white-space:nowrap">${t[1]}</span></div>
+          <div class="pequeno" style="margin-top:3px;overflow-wrap:anywhere">${[x.num ? "nº " + esc(x.num) : "", x.fim ? "até " + br(x.fim) : "", x.tit ? esc(x.tit) : ""].filter(Boolean).join(" · ")}${x.dup ? ' <span class="etiqueta at" title="Possível duplicado" style="padding:1px 5px;letter-spacing:.06em">dup.</span>' : ""}${x.rel ? ' <span class="etiqueta at" title="Relatório pendente" style="padding:1px 5px;letter-spacing:.06em">rel.</span>' : ""}</div></div>
         ${ab ? `<div class="sm-det">
           <div class="caca-campos" style="grid-template-columns:1fr 1fr">
             <label>Fazenda<input data-smc="fazenda" data-id="${x.id}" value="${esc(p ? p.nome : inf.fazenda || x.nome)}"></label>
