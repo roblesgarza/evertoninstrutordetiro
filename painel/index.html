@@ -1640,9 +1640,9 @@ const HUBS = {
 function hubConta(k) {
   try {
     if (k === "acervo") return tela === "caca" ? D.documentos.filter((d) => d.tipo === "CRAF" && d.acervo === "cacador").length : D.resumo.armas;
-    if (k === "simaf") return cacaDocsConta().filter((d) => d.tipo === "SIMAF").length;
+    if (k === "simaf") { const oc = cacaLer().simafOcultos || []; return cacaDocsConta().filter((d) => d.tipo === "SIMAF" && !d.oculto && !oc.includes("d:" + d.id)).length; }
     if (k === "ipsc") return ipscLer().series.length;
-    if (k === "propriedades") return cacaLer().props.length + cacaDocsConta().filter((d) => d.tipo !== "SIMAF" && d.tipo !== "CTF").length;
+    if (k === "propriedades") { const C0 = cacaLer(), oc = C0.docOcultos || []; return C0.props.length + cacaDocsConta().filter((d) => d.tipo !== "SIMAF" && d.tipo !== "CTF" && !d.oculto && !oc.includes(d.id)).length; }
     if (k === "autorizacoes") return cacaDocsConta().length;
     if (k === "saidas") return cacaLer().saidas.length;
     if (k === "documentos") return D.documentos.length;
