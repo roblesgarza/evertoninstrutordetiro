@@ -1668,7 +1668,31 @@ const cacaLer = () => { let c = {}; try { c = JSON.parse(localStorage.getItem("a
   try { for (const d of D.documentos) if (d.tipo === "CTF" && d.validade && d.status !== "substituido" && d.validade > (c.ctf || "")) c.ctf = d.validade; } catch (e) {}
   return c; };
 const CACA_TIPOS = { AUT_PROPRIEDADE: "Autorização do proprietário", SIMAF: "Autorização de manejo (SIMAF)", CTF: "Certificado do CTF/Ibama", CAR: "CAR da propriedade" };
-const cacaGravar = (c) => { try { localStorage.setItem("atica_caca_v1", JSON.stringify(c)); } catch (e) {} };
+const cacaGravar0 = (c) => { try { localStorage.setItem("atica_caca_v1", JSON.stringify(c)); } catch (e) {} };
+// ---- saídas e abates guardados também na conta (sem trilha nem localização), para não se perderem ao trocar de aparelho ----
+const __MS = (globalThis.__MS = globalThis.__MS || { visto: null, t: null, rodando: false });
+function manejoRes(s, C) { const p = (C.props || []).find((x) => x.id === s.prop) || {}; return { id: s.id, prop: s.prop, pn: p.nome || s.pn || "", pm: p.mun || s.pm || "", inicio: s.inicio, fim: s.fim, animais: Number(s.animais) || 0, bichos: s.bichos || [], obs: s.obs || "", manual: !!s.manual }; }
+const cacaGravar = (c) => { try {
+    if (!__MS.visto) { __MS.visto = {}; try { for (const s of (JSON.parse(localStorage.getItem("atica_caca_v1") || "{}").saidas || [])) __MS.visto[s.id] = JSON.stringify(manejoRes(s, c)); } catch (e) {} }
+    let mudou = false; for (const s of c.saidas || []) { const j = JSON.stringify(manejoRes(s, c)); if (__MS.visto[s.id] !== j) { __MS.visto[s.id] = j; s.mod = Date.now(); mudou = true; } }
+    if (mudou) { clearTimeout(__MS.t); __MS.t = setTimeout(() => manejoSinc(), 3000); }
+  } catch (e) {}
+  cacaGravar0(c); };
+async function manejoSinc() {
+  if (__MS.rodando || !(() => { try { return localStorage.getItem("cac_token"); } catch (e) { return null; } })() || (typeof navigator !== "undefined" && navigator.onLine === false)) return; __MS.rodando = true;
+  try {
+    const C = cacaLer(); const r = await api("manejo_sinc", { dono: C.dono || "", saidas: (C.saidas || []).map((s) => Object.assign(manejoRes(s, C), { mod: s.mod || 0 })) });
+    if (!r || !r.ok || r.outra) return;
+    const A = cacaLer(); let mudou = false; if (r.conta && A.dono !== r.conta) { A.dono = r.conta; mudou = true; }
+    for (const v of r.saidas || []) { const l = A.saidas.find((x) => x.id === v.id);
+      if (!l) { A.saidas.push({ id: v.id, prop: v.prop, pn: v.pn, pm: v.pm, inicio: v.inicio, fim: v.fim, animais: v.animais || 0, bichos: v.bichos || [], obs: v.obs || "", manual: !!v.manual, mod: v.mod || 0, trilha: [], marcas: [], nuvem: true }); mudou = true;
+        if (v.prop && !A.props.find((p) => p.id === v.prop) && v.pn) A.props.push({ id: v.prop, nome: v.pn, mun: v.pm || "" }); }
+      else if ((v.mod || 0) > (l.mod || 0)) { l.animais = v.animais || 0; l.bichos = v.bichos || []; l.obs = v.obs || ""; l.mod = v.mod; mudou = true; } }
+    if (mudou) { A.saidas.sort((a, b) => (a.inicio < b.inicio ? 1 : -1)); __MS.visto = {}; for (const s of A.saidas) __MS.visto[s.id] = JSON.stringify(manejoRes(s, A)); cacaGravar0(A); try { if (tela === "caca" && !A.ativa) render(); } catch (e) {} }
+  } catch (e) {} finally { __MS.rodando = false; }
+}
+if (typeof window !== "undefined") window.addEventListener("online", () => setTimeout(() => manejoSinc(), 2000));
+if (typeof window !== "undefined") { setTimeout(() => manejoSinc(), 4000); document.addEventListener("visibilitychange", () => { if (!document.hidden) manejoSinc(); }); }
 const cacaSemAc = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 const cacaLe = (t) => { t = String(t || ""); const o = { faz: "", cid: "", tit: "", dono: "" };
   const UF = "(AC|AL|AP|AM|BA|CE|DF|ES|GO|MA|MT|MS|MG|PA|PB|PR|PE|PI|RJ|RN|RS|RO|RR|SC|SP|SE|TO)", NM = "[A-ZÀ-Ý][A-Za-zÀ-ÿ'.]+(?: (?:d[aeo]s? )?[A-ZÀ-Ý][A-Za-zÀ-ÿ'.]+){0,4}", PES = "[A-ZÀ-Ý][a-zà-ÿ]+(?: (?:d[aeo]s? |e )?[A-ZÀ-Ý][a-zà-ÿ]+){1,5}";
@@ -3528,6 +3552,7 @@ function renderCaca(c, sub) {
           <div class="acoes" style="margin-top:14px"><button class="btn" id="cs-comp">Compartilhar</button><button class="btn sec" id="cs-gpx">Baixar GPX</button><button class="btn sec" id="cs-volta">Voltar às saídas</button></div><div class="msg" id="cs-msg"></div><div id="cs-box" style="margin-top:10px"></div>
           <p class="pequeno" style="margin:10px 0 0">Você escolhe com quem compartilhar. O resumo leva os pontos marcados com link de mapa; o arquivo GPX abre em apps de trilha e mapas.</p></div>`;
       c.querySelector("#cs-volta").onclick = () => { cacaVer = null; render(); };
+      if (sv.manual || (sv.nuvem && !(sv.trilha || []).length)) { const g = c.querySelector("#cs-gpx"); if (g) g.style.display = "none"; c.querySelectorAll(".dados-caca > div").forEach((d, i) => { if (i < 2) d.style.display = "none"; }); }
       abtMontar(c.querySelector("#cs-abt"), (sv.bichos || []).slice(), (lista, tipo) => { const A = cacaLer(), s = A.saidas.find((x) => x.id === sv.id); if (!s) return;
         s.bichos = lista.slice(); s.animais = tipo === "mais" ? Math.max(Number(s.animais) || 0, lista.length) : Math.max(lista.length, (Number(s.animais) || 1) - 1); cacaGravar(A);
         sv.bichos = s.bichos; sv.animais = s.animais; const e = c.querySelector("#cs-nab"); if (e) e.textContent = s.animais; });
@@ -3538,8 +3563,9 @@ function renderCaca(c, sub) {
     const porProp = {}; for (const s of C.saidas) (porProp[s.prop] = porProp[s.prop] || []).push(s);
     const dur = (s) => { const m = Math.round((new Date(s.fim) - new Date(s.inicio)) / 6e4); return m >= 60 ? Math.floor(m / 60) + "h" + String(m % 60).padStart(2, "0") : m + " min"; };
     const ABN = (globalThis.__ABN = globalThis.__ABN || { aberto: false });
+    if (!__MS.feito) { __MS.feito = true; manejoSinc(); }
     c.innerHTML = topo("Registro de saídas", "Cada manejo encerrado fica aqui, por propriedade. Use os totais para preencher o relatório do SIMAF.") +
-      `<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="t">Registrar abate</div><div class="pequeno">Para uma saída que você não acompanhou pelo app.</div></div><button class="btn${ABN.aberto ? " sec" : ""}" id="abn-ab">${ABN.aberto ? "Fechar" : "Registrar"}</button></div>
+      `<div class="card" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><div class="t">Registrar abate</div><div class="pequeno">Para uma saída que você não acompanhou pelo app. Os registros ficam guardados na sua conta.</div></div><button class="btn${ABN.aberto ? " sec" : ""}" id="abn-ab">${ABN.aberto ? "Fechar" : "Registrar"}</button></div>
         ${ABN.aberto ? (C.props.length ? `<div class="caca-campos" style="margin-top:12px"><label>Propriedade<select id="abn-prop">${C.props.map((p) => `<option value="${esc(p.id)}">${esc(p.nome || "Propriedade")}</option>`).join("")}</select></label><label>Data da saída<input type="date" id="abn-data" value="${new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)}" max="${new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10)}"></label></div><button class="btn" id="abn-ok" style="margin-top:12px">Continuar e lançar os animais</button><div class="msg" id="abn-msg"></div>` : `<p class="pequeno" style="margin:10px 0 0">Cadastre primeiro a propriedade, em Propriedades.</p>`) : ""}</div>` +
       (Object.keys(porProp).map((id) => { const L = porProp[id], tot = L.reduce((a, s) => a + (s.animais || 0), 0);
         const pr = C.props.find((x) => x.id === id);
