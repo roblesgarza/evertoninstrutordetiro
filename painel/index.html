@@ -3081,6 +3081,7 @@ function instHtml() {
     <input type="file" id="il-arq" accept="image/*,application/pdf" hidden>
     <div class="caca-envia"><button class="btn" data-isalvar="1">Salvar laudo</button><button class="btn sec" data-ifechar="1">Cancelar</button></div>`;
   return `
+    ${dpaCard(I)}
     <div class="card"><div class="rotulo">Novo laudo</div>${form}</div>
     <div class="card" style="margin-top:14px"><div class="caca-topo"><div class="rotulo">Minha pasta de laudos (${I.laudos.length})</div></div>
       ${I.laudos.length ? `<div class="caca-campos"><label>Buscar por nome ou WhatsApp<input id="il-busca" maxlength="40" value="${esc(INST.busca)}"></label></div>
@@ -3114,6 +3115,32 @@ async function instClique(b, d, c) {
   return true;
 }
 function instMuda(t, c) { if (t.id !== "il-arq") return false; instLer(c); if (t.files && t.files[0]) { if (t.files[0].size > 12 * 1024 * 1024) DSP.falha = "Arquivo muito grande (máx. 12 MB)."; else INST.arq = t.files[0]; } render(); return true; }
+// ---- prazos do DPA-BASE para o instrutor
+const DPA_K = "atica_dpa_ok_v1";
+const dpaOk = () => { try { return JSON.parse(localStorage.getItem(DPA_K) || "{}"); } catch { return {}; } };
+const dpaSoma = (iso, n) => { const d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const dpaDias = (iso, hoje) => Math.round((new Date(iso + "T12:00:00") - new Date(hoje + "T12:00:00")) / 864e5);
+function dpaCard(I) {
+  const ok = dpaOk(), hoje = I.hoje;
+  const L = (I.laudos || []).filter((l) => l.data && dpaDias(l.data, hoje) >= -20).map((l) => ({ l, ate: dpaSoma(l.data, 5) })).sort((a, b) => a.ate.localeCompare(b.ate));
+  const pend = L.filter((x) => !ok[x.l.id]);
+  return `<div class="card" style="margin-bottom:14px"><div class="caca-topo"><div class="rotulo">Prazos do DPA-BASE (PF)</div>${pend.length ? `<span class="etiqueta ${pend.some((x) => dpaDias(x.ate, hoje) < 0) ? "cr" : "at"}">${pend.length} pendente(s)</span>` : '<span class="etiqueta ok">em dia</span>'}</div>
+    <p class="pequeno" style="margin:6px 0 10px">Instrutores credenciados lançam no DPA-BASE o agendamento do exame pelo menos 3 dias antes e os dados do laudo em até 5 dias depois da avaliação. Atraso pode travar os pedidos dos alunos.</p>
+    <div class="caca-campos" style="grid-template-columns:1fr 1fr"><label>Data marcada para um exame<input type="date" id="dpa-ag"></label><div class="pequeno" id="dpa-ag-r" style="align-self:end;padding-bottom:10px">Escolha a data para ver até quando lançar o agendamento.</div></div>
+    ${L.length ? `<div class="lista" style="margin-top:10px">${L.map(({ l, ate }) => { const n = dpaDias(ate, hoje), feito = !!ok[l.id]; return `<div class="linha"><div><div class="t">${esc(l.nome || "Aluno")}</div><div class="pequeno">Avaliação em ${br(l.data)} · lançar laudo até ${br(ate)}</div></div><label class="opcao" style="gap:8px;padding:0;border:0;background:none"><span class="etiqueta ${feito ? "ok" : n < 0 ? "cr" : n <= 2 ? "at" : ""}">${feito ? "lançado" : n < 0 ? "atrasado " + -n + " dia(s)" : n === 0 ? "vence hoje" : "faltam " + n + " dia(s)"}</span><input type="checkbox" class="chave" data-dpaok="${l.id}"${feito ? " checked" : ""}></label></div>`; }).join("")}</div>
+      <p class="pequeno" style="margin:8px 0 0">Marque quando lançar no DPA-BASE. A marcação fica guardada neste aparelho.</p>` : '<p class="pequeno" style="margin:6px 0 0">Nenhum laudo dos últimos 20 dias.</p>'}</div>`;
+}
+globalThis.document.addEventListener("change", (e) => {
+  const t = e.target; if (!t || !t.dataset) return;
+  if (t.dataset.dpaok) { const o = dpaOk(); if (t.checked) o[t.dataset.dpaok] = new Date().toISOString(); else delete o[t.dataset.dpaok]; try { localStorage.setItem(DPA_K, JSON.stringify(o)); } catch {} render(); }
+});
+globalThis.document.addEventListener("input", (e) => {
+  const t = e.target; if (!t || t.id !== "dpa-ag") return;
+  const r = globalThis.document.querySelector("#dpa-ag-r"); if (!r) return;
+  if (!t.value) { r.textContent = "Escolha a data para ver até quando lançar o agendamento."; return; }
+  const ate = dpaSoma(t.value, -3), hoje = (DSP.inst && DSP.inst.hoje) || new Date().toISOString().slice(0, 10), n = dpaDias(ate, hoje);
+  r.innerHTML = `Lançar o agendamento até <b>${br(ate)}</b>${n < 0 ? ' <span class="cr">(prazo já passou)</span>' : n === 0 ? ' <span class="at">(hoje)</span>' : ""} · laudo até <b>${br(dpaSoma(t.value, 5))}</b>`;
+});
 function renderDesp(c) {
   const topo = `<button class="voltar-hub" id="dp-volta">‹ Conta</button><div class="topo"><div><h2>Despachantes e instrutores</h2><p>Quem tem acesso aos seus documentos, os processos e os laudos.</p></div></div>`;
   const volta = () => { const b = c.querySelector("#dp-volta"); if (b) b.onclick = () => irPara("conta", ""); };
