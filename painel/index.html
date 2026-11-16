@@ -2100,7 +2100,7 @@ function cacaPastaHtml(C, p) {
 ICON.ipsc = '<circle cx="12" cy="14" r="7.5"/><path d="M12 14V9.5M9.5 2.5h5M12 2.5v4M18.5 7.5L20 6"/>';
 HUBS.caderneta.itens.push(["ipsc", "Cronômetro IPSC", "Sinal de partida, tempo de cada tiro e pontuação da série.", "ipsc"]);
 const IPSC_K = "atica_ipsc_v1";
-function ipscLer() { let d = null; try { d = JSON.parse(localStorage.getItem(IPSC_K)); } catch (e) {} d = d || {}; d.cfg = Object.assign({ sens: 4, dmin: 1, dmax: 4, eco: 0.08, voz: true, auto: 10, fator: "minor" }, d.cfg || {}); d.series = d.series || []; return d; }
+function ipscLer() { let d = null; try { d = JSON.parse(localStorage.getItem(IPSC_K)); } catch (e) {} d = d || {}; d.cfg = Object.assign({ sens: 4, dmin: 1, dmax: 4, eco: 0.08, voz: true, auto: 10, fator: "minor", par: 0 }, d.cfg || {}); d.series = d.series || []; return d; }
 function ipscGravar(d) { for (let n = 12; n >= 0; n -= 4) { d.series.forEach((s, i) => { if (i >= n) s.fotos = []; }); try { localStorage.setItem(IPSC_K, JSON.stringify(d)); return true; } catch (e) {} } return false; }
 let ipsc = { fase: "idle" };
 const ipscSeg = (t) => (Math.round(t * 100) / 100).toFixed(2).replace(".", ",");
@@ -2109,6 +2109,23 @@ const ipscTempo = (s) => s.tiros[s.tiros.length - 1] || 0;
 const ipscPontos = (s) => Math.max(0, 5 * s.A + (s.fator === "major" ? 4 : 3) * s.C + (s.fator === "major" ? 2 : 1) * s.D - 10 * (s.M + s.NS + s.P));
 const ipscFator = (s) => ipscTempo(s) ? ipscPontos(s) / ipscTempo(s) : 0;
 const ipscHf = (s) => ipscFator(s).toFixed(4).replace(".", ",");
+// tempo fixo (par time): intervalos entre tiros e evolução por tempo escolhido
+const ipscSplits = (s) => s.tiros.slice(1).map((t, i) => t - s.tiros[i]);
+const ipscMedia = (a) => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+function ipscEvolucaoHtml(series) {
+  const pars = [...new Set(series.filter((s) => s.par).map((s) => s.par))].sort((a, b) => a - b);
+  if (!pars.length) return "";
+  return `<div class="card" style="margin-top:14px"><div class="rotulo">Evolução no tempo fixo</div>${pars.map((p) => {
+    const ss = series.filter((s) => s.par === p && s.tiros.length).slice().reverse(); // da mais antiga para a mais recente
+    const saques = ss.map((s) => s.tiros[0]), tiros = ss.map((s) => s.tiros.length), inter = ss.map((s) => ipscMedia(ipscSplits(s))).filter((x) => x > 0);
+    const meia = Math.floor(ss.length / 2), ant = ss.slice(0, meia), rec = ss.slice(meia);
+    const tend = (f, menorMelhor) => { if (ss.length < 4) return ""; const a = ipscMedia(ant.map(f).filter((x) => x > 0)), b = ipscMedia(rec.map(f).filter((x) => x > 0)); if (!a || !b) return ""; const m = menorMelhor ? b < a : b > a; return ` <span class="${m ? "ok" : "at"}">${m ? "▲ melhorou" : "▼ piorou"}</span>`; };
+    return `<div style="margin-top:12px"><b>${p} s</b> <span class="pequeno">· ${ss.length} série(s)</span>
+      <div class="dados-caca"><div><span>Melhor saque</span><b>${ipscSeg(Math.min(...saques))} s</b><div class="pequeno">média ${ipscSeg(ipscMedia(saques))}${tend((s) => s.tiros[0], true)}</div></div>
+      <div><span>Mais tiros</span><b>${Math.max(...tiros)}</b><div class="pequeno">média ${ipscMedia(tiros).toFixed(1).replace(".", ",")}${tend((s) => s.tiros.length, false)}</div></div>
+      <div><span>Intervalo médio</span><b>${inter.length ? ipscSeg(Math.min(...inter)) + " s" : "—"}</b><div class="pequeno">${inter.length ? "média " + ipscSeg(ipscMedia(inter)) : "precisa de 2 tiros"}${tend((s) => ipscMedia(ipscSplits(s)), true)}</div></div></div></div>`; }).join("")}
+    <p class="pequeno" style="margin:10px 0 0">Compara a primeira metade das séries com a segunda (a partir de 4 séries no mesmo tempo).</p></div>`;
+}
 function ipscSoltar() {
   clearTimeout(ipsc.tm); cancelAnimationFrame(ipsc.raf);
   try { if (ipsc.proc) ipsc.proc.onaudioprocess = null; } catch (e) {}
@@ -2161,7 +2178,7 @@ async function ipscIniciar() {
     const b = ev.inputBuffer.getChannelData(0), sr = ctx.sampleRate; let pico = 0;
     if (base === null) base = ctx.currentTime - b.length / sr;
     for (let i = 0; i < b.length; i++) { const v = Math.abs(b[i]); if (v > pico) pico = v;
-      if (v >= lim && eu.fase === "rodando") { const t = base + (n + i) / sr - eu.t0; if (t >= 0.35 && (!eu.tiros.length || t - eu.tiros[eu.tiros.length - 1] >= cfg.eco)) eu.tiros.push(t); } }
+      if (v >= lim && eu.fase === "rodando") { const t = base + (n + i) / sr - eu.t0; if (t >= 0.35 && (!cfg.par || t <= cfg.par) && (!eu.tiros.length || t - eu.tiros[eu.tiros.length - 1] >= cfg.eco)) eu.tiros.push(t); } }
     n += b.length; eu.nivel = Math.max(pico, eu.nivel * 0.85);
   };
   try { eu.trava = await navigator.wakeLock.request("screen"); } catch (e) {}
@@ -2185,16 +2202,20 @@ function ipscLoop() {
     el.textContent = ipscSeg(Math.max(0, t));
     document.querySelector("#ip-n").textContent = n; document.querySelector("#ip-ult").textContent = n ? ipscSeg(ult) : "—"; document.querySelector("#ip-split").textContent = n > 1 ? ipscSeg(ult - eu.tiros[n - 2]) : "—";
     const fm = document.querySelector("#ip-fim");
-    if (fm) fm.textContent = !n ? "Aguardando o primeiro tiro" : eu.cfg.auto ? "Tempo da prova: " + ipscSeg(ult) + " s · encerra em " + Math.max(1, Math.ceil(eu.cfg.auto - (t - ult))) + " s se não houver outro tiro" : "Tempo da prova: " + ipscSeg(ult) + " s · toque em Parar para encerrar";
-    if ((eu.cfg.auto && n && t - ult >= eu.cfg.auto) || (!n && t > 90)) return ipscParar();
+    if (eu.cfg.par) {
+      if (fm) fm.textContent = "Tempo fixo de " + eu.cfg.par + " s · restam " + ipscSeg(Math.max(0, eu.cfg.par - t)) + " s";
+      if (t >= eu.cfg.par && !eu.fimPar) { eu.fimPar = true; try { const q0 = eu.ctx.currentTime + 0.01; ipscBip(eu.ctx, q0, 0.15, 1600, 0.9); ipscBip(eu.ctx, q0 + 0.22, 0.15, 1600, 0.9); } catch (e) {} setTimeout(() => { if (ipsc === eu) ipscParar(); }, 550); }
+      if (eu.fimPar) { el.textContent = ipscSeg(eu.cfg.par); eu.raf = requestAnimationFrame(ipscLoop); return; }
+    } else if (fm) fm.textContent = !n ? "Aguardando o primeiro tiro" : eu.cfg.auto ? "Tempo da prova: " + ipscSeg(ult) + " s · encerra em " + Math.max(1, Math.ceil(eu.cfg.auto - (t - ult))) + " s se não houver outro tiro" : "Tempo da prova: " + ipscSeg(ult) + " s · toque em Parar para encerrar";
+    if ((!eu.cfg.par && eu.cfg.auto && n && t - ult >= eu.cfg.auto) || (!n && t > 90)) return ipscParar();
   }
   const nv = document.querySelector("#ip-nivel i"); if (nv) { nv.style.width = Math.min(100, eu.nivel * 100) + "%"; nv.style.background = eu.nivel >= ipscLimiar(eu.cfg.sens) ? "var(--vermelho)" : "var(--verde)"; }
   eu.raf = requestAnimationFrame(ipscLoop);
 }
 function ipscParar() {
   const eu = ipsc; ipscSoltar();
-  if (eu.fase === "rodando" && eu.tiros.length) ipsc = { fase: "resultado", novo: true, serie: { id: "i" + Date.now().toString(36), data: new Date().toISOString(), tiros: eu.tiros.map((t) => Math.round(t * 1000) / 1000), fator: eu.cfg.fator, A: 0, C: 0, D: 0, M: 0, NS: 0, P: 0, fotos: [], obs: "" } };
-  else ipsc = { fase: "idle", erro: eu.fase === "rodando" ? "Nenhum tiro detectado. Aumente a sensibilidade ou deixe o celular mais perto." : "" };
+  if (eu.fase === "rodando" && eu.tiros.length) ipsc = { fase: "resultado", novo: true, serie: { id: "i" + Date.now().toString(36), data: new Date().toISOString(), tiros: eu.tiros.map((t) => Math.round(t * 1000) / 1000), fator: eu.cfg.fator, par: eu.cfg.par || 0, A: 0, C: 0, D: 0, M: 0, NS: 0, P: 0, fotos: [], obs: "" } };
+  else ipsc = { fase: "idle", erro: eu.fase === "rodando" ? (eu.cfg.par ? "Nenhum tiro dentro dos " + eu.cfg.par + " s. Aumente a sensibilidade ou deixe o celular mais perto." : "Nenhum tiro detectado. Aumente a sensibilidade ou deixe o celular mais perto.") : "" };
   render();
 }
 function ipscFoto(arq) { return new Promise((ok, falha) => { const img = new Image(), url = URL.createObjectURL(arq);
@@ -2222,7 +2243,7 @@ function renderIpsc(c) {
     const s = ipsc.serie, lanc = s.A + s.C + s.D + s.M, CT = [["A", "Alpha"], ["C", "Charlie"], ["D", "Delta"], ["M", "Miss"], ["NS", "No-shoot"], ["P", "Procedimento"]];
     c.innerHTML = `<div class="topo"><div><h2>${ipsc.novo ? "Série encerrada" : "Série registrada"}</h2><p>${new Date(s.data).toLocaleDateString("pt-BR")} às ${new Date(s.data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p></div></div>
       <div class="card"><div class="rotulo">Tempo</div><div class="ip-tempo">${ipscSeg(ipscTempo(s))}<small> s</small></div>
-        <div class="dados-caca"><div><span>Tiros</span><b>${s.tiros.length}</b></div><div><span>1º tiro</span><b>${ipscSeg(s.tiros[0])}</b></div><div><span>Melhor parcial</span><b>${s.tiros.length > 1 ? ipscSeg(Math.min(...s.tiros.slice(1).map((t, i) => t - s.tiros[i]))) : "—"}</b></div></div>
+        <div class="dados-caca"><div><span>Tiros</span><b>${s.tiros.length}</b></div><div><span>1º tiro</span><b>${ipscSeg(s.tiros[0])}</b></div><div><span>Melhor parcial</span><b>${s.tiros.length > 1 ? ipscSeg(Math.min(...s.tiros.slice(1).map((t, i) => t - s.tiros[i]))) : "—"}</b></div></div>${s.par ? `<div class="dados-caca"><div><span>Tempo fixo</span><b>${s.par} s</b></div><div><span>Tiros no tempo</span><b>${s.tiros.length}</b></div><div><span>Intervalo médio</span><b>${s.tiros.length > 1 ? ipscSeg(ipscMedia(ipscSplits(s))) + " s" : "—"}</b></div></div>` : ""}
         <div class="ip-tiros">${s.tiros.map((t, i) => `<div><span>${i + 1}</span><b>${ipscSeg(t)}</b><em>${i ? "+" + ipscSeg(t - s.tiros[i - 1]) : "saque"}</em>${ipsc.novo ? `<button data-rm="${i}" aria-label="Excluir tiro ${i + 1}">×</button>` : ""}</div>`).join("")}</div>
         ${ipsc.novo ? '<p class="pequeno" style="margin:8px 0 0">Entrou um eco ou barulho que não era tiro? Toque no × para tirar da contagem.</p>' : ""}</div>
       <div class="card" style="margin-top:14px"><div class="rotulo">Foto do alvo</div>
@@ -2255,21 +2276,22 @@ function renderIpsc(c) {
     ${ipsc.erro ? `<div class="aviso critico"><b>Não começou</b><span class="pequeno">${esc(ipsc.erro)}</span></div>` : ""}
     <div class="card ip-caixa"><div class="rotulo">Pronto</div><div class="ip-tempo">0,00</div>
       <button class="btn ip-parar" id="ip-ini">Iniciar</button>
-      <p class="pequeno" style="margin:10px 0 0">Ao tocar em Iniciar: “Are you ready? Stand by”, uma espera aleatória e o bip. O tempo corre a partir do bip.</p></div>
+      <p class="pequeno" style="margin:10px 0 0">Ao tocar em Iniciar: “Are you ready? Stand by”, uma espera aleatória e o bip. O tempo corre a partir do bip.${cfg.par ? " Tempo fixo ligado: depois de " + cfg.par + " s toca um bip duplo e conta quantos tiros entraram." : ""}</p></div>
     <div class="card" style="margin-top:14px"><div class="rotulo">Ajustes</div>
       <div class="caca-campos">
         <label>Sensibilidade do microfone: <b id="ip-sv">${cfg.sens}</b><input type="range" id="ip-sens" min="1" max="10" step="1" value="${cfg.sens}"></label>
         <label>Tempo mínimo entre tiros<select id="ip-eco">${[[0.05, "0,05 s"], [0.08, "0,08 s (padrão)"], [0.12, "0,12 s"], [0.2, "0,20 s (estande fechado, muito eco)"]].map(([v, l]) => op(v, l, cfg.eco)).join("")}</select></label>
         <label>Espera antes do bip<select id="ip-esp">${[["1-4", "Aleatória, de 1 a 4 s"], ["2-5", "Aleatória, de 2 a 5 s"], ["2-2", "Fixa, 2 s"], ["0-0", "Sem espera"]].map(([v, l]) => op(v, l, cfg.dmin + "-" + cfg.dmax)).join("")}</select></label>
+        <label>Tempo fixo (par time)<select id="ip-par">${[[0, "Desligado (tempo até o último tiro)"], [2, "2 s"], [3, "3 s"], [4, "4 s"], [5, "5 s"], [6, "6 s"], [8, "8 s"], [10, "10 s"], [15, "15 s"]].map(([v, l]) => op(v, l, cfg.par)).join("")}</select></label>
         <label>Parar sozinho após<select id="ip-auto">${[[5, "5 s sem tiro"], [10, "10 s sem tiro"], [20, "20 s sem tiro"], [0, "Só no botão Parar"]].map(([v, l]) => op(v, l, cfg.auto)).join("")}</select></label>
       </div>
       <label class="caca-check"><input type="checkbox" id="ip-voz"${cfg.voz ? " checked" : ""}> Falar “Are you ready? Stand by” antes do bip</label>
       <p class="pequeno" style="margin:10px 0 0">Sensibilidade baixa só conta som forte (tiro real perto). Para testar em casa com palmas, suba para 8 ou mais. Tiro de outra baia também pode contar: ajuste no estande antes de valer.</p></div>
     <div class="card" style="margin-top:14px"><div class="rotulo">Séries salvas</div>
-      ${d.series.length ? `<div class="lista" style="margin-top:10px">${d.series.map((s) => `<div class="linha"><div><div class="t">${ipscSeg(ipscTempo(s))} s · ${s.tiros.length} tiros</div><div class="pequeno">${new Date(s.data).toLocaleDateString("pt-BR")} ${new Date(s.data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}${s.A + s.C + s.D + s.M + s.NS + s.P ? " · " + ipscPontos(s) + " pts · fator " + ipscHf(s) : " · sem pontuação"}${s.obs ? " · " + esc(s.obs) : ""}</div></div><button class="btn sec" data-ab="${s.id}" style="min-height:36px;padding:6px 12px">Abrir</button></div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nenhuma série salva ainda.</div>'}
-      <p class="pequeno" style="margin:10px 0 0">As séries ficam neste aparelho. As fotos são mantidas nas 12 mais recentes.</p></div>`;
-  const salvaCfg = () => { const D2 = ipscLer(), e = q("#ip-esp").value.split("-"); Object.assign(D2.cfg, { sens: +q("#ip-sens").value, eco: +q("#ip-eco").value, dmin: +e[0], dmax: +e[1], auto: +q("#ip-auto").value, voz: q("#ip-voz").checked }); ipscGravar(D2); q("#ip-sv").textContent = D2.cfg.sens; };
-  ["#ip-sens", "#ip-eco", "#ip-esp", "#ip-auto", "#ip-voz"].forEach((x) => { q(x).oninput = salvaCfg; q(x).onchange = salvaCfg; });
+      ${d.series.length ? `<div class="lista" style="margin-top:10px">${d.series.map((s) => `<div class="linha"><div><div class="t">${s.par ? s.par + " s fixo · " + s.tiros.length + " tiros · saque " + ipscSeg(s.tiros[0]) : ipscSeg(ipscTempo(s)) + " s · " + s.tiros.length + " tiros"}</div><div class="pequeno">${new Date(s.data).toLocaleDateString("pt-BR")} ${new Date(s.data).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}${s.A + s.C + s.D + s.M + s.NS + s.P ? " · " + ipscPontos(s) + " pts · fator " + ipscHf(s) : " · sem pontuação"}${s.obs ? " · " + esc(s.obs) : ""}</div></div><button class="btn sec" data-ab="${s.id}" style="min-height:36px;padding:6px 12px">Abrir</button></div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nenhuma série salva ainda.</div>'}
+      <p class="pequeno" style="margin:10px 0 0">As séries ficam neste aparelho. As fotos são mantidas nas 12 mais recentes.</p></div>${ipscEvolucaoHtml(d.series)}`;
+  const salvaCfg = () => { const D2 = ipscLer(), e = q("#ip-esp").value.split("-"); Object.assign(D2.cfg, { sens: +q("#ip-sens").value, eco: +q("#ip-eco").value, dmin: +e[0], dmax: +e[1], auto: +q("#ip-auto").value, par: +q("#ip-par").value, voz: q("#ip-voz").checked }); ipscGravar(D2); q("#ip-sv").textContent = D2.cfg.sens; };
+  ["#ip-sens", "#ip-eco", "#ip-esp", "#ip-auto", "#ip-par", "#ip-voz"].forEach((x) => { q(x).oninput = salvaCfg; q(x).onchange = salvaCfg; });
   q("#ip-ini").onclick = ipscIniciar;
   c.querySelectorAll("[data-ab]").forEach((b) => b.onclick = () => { const s = ipscLer().series.find((x) => x.id === b.dataset.ab); if (s) { ipsc = { fase: "resultado", novo: false, serie: s }; render(); window.scrollTo(0, 0); } });
 }
