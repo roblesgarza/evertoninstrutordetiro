@@ -3185,10 +3185,17 @@ function dspClientes() {
     return `<div class="dsp-doc"><span>${esc(d.nome_tipo)}${d.arma ? " · " + esc(d.arma) : ""}</span><span><span class="etiqueta ${cls}">${txt}</span> <button class="btn sec dsp-mini" data-dver="${d.id}">Abrir</button></span></div>`; };
   return `
     <div class="card"><div class="rotulo">Minha carteira</div><div class="dados-caca">${cart("Clientes", P.clientes.length)}${cart("Vencem em 60 dias", vencendo, "documentos")}${cart("Processos em andamento", abertos.length)}${cart("Parados há 15 dias", parados)}</div></div>
+    <div class="card" style="margin-top:14px"><div class="rotulo">Cliente novo</div>
+      ${f && f.t === "ncli" ? `<div class="caca-campos">
+          <label>Nome completo<input id="dk-nome" maxlength="80" value="${esc((f.v && f.v.nome) || "")}"></label>
+          <label>WhatsApp com DDD<input id="dk-wpp" inputmode="tel" maxlength="20" placeholder="17 99999-0000" value="${esc((f.v && f.v.whatsapp) || "")}"></label></div>
+          <p class="pequeno" style="margin:10px 0 0">O Ática cria a conta (se ainda não existir) e manda um convite pelo WhatsApp. Quando o cliente autorizar você em Conta › Despachantes e instrutores, ele aparece em Clientes e você já pode entregar os documentos que tem guardados.</p>
+          <div class="caca-envia"><button class="btn" id="dk-ok">Cadastrar e convidar</button><button class="btn sec" data-dfechar="1">Cancelar</button></div>`
+      : `<p class="pequeno" style="margin:10px 0">Vendeu para alguém que ainda não usa o Ática? Cadastre com nome e WhatsApp: a conta é criada e o cliente recebe o convite para autorizar você.</p><button class="btn sec" id="dk-abrir">Cadastrar cliente</button>`}</div>
     <div class="card" style="margin-top:14px"><div class="rotulo">Clientes</div>
       ${P.clientes.length ? `<div class="lista" style="margin-top:10px">${P.clientes.map((c) => { const al = c.docs.filter(venc).length, ab = f && f.t === "cli" && f.id === c.id, np = f && f.t === "novo" && f.id === c.id;
         return `<div class="linha caca-doc" data-cli="${c.id}"><div class="caca-topo"><div><div class="t">${esc(c.nome)}</div><div class="pequeno">${c.docs.length} documento(s)${al ? ' · <span class="cr">' + al + " vencendo ou vencido(s)</span>" : ""}</div></div><a class="wpp" href="https://wa.me/${esc(String(c.whatsapp || "").replace(/\D/g, ""))}" target="_blank" rel="noopener">WhatsApp</a></div>
-          <div class="caca-envia"><button class="btn sec" data-dcli="${c.id}">${ab ? "Ocultar documentos" : "Ver documentos"}</button><button class="btn sec" data-dnovo="${c.id}">Novo processo</button><button class="btn sec" data-dent="${c.id}" data-dentp="">Entregar documento</button></div>
+          <div class="caca-envia"><button class="btn sec" data-dcli="${c.id}">${ab ? "Ocultar documentos" : "Ver documentos"}</button><button class="btn sec" data-dnovo="${c.id}">Novo processo</button><button class="btn sec" data-dent="${c.id}" data-dentp="">Entregar documentos</button></div>
           ${ab ? `<div class="dsp-docs">${c.docs.length ? c.docs.map(doc).join("") : '<div class="pequeno">Este cliente ainda não guardou documentos.</div>'}</div>` : ""}
           ${np ? `<div class="dsp-editor"><div class="caca-campos">
               <label>Serviço<select id="dn-tipo">${Object.entries(P.tipos).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("")}</select></label>
@@ -3196,11 +3203,11 @@ function dspClientes() {
               <label>Taxa (GRU) em R$<input id="dn-gru" inputmode="decimal"></label>
               <label>Honorário em R$<input id="dn-hon" inputmode="decimal"></label></div>
               <div class="caca-envia"><button class="btn" data-dcriar="${c.id}">Abrir processo</button><button class="btn sec" data-dfechar="1">Cancelar</button></div></div>` : ""}</div>`; }).join("")}</div>`
-      : '<div class="vazio" style="margin-top:10px">Nenhum cliente autorizou o seu acesso ainda. Peça para o cliente abrir Conta › Despachante no Ática e tocar em Autorizar ao lado do seu nome.</div>'}</div>
+      : '<div class="vazio" style="margin-top:10px">Nenhum cliente autorizou o seu acesso ainda. Cadastre o cliente acima ou peça para ele abrir Conta › Despachantes e instrutores no Ática e tocar em Autorizar ao lado do seu nome.</div>'}</div>
     <div class="card" style="margin-top:14px"><div class="rotulo">Processos</div>
       ${P.processos.length ? `<div class="lista" style="margin-top:10px">${P.processos.map((p) => dspProc(p, true)).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nenhum processo aberto. Use Novo processo no cliente.</div>'}</div>
-    <input type="file" id="dsp-arq" accept="image/*,application/pdf" hidden>
-    <p class="pequeno" style="margin-top:14px">Você vê só os clientes que autorizaram o seu acesso, e o cliente pode revogar quando quiser. O documento que você entrega é lido e guardado na conta dele.</p>`;
+    <input type="file" id="dsp-arq" accept="image/*,application/pdf" multiple hidden>
+    <p class="pequeno" style="margin-top:14px">Você vê só os clientes que autorizaram o seu acesso, e o cliente pode revogar quando quiser. O documento que você entrega é lido e guardado na conta dele. Pode escolher vários arquivos de uma vez: o cliente recebe um aviso só, no final.</p>`;
 }
 function dspAdm() {
   const L = DSP.adm.despachantes, et = { pendente: ["Em análise", "at"], aprovado: ["Aprovado", "ok"], suspenso: ["Suspenso", "cr"] };
@@ -3323,6 +3330,8 @@ function renderDesp(c) {
     if (d.dnovo) return abrir("novo", d.dnovo);
     if (d.dedit) return abrir("proc", d.dedit);
     if (b.id === "dc-abrir") return abrir("cand", "");
+    if (b.id === "dk-abrir") return abrir("ncli", "");
+    if (b.id === "dk-ok") { const v = { nome: val("#dk-nome"), whatsapp: val("#dk-wpp") }; if (DSP.form) DSP.form.v = v; const r = await dspAcao("desp_cliente_novo", v, ""); if (r && r.ok) { const pn = v.nome.split(" ")[0]; DSP.aviso = r.situacao === "vinculado" ? pn + " já está na sua lista de clientes." : r.situacao === "existente" ? pn + " já tinha conta no Ática. Mandamos o pedido de autorização pelo WhatsApp; quando aceitar, aparece em Clientes." : "Conta criada e convite enviado pelo WhatsApp. Quando " + pn + " autorizar, aparece em Clientes e você já pode entregar os documentos."; render(); } return; }
     if (d.dautok) { if (!q("#dp-aceite").checked) { DSP.falha = "Marque a autorização para continuar."; return render(); } return dspAcao("desp_autorizar", { despachante_id: d.dautok, aceite: true }, "Autorização registrada. O despachante já pode ver seus documentos."); }
     if (d.drevok) return dspAcao("desp_revogar", { despachante_id: d.drevok }, "Acesso revogado.");
     if (b.id === "dc-enviar") { const v = { tipo: val("#dc-tipo"), nome: val("#dc-nome"), cidade: val("#dc-cid"), uf: val("#dc-uf").toUpperCase(), contato: val("#dc-cont"), sobre: val("#dc-sobre") }; DSP.form.v = v; return dspAcao("desp_candidatar", { ...v, aceite: q("#dc-aceite").checked }, "Cadastro enviado. Você recebe um aviso quando for aprovado."); }
@@ -3338,14 +3347,28 @@ function renderDesp(c) {
     const t = e.target;
     if (instMuda(t, c)) return;
     if (t.dataset && t.dataset.dregra) return dspAcao("desp_admin", { op: "regra", id: t.dataset.dregra, regra: t.value }, "Regra de repasse salva.");
-    if (t.id !== "dsp-arq" || !t.files || !t.files[0]) return;
-    const arq = t.files[0], cli = t.dataset.cli, proc = t.dataset.proc;
-    if (arq.size > 12 * 1024 * 1024) { DSP.falha = "Arquivo muito grande (máx. 12 MB)."; return render(); }
-    q("#dp-msg").innerHTML = '<div class="card"><span class="carregando"></span>Lendo o documento… isso leva alguns segundos.</div>'; window.scrollTo(0, 0);
-    let dados = null; try { dados = await dspArquivo(arq); } catch (er) {}
-    if (!dados) { DSP.falha = "Não consegui abrir esse arquivo."; return render(); }
-    const r = await dspAcao("desp_entregar", { assinante_id: cli, processo_id: proc, ...dados }, "");
-    if (r && r.ok) { DSP.aviso = "Entregue na conta do cliente: " + r.nome_tipo + (r.arma ? " (" + r.arma + ")" : "") + (r.validade ? ", válido até " + br(r.validade) : "") + "."; render(); }
+    if (t.id !== "dsp-arq" || !t.files || !t.files.length) return;
+    if (DSP.ocupado) return;
+    const arqs = [...t.files].slice(0, 60), cli = t.dataset.cli, proc = t.dataset.proc, lote = arqs.length > 1;
+    const prog = (h) => { const x = q("#dp-msg"); if (x) x.innerHTML = '<div class="card"><span class="carregando"></span>' + h + "</div>"; };
+    DSP.ocupado = true; window.scrollTo(0, 0);
+    let ok = 0, rep = 0; const ruins = [], lidos = [];
+    for (let i = 0; i < arqs.length; i++) {
+      const arq = arqs[i];
+      prog(lote ? `Lendo ${i + 1} de ${arqs.length}: ${esc(arq.name)}… Não feche esta tela.` : "Lendo o documento… isso leva alguns segundos.");
+      if (arq.size > 12 * 1024 * 1024) { ruins.push((lote ? arq.name + ": " : "") + "arquivo muito grande (máx. 12 MB)"); continue; }
+      let dados = null; try { dados = await dspArquivo(arq); } catch (er) {}
+      if (!dados) { ruins.push((lote ? arq.name + ": " : "") + "não consegui abrir esse arquivo"); continue; }
+      let r = null; try { r = await api("desp_entregar", lote ? { assinante_id: cli, processo_id: proc, ...dados, __lote: true } : { assinante_id: cli, processo_id: proc, ...dados }); } catch (er) {}
+      if (r && r.ok) { ok++; lidos.push(r.nome_tipo + (r.arma ? " (" + r.arma + ")" : "") + (r.validade ? ", válido até " + br(r.validade) : "")); }
+      else if (r && /já está/.test(r.erro || "")) rep++;
+      else ruins.push((lote ? arq.name + ": " : "") + ((r && r.erro) || "sem conexão"));
+    }
+    if (lote && ok) { prog("Avisando o cliente…"); try { await api("desp_entregar_fim", { assinante_id: cli, n: ok }); } catch (er) {} }
+    const aviso = !lote && ok ? "Entregue na conta do cliente: " + lidos[0] + "." : ok || rep ? `${ok} documento(s) entregue(s)` + (rep ? `, ${rep} já estava(m) na conta` : "") + "." + (lote && ok ? " O cliente recebeu um aviso só, no final." : "") + (lote && lidos.length ? " " + lidos.slice(0, 12).join("; ") + (lidos.length > 12 ? "…" : "") + "." : "") : "";
+    const falha = ruins.length ? (ok || rep ? "Alguns não entraram: " : "") + ruins.slice(0, 8).join("; ") + (ruins.length > 8 ? "…" : "") + "." : "";
+    DSP.ocupado = false; await dspCarregar();
+    DSP.aviso = aviso; DSP.falha = falha; if (tela === "desp") render();
   };
 }
 // ---------- envio em lote (administradores) ----------
