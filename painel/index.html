@@ -337,7 +337,10 @@ const guardar = { get(k){ try{return localStorage.getItem(k)}catch{return null} 
 let D = null, tela = location.hash === "#balistica" ? "balistica" : "painel", destinoAberto = -1, acervoFiltro = "todos";
 
 const NATIVO = window.Nativo || null; // presente só no app instalado (Android/iOS)
-const SITE = "https://evertoninstrutordetiro.com.br";
+// Versão da App Store (iPhone): sem lojas e armeiros no mapa e sem selos de "beta" (regras 1.1.3 e 2.2 da Apple). Site e Android não mudam.
+const IOS = !!(NATIVO && NATIVO.plataforma === "ios");
+if (IOS) { let iosAgendado = false; const iosLimpar = () => { iosAgendado = false; document.querySelectorAll(".etiqueta, .aviso").forEach((e) => { const t = e.textContent.trim().toLowerCase(); if ((e.classList.contains("etiqueta") && t === "beta") || (e.classList.contains("aviso") && t.startsWith("versão beta"))) e.remove(); }); }; new MutationObserver(() => { if (!iosAgendado) { iosAgendado = true; requestAnimationFrame(iosLimpar); } }).observe(document.documentElement, { childList: true, subtree: true }); }
+const SITE = "https://aticacac.com.br";
 async function api(acao, extra = {}) {
   const token = guardar.get("cac_token");
   let r;
@@ -1012,7 +1015,7 @@ function multiRender() {
   };
 }
 // ---------- perfil por link / QR code ----------
-const PERFIL_URL = "https://evertoninstrutordetiro.com.br/painel/?perfil=";
+const PERFIL_URL = "https://aticacac.com.br/painel/?perfil=";
 const perfilLimpo = (o, fora) => { const r = {}; for (const [k, v] of Object.entries(o || {})) if (!fora.includes(k) && v !== "" && v !== null && v !== undefined && typeof v !== "object") r[k] = v; return r; };
 function perfilCodigo() {
   const p = { v: 1, r: perfilLimpo(atual("rifle"), ["id", "craf"]), m: perfilLimpo(atual("mira"), ["id"]), a: perfilLimpo(atual("municao"), ["id", "calib"]) };
@@ -2299,7 +2302,7 @@ ICON.desafio = '<path d="M7 4h10v5a5 5 0 01-10 0zM7 6H4a3 3 0 003 4M17 6h3a3 3 0
 HUBS.caderneta.itens.push(["desafios", "Desafios", "Dispute o exercício do mês com outros atiradores.", "desafio"]);
 let DSF = { carregando: false, dados: null, erro: "", form: null, aba: {}, novo: null, criado: null, convite: null, codigo: "" };
 try { const mh = /duelo=([A-Za-z0-9]{6,12})/.exec(location.hash || ""); if (mh) { DSF.codigo = mh[1].toUpperCase(); tela = "caderneta"; subTela = "desafios"; history.replaceState(null, "", location.pathname); } } catch (e) {}
-const dsfLink = (cod) => "https://evertoninstrutordetiro.com.br/painel/#duelo=" + cod;
+const dsfLink = (cod) => "https://aticacac.com.br/painel/#duelo=" + cod;
 const dsfConviteTexto = (cod, mod, prazo) => `Te desafio para um duelo de ${mod === "velocidade" ? "velocidade" : "precisão"} no Ática, até ${br(prazo)}. Aceite por aqui: ${dsfLink(cod)}\nSe abrir pelo app, use o código ${cod} em Caderneta › Desafios.`;
 async function dsfVerConvite(cod) {
   let r = null; try { r = await api("duelo_ver", { codigo: cod }); } catch (e) {}
@@ -2538,7 +2541,7 @@ let abArma = "";
 const abChave = (s) => (String(s || "").toUpperCase().match(/[A-Z0-9]{5,}/g) || []).filter((t) => /\d/.test(t));
 const abMesma = (x, y) => { const a = String(x || "").trim().toLowerCase(), b = String(y || "").trim().toLowerCase(); if (!a || !b) return false; if (a === b) return true; const ka = abChave(x), kb = abChave(y); return ka.some((t) => kb.includes(t)); };
 // ---- documentos do Sinarm-CAC (tipos novos e checklist de pedidos)
-HUBS.documentos.itens.push(["checklist", "Checklist de pedidos", "Comprar arma, renovar o CR, pedir guia: veja o que está em dia e o que falta.", "documentos"]);
+HUBS.documentos.itens.push(["checklist", "Checklist de pedidos", IOS ? "Autorização de aquisição, renovação do CR e guias: veja o que está em dia e o que falta." : "Comprar arma, renovar o CR, pedir guia: veja o que está em dia e o que falta.", "documentos"]);
 const ANTEC_J = [
   ["ANTEC_FEDERAL", "Justiça Federal", /justi[çc]a federal|\btrf\b|federal/i],
   ["ANTEC_ESTADUAL", "Justiça Estadual", /justi[çc]a estadual|tribunal de justi[çc]a|\btj[a-z]{2}\b|estadual/i],
@@ -2649,8 +2652,10 @@ function renderChecklist(c) {
 }
 // ---- mapa de clubes, lojas e credenciados
 ICON.mapa = '<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>';
-HUBS.documentos.itens.push(["mapa", "Clubes, lojas e credenciados", "Mapa com clubes de tiro, lojas, psicólogos e instrutores perto de você.", "mapa"]);
+const MP_TITULO = IOS ? "Clubes e credenciados" : "Clubes, lojas e credenciados";
+HUBS.documentos.itens.push(["mapa", MP_TITULO, IOS ? "Mapa com clubes de tiro, psicólogos e instrutores perto de você." : "Mapa com clubes de tiro, lojas, psicólogos e instrutores perto de você.", "mapa"]);
 const MP_TIPOS = { clube: "Clube de tiro", loja: "Loja de armas", estande: "Estande", psicologo: "Psicólogo credenciado", instrutor: "Instrutor credenciado", despachante: "Despachante", armeiro: "Armeiro" };
+if (IOS) { delete MP_TIPOS.loja; delete MP_TIPOS.armeiro; }
 const MP_CHAVE = "atica_locais_v1";
 const MP_UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
 let MP = { itens: null, meus: [], tipo: "", uf: "SP", busca: "", pos: null, form: false, edit: "", msg: "", mapa: null, camada: null, pend: null };
@@ -2669,7 +2674,7 @@ async function mpCarregar(forcar) {
 }
 function mpFiltrados() {
   const b = mpSemAcento(MP.busca);
-  let L = (MP.itens || []).filter((l) => (!MP.tipo || l.tipo === MP.tipo) && (!b || mpSemAcento([l.nome, l.cidade, l.endereco, l.modalidades].join(" ")).includes(b)));
+  let L = (MP.itens || []).filter((l) => !(IOS && (l.tipo === "loja" || l.tipo === "armeiro")) && (!MP.tipo || l.tipo === MP.tipo) && (!b || mpSemAcento([l.nome, l.cidade, l.endereco, l.modalidades].join(" ")).includes(b)));
   L = L.map((l) => Object.assign({}, l, { km: MP.pos && l.lat !== null && l.lon !== null ? mpDist(MP.pos, [l.lat, l.lon]) : null }));
   L.sort((x, y) => (y.destaque ? 1 : 0) - (x.destaque ? 1 : 0) || (x.km !== null && y.km !== null ? x.km - y.km : 0) || String(x.cidade || "").localeCompare(String(y.cidade || "")) || x.nome.localeCompare(y.nome));
   return L;
@@ -2753,12 +2758,12 @@ async function mpDesenharMapa(L) {
 }
 async function renderMapa(c) {
   const admin = !!(D.assinante && D.assinante.admin);
-  if (!MP.itens) { c.innerHTML = maisTopo("Clubes, lojas e credenciados", "Carregando o mapa…"); await mpCarregar(); if (tela !== "documentos" || subTela !== "mapa") return; }
+  if (!MP.itens) { c.innerHTML = maisTopo(MP_TITULO, "Carregando o mapa…"); await mpCarregar(); if (tela !== "documentos" || subTela !== "mapa") return; }
   else mpCarregar().then(() => { if (tela === "documentos" && subTela === "mapa" && !MP.form && !MP.edit) mpLista(); });
-  c.innerHTML = maisTopo("Clubes, lojas e credenciados", "Encontre clubes de tiro, lojas, psicólogos e instrutores perto de você.") +
+  c.innerHTML = maisTopo(MP_TITULO, IOS ? "Encontre clubes de tiro, psicólogos e instrutores perto de você." : "Encontre clubes de tiro, lojas, psicólogos e instrutores perto de você.") +
     `<div class="caca-campos" style="grid-template-columns:2fr 1fr;margin-bottom:10px"><label>Buscar<input id="mp-busca" placeholder="Nome ou cidade" value="${esc(MP.busca)}"></label>
-      <label>Estado<select id="mp-uf"><option value=""${MP.uf ? "" : " selected"}>Brasil (clubes e lojas)</option>${MP_UFS.map((u) => `<option${u === MP.uf ? " selected" : ""}>${u}</option>`).join("")}</select></label></div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${[["", "Todos"], ["clube", "Clubes"], ["loja", "Lojas"], ["psicologo", "Psicólogos"], ["instrutor", "Instrutores"], ["armeiro", "Armeiros"], ["despachante", "Despachantes"]].map(([k, t]) => `<button class="btn ${MP.tipo === k ? "" : "sec"}" data-mptipo="${k}" style="min-height:34px;padding:5px 12px">${t}</button>`).join("")}</div>
+      <label>Estado<select id="mp-uf"><option value=""${MP.uf ? "" : " selected"}>${IOS ? "Brasil (clubes)" : "Brasil (clubes e lojas)"}</option>${MP_UFS.map((u) => `<option${u === MP.uf ? " selected" : ""}>${u}</option>`).join("")}</select></label></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${[["", "Todos"], ["clube", "Clubes"], ["loja", "Lojas"], ["psicologo", "Psicólogos"], ["instrutor", "Instrutores"], ["armeiro", "Armeiros"], ["despachante", "Despachantes"]].filter(([k]) => !(IOS && (k === "loja" || k === "armeiro"))).map(([k, t]) => `<button class="btn ${MP.tipo === k ? "" : "sec"}" data-mptipo="${k}" style="min-height:34px;padding:5px 12px">${t}</button>`).join("")}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><button class="btn sec" id="mp-perto">${MP.pos ? "Atualizar minha posição" : "Perto de mim"}</button><button class="btn sec" id="mp-sugerir">Sugerir local</button></div>
     <div id="mp-msg">${MP.msg ? `<div class="aviso info" style="margin-bottom:10px"><span class="pequeno">${esc(MP.msg)}</span></div>` : ""}</div>
     ${MP.form ? mpFormSugerir() : ""}
@@ -2774,7 +2779,7 @@ function mpLista() {
   const admin = !!(D.assinante && D.assinante.admin);
   box.innerHTML = `${MP.meus && MP.meus.length ? `<div class="aviso info" style="margin-bottom:10px"><b>${MP.meus.length} sugestão(ões) sua(s) aguardando conferência</b><span class="pequeno">${MP.meus.map((m) => esc(m.nome)).join(", ")}</span></div>` : ""}
     <div class="pequeno" style="margin-bottom:6px">${L.length} local(is)${MP.em ? " · atualizado " + new Date(MP.em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : ""}</div>
-    <div class="lista">${L.slice(0, 150).map((l) => mpCartao(l, admin)).join("") || (!MP.uf && MP.tipo && !['clube','loja','estande'].includes(MP.tipo) ? '<div class="vazio">Escolha um estado para ver psicólogos, instrutores, armeiros e despachantes.</div>' : '<div class="vazio">Nenhum local com esse filtro ainda. Que tal sugerir um?</div>')}</div>${L.length > 150 ? '<p class="pequeno">Mostrando os 150 primeiros. Use a busca ou o filtro de estado.</p>' : ""}`;
+    <div class="lista">${L.slice(0, 150).map((l) => mpCartao(l, admin)).join("") || (!MP.uf && MP.tipo && !['clube','loja','estande'].includes(MP.tipo) ? (IOS ? '<div class="vazio">Escolha um estado para ver psicólogos, instrutores e despachantes.</div>' : '<div class="vazio">Escolha um estado para ver psicólogos, instrutores, armeiros e despachantes.</div>') : '<div class="vazio">Nenhum local com esse filtro ainda. Que tal sugerir um?</div>')}</div>${L.length > 150 ? '<p class="pequeno">Mostrando os 150 primeiros. Use a busca ou o filtro de estado.</p>' : ""}`;
   mpDesenharMapa(L);
 }
 function mpLigar(c, admin) {
@@ -3921,7 +3926,7 @@ function renderTela0(c, a, primeiro, docs) {
     c.innerHTML = `<div class="topo"><div><h2>Documentos</h2><p>Fotografe ou envie o documento: a gente lê, guarda e a nossa equipe confere. Se preferir, mande pelo WhatsApp.</p></div>
         <div class="acoes"><button class="btn" id="bt-foto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h4l2-3h6l2 3h4v13H3z"/><circle cx="12" cy="13" r="4"/></svg>Fotografar documento</button><button class="btn sec" id="bt-arquivo">Enviar arquivo ou PDF</button></div></div>
       <div id="envio"></div>
-      <div class="opcao" style="margin-bottom:12px"><div><div class="t">Vai fazer um pedido na PF?</div><div class="pequeno">Veja o que falta para comprar arma, renovar o CR ou pedir guia.</div></div><button class="btn sec" id="bt-checklist">Checklist</button></div>
+      <div class="opcao" style="margin-bottom:12px"><div><div class="t">Vai fazer um pedido na PF?</div><div class="pequeno">${IOS ? "Veja o que falta para a autorização de aquisição, a renovação do CR ou a guia." : "Veja o que falta para comprar arma, renovar o CR ou pedir guia."}</div></div><button class="btn sec" id="bt-checklist">Checklist</button></div>
       ${docsTodos.length > 5 ? `<label style="display:block;margin-bottom:12px">Buscar nos meus documentos<input id="doc-busca" type="search" placeholder="Arma, número, tipo ou clube" value="${esc(DB.q)}" autocomplete="off"></label>${DB.q.trim() ? `<p class="pequeno" style="margin:-4px 0 12px">${docs.length} de ${docsTodos.length} documento(s)${docs.length ? "" : ". Nada com essa busca."}</p>` : ""}` : ""}
       ${!DB.q.trim() && (!temLaudo("EXAME_TECNICO") || !temLaudo("EXAME_PSICOLOGICO")) ? `<div class="aviso atencao" style="margin-bottom:12px"><b>Laudos para o CR</b><span class="pequeno">Exigidos na revalidação do CR (pedir até 30 dias antes do vencimento). ${!temLaudo("EXAME_PSICOLOGICO") ? "Falta o laudo psicológico. " : ""}${!temLaudo("EXAME_TECNICO") ? "Falta o comprovante de capacidade técnica." : ""}</span></div>` : ""}
       ${ordem.filter((t) => (t === "ANTECEDENTES" && !DB.q.trim()) || docs.some((d) => d.tipo === t)).map((t) => `<h3 class="sec-tit">${nomes[t]}</h3>${t === "ANTECEDENTES" ? `<p class="pequeno" id="antec-nota" style="margin:0 0 8px">Certidões de antecedentes das Justiças Federal, Estadual, Militar e Eleitoral, pedidas no CR, na revalidação e nas autorizações. Costumam valer 90 dias: confira a data em cada uma.${docs.some(ehAntec) ? "" : " Nenhuma enviada ainda: use os botões acima."}</p>${antecGrade(docs)}` : ""}<div class="lista">${docs.filter((d) => d.tipo === t || (t === "ANTECEDENTES" && ehAntec(d))).map((d) => `<div class="linha"><div><div class="t">${esc(d.arma || d.descricao || d.nome_tipo)}</div><div class="pequeno">${d.numero ? "nº " + esc(d.numero) + " · " : ""}${d.emitido_em ? "emitido em " + br(d.emitido_em) : ""}${d.status === "pendente_conferencia" ? ' · <span class="at">aguardando conferência</span>' : ""}</div></div><div style="text-align:right">${d.validade ? `<div class="${cor(d.dias)}">${br(d.validade)}</div><div class="pequeno">${prazo(d.dias)}</div>` : '<div class="pequeno">sem validade</div>'}${d.link ? `<a href="${d.link}" target="_blank" rel="noopener" class="pequeno">ver arquivo</a>` : ""}${d.id ? `<button type="button" class="pequeno" data-docexc="${d.id}" style="display:block;margin:6px 0 0 auto;background:none;border:0;padding:4px 0;color:#F28B82;cursor:pointer;font:inherit">Excluir</button>` : ""}</div></div>`).join("")}</div>`).join("") || '<div class="vazio">Nenhum documento ainda. Toque em "Fotografar documento" para começar.</div>'}${arqHtml()}`;
