@@ -6,8 +6,10 @@ on:
     - cron: '17 21 * * *'  # e ~18:17 (Brasilia)
   workflow_dispatch:
 
+# A main e protegida (so entra por pull request). O robo abre um PR com os dados novos e ja o aceita.
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: resultados
@@ -24,15 +26,21 @@ jobs:
           node-version: '20'
       - name: Coletar resultados
         run: node scripts/coleta.mjs
-      - name: Salvar se mudou
+      - name: Salvar se mudou (por pull request)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if git diff --quiet -- data/ 2>/dev/null && git ls-files --error-unmatch data/resultados.json >/dev/null 2>&1; then
             echo 'Sem mudancas.'
             exit 0
           fi
+          QUANDO=$(date -u +%Y-%m-%dT%H:%MZ)
+          RAMO="robo/resultados-$(date -u +%Y%m%d%H%M)"
           git config user.name 'robo-resultados'
           git config user.email 'robo-resultados@users.noreply.github.com'
+          git checkout -b "$RAMO"
           git add data/
-          git commit -m "Resultados atualizados $(date -u +%Y-%m-%dT%H:%MZ)"
-          git pull --rebase origin main
-          git push
+          git commit -m "Resultados atualizados $QUANDO"
+          git push origin "$RAMO"
+          gh pr create --base main --head "$RAMO" --title "Resultados atualizados $QUANDO" --body "Atualizacao automatica dos resultados (LINADE e FPTE)."
+          gh pr merge "$RAMO" --merge --delete-branch
