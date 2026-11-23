@@ -3278,8 +3278,8 @@ function dspClientes() {
     <div class="card" style="margin-top:14px"><div class="rotulo">Clientes</div>
       ${P.clientes.length ? `<div class="lista" style="margin-top:10px">${P.clientes.map((c) => { const al = c.docs.filter(venc).length, ab = f && f.t === "cli" && f.id === c.id, np = f && f.t === "novo" && f.id === c.id;
         return `<div class="linha caca-doc" data-cli="${c.id}"><div class="caca-topo"><div><div class="t">${esc(c.nome)}</div><div class="pequeno">${c.docs.length} documento(s)${al ? ' · <span class="cr">' + al + " vencendo ou vencido(s)</span>" : ""}</div></div><a class="wpp" href="https://wa.me/${esc(String(c.whatsapp || "").replace(/\D/g, ""))}" target="_blank" rel="noopener">WhatsApp</a></div>
-          <div class="caca-envia"><button class="btn sec" data-dcli="${c.id}">${ab ? "Ocultar documentos" : "Ver documentos"}</button><button class="btn sec" data-dnovo="${c.id}">Novo processo</button><button class="btn sec" data-dent="${c.id}" data-dentp="">Entregar documentos</button></div>
-          ${ab ? `<div class="dsp-docs">${c.docs.length ? c.docs.map(doc).join("") : '<div class="pequeno">Este cliente ainda não guardou documentos.</div>'}</div>` : ""}
+          <div class="caca-envia"><button class="btn sec" data-dcli="${c.id}">${ab ? "Ocultar documentos" : "Ver documentos"}</button><button class="btn sec" data-dnovo="${c.id}">Novo processo</button><button class="btn sec" data-dent="${c.id}" data-dentp="">Entregar documentos</button><button class="btn sec" data-dchk="${c.id}">Checklist de pedido</button></div>
+          ${ab ? `<div class="dsp-docs">${c.docs.length ? c.docs.map(doc).join("") : '<div class="pequeno">Este cliente ainda não guardou documentos.</div>'}</div>` : ""}${typeof dckHtml === "function" ? dckHtml(c, hoje) : ""}
           ${np ? `<div class="dsp-editor"><div class="caca-campos">
               <label>Serviço<select id="dn-tipo">${Object.entries(P.tipos).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("")}</select></label>
               <label>Descrição curta (opcional)<input id="dn-tit" maxlength="80" placeholder="Ex.: CRAF da Glock G25"></label>
@@ -4155,6 +4155,7 @@ if (guardar.get("cac_token")) { carregar(); travar(); } else mostrarLogin();
   const t = setInterval(() => { n++; if (typeof D === "object" && D && D.assinante) { clearInterval(t); irPara("balistica", "tiro"); } else if (n > 600) clearInterval(t); }, 500); })();
 </script>
 <script src="/painel/clube.js"></script>
+<script src="/painel/desp-extra.js"></script>
 <script>if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});</script>
 </body>
 </html>
