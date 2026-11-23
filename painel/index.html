@@ -2499,7 +2499,7 @@ function renderAdmin(c) {
   const filtros = { ativos: ["Mais ativos", (p) => p.eventos30 > 0 || p.ultimo], nunca: ["Nunca entraram", (p) => !p.ultimo], pagantes: ["Pagantes", (p) => p.status === "ativo" && p.plano && p.plano !== "teste"], todos: ["Todos", () => true] };
   const lista = R.pessoas.filter(filtros[ADM.filtro][1]);
   const cart = (r, v, e) => `<div><span>${r}</span><b>${v}</b>${e ? `<em>${e}</em>` : ""}</div>`;
-  c.innerHTML = topo + `
+  c.innerHTML = topo + admCadHtml() + `
     <div class="card"><div class="caca-topo"><div class="rotulo">Visão geral</div><button class="btn sec" id="ad-atualizar" style="min-height:36px;padding:6px 12px">Atualizar</button></div>
       <div class="dados-caca">${cart("Assinantes", S.assinantes, S.ativos + " ativos")}${cart("Pagantes", S.pagantes, S.teste + " em teste")}${cart("Usaram em 7 dias", S.usaram7, S.usaram30 + " em 30 dias")}${cart("Nunca entraram", S.nunca, S.entraram + " já entraram")}${cart("Documentos", S.docs, S.pendentes + " a conferir")}${cart("Erros em 24 h", S.erros24h, S.erros7d + " em 7 dias")}</div>
       <div class="pequeno" style="margin-top:8px">${S.sem_email} assinante(s) sem e-mail cadastrado. Atualizado às ${new Date(R.gerado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}.</div></div>
@@ -2515,8 +2515,62 @@ function renderAdmin(c) {
       ${R.erros.length ? `<div class="lista" style="margin-top:10px">${R.erros.slice(0, 40).map((e) => `<div class="linha caca-doc"><div class="caca-topo"><div class="t">${esc({ tela: "Erro de tela", documento: "Envio de documento", microfone: "Microfone", gps: "Localização" }[e.nome] || e.nome)}</div><span class="pequeno" style="white-space:nowrap">${new Date(e.quando).toLocaleDateString("pt-BR")} ${new Date(e.quando).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span></div><div class="pequeno" style="margin-top:4px">${esc(e.pessoa)} · ${e.plataforma === "app" ? "app" : "navegador"}${e.detalhe ? " · " + esc(e.detalhe) : ""}</div></div>`).join("")}</div>` : '<div class="vazio" style="margin-top:10px">Nenhum erro registrado nos últimos 30 dias.</div>'}</div>
     <p class="pequeno" style="margin-top:14px">O registro guarda só o nome da tela aberta e o tipo de erro. Não guarda conteúdo de documentos, localização nem o que a pessoa digitou.</p>`;
   volta();
+  admCadLigar(c);
   c.querySelector("#ad-atualizar").onclick = () => { ADM.dados = null; render(); };
   c.querySelectorAll("[data-fil]").forEach((b) => b.onclick = () => { ADM.filtro = b.dataset.fil; render(); });
+}
+// ---------- administração: cadastrar assinante com comprovante de pagamento (23/11/2026) ----------
+let ADMCAD = { aberto: false, v: { nome: "", whatsapp: "", email: "", plano: "teste", valor: "", forma: "Pix", avisar: true }, arq: null, enviando: false, msg: "", erro: "", lista: null, carregandoLista: false };
+const ADMCAD_PLANOS = { teste: "Período de teste", acompanhamento: "Acompanhamento (anual)", renovacao: "Acompanhamento com renovação (anual)" };
+async function admCadLista() { ADMCAD.carregandoLista = true; let r = null; try { r = await api("admin_cadastros"); } catch (e) {} ADMCAD.carregandoLista = false; ADMCAD.lista = r && r.ok ? r.itens : []; if (tela === "admin") render(); }
+function admCadHtml() {
+  const v = ADMCAD.v, op = (k, t, at) => `<option value="${k}"${k === at ? " selected" : ""}>${esc(t)}</option>`;
+  const dinheiro = (n) => n == null ? "" : Number(n).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  if (ADMCAD.lista === null && !ADMCAD.carregandoLista) admCadLista();
+  const lista = ADMCAD.lista || [];
+  const form = !ADMCAD.aberto ? `<p class="pequeno" style="margin:8px 0 0">Para quem pagou por fora (Pix, dinheiro, cartão) ou vai começar no período de teste. O Ática cria a conta, guarda o comprovante e manda as boas-vindas pelo WhatsApp do sistema. Dali em diante segue tudo pelo WhatsApp e pelo painel.</p>` : `
+      <div style="display:grid;gap:10px;margin-top:10px">
+        <label>Nome completo<input id="adc-nome" maxlength="80" value="${esc(v.nome)}"></label>
+        <label>WhatsApp (com DDD)<input id="adc-wpp" inputmode="tel" placeholder="(17) 99999-9999" value="${esc(v.whatsapp)}"></label>
+        <label>E-mail (opcional)<input id="adc-email" type="email" maxlength="120" value="${esc(v.email)}"></label>
+        <label>Plano<select id="adc-plano">${Object.entries(ADMCAD_PLANOS).map(([k, t]) => op(k, t, v.plano)).join("")}</select></label>
+        ${v.plano !== "teste" ? `<label>Valor pago (R$)<input id="adc-valor" inputmode="decimal" placeholder="249,00" value="${esc(v.valor)}"></label>
+        <label>Forma de pagamento<select id="adc-forma">${["Pix", "Dinheiro", "Cartão", "Transferência", "Outro"].map((f) => op(f, f, v.forma)).join("")}</select></label>` : ""}
+        <label>Comprovante de pagamento ${v.plano !== "teste" ? "(obrigatório)" : "(opcional)"}<input id="adc-arq" type="file" accept="application/pdf,image/*"></label>
+        ${ADMCAD.arq ? `<div class="pequeno">Anexado: ${esc(ADMCAD.arq.nome)}</div>` : ""}
+        <label style="display:flex;gap:8px;align-items:center"><input id="adc-avisar" type="checkbox" style="width:auto"${v.avisar ? " checked" : ""}> Mandar boas-vindas pelo WhatsApp do Ática</label>
+        ${ADMCAD.erro ? `<div class="aviso critico"><span class="pequeno">${esc(ADMCAD.erro)}</span></div>` : ""}
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="adc-ok"${ADMCAD.enviando ? " disabled" : ""}>${ADMCAD.enviando ? "Cadastrando…" : "Cadastrar"}</button><button class="btn sec" id="adc-cancela">Cancelar</button></div>
+      </div>`;
+  return `<div class="card" style="margin-bottom:14px"><div class="caca-topo"><div class="rotulo">Cadastrar assinante</div>${ADMCAD.aberto ? "" : '<button class="btn" id="adc-abre" style="min-height:36px;padding:6px 12px">Novo cadastro</button>'}</div>
+    ${ADMCAD.msg ? `<div class="aviso info" style="margin-top:10px"><span class="pequeno">${esc(ADMCAD.msg)}</span></div>` : ""}
+    ${form}
+    ${lista.length ? `<div class="rotulo" style="margin-top:14px">Últimos cadastros com pagamento</div><div class="lista" style="margin-top:6px">${lista.slice(0, 10).map((p) => `<div class="linha caca-doc"><div class="caca-topo"><div><div class="t">${esc(p.nome)}</div><div class="pequeno">${esc(ADMCAD_PLANOS[p.plano] || p.plano)}${p.valor != null ? " · " + dinheiro(p.valor) : ""}${p.forma ? " · " + esc(p.forma) : ""} · ${new Date(p.quando).toLocaleDateString("pt-BR")}${p.por ? " · por " + esc(p.por.split(" ")[0]) : ""}</div></div>${p.temComprovante ? `<button class="btn sec" data-adc-comp="${esc(p.id)}" style="min-height:32px;padding:4px 10px;white-space:nowrap">Comprovante</button>` : ""}</div></div>`).join("")}</div>` : ""}
+  </div>`;
+}
+function admCadLigar(c) {
+  const q = (s) => c.querySelector(s);
+  const ler = () => { const v = ADMCAD.v; if (!q("#adc-nome")) return; v.nome = q("#adc-nome").value; v.whatsapp = q("#adc-wpp").value; v.email = q("#adc-email").value; v.plano = q("#adc-plano").value; if (q("#adc-valor")) v.valor = q("#adc-valor").value; if (q("#adc-forma")) v.forma = q("#adc-forma").value; v.avisar = q("#adc-avisar").checked; };
+  if (q("#adc-abre")) q("#adc-abre").onclick = () => { ADMCAD.aberto = true; ADMCAD.msg = ""; ADMCAD.erro = ""; render(); };
+  if (q("#adc-cancela")) q("#adc-cancela").onclick = () => { ADMCAD.aberto = false; ADMCAD.erro = ""; ADMCAD.arq = null; render(); };
+  if (q("#adc-plano")) q("#adc-plano").onchange = () => { ler(); render(); };
+  if (q("#adc-arq")) q("#adc-arq").onchange = async (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; ler(); try { const a = await loteArquivo(f); ADMCAD.arq = { nome: f.name, arquivo: a.arquivo, mime: a.mime }; ADMCAD.erro = ""; } catch (x) { ADMCAD.erro = "Não consegui ler esse arquivo. Use PDF, JPG ou PNG."; } render(); };
+  if (q("#adc-ok")) q("#adc-ok").onclick = async () => {
+    ler(); const v = ADMCAD.v;
+    if (v.nome.trim().length < 3) { ADMCAD.erro = "Informe o nome completo."; return render(); }
+    if (String(v.whatsapp).replace(/\D/g, "").length < 10) { ADMCAD.erro = "Informe o WhatsApp com DDD."; return render(); }
+    if (v.plano !== "teste" && !ADMCAD.arq) { ADMCAD.erro = "Para plano pago, anexe o comprovante de pagamento."; return render(); }
+    ADMCAD.enviando = true; ADMCAD.erro = ""; render();
+    let r = null; try { r = await api("admin_cadastrar", { nome: v.nome, whatsapp: v.whatsapp, email: v.email, plano: v.plano, valor: v.plano !== "teste" ? v.valor : "", forma: v.plano !== "teste" ? v.forma : "", avisar: v.avisar, comprovante: ADMCAD.arq ? { arquivo: ADMCAD.arq.arquivo, mime: ADMCAD.arq.mime } : null }); } catch (e) {}
+    ADMCAD.enviando = false;
+    if (r && r.ok) {
+      const pn = v.nome.trim().split(" ")[0];
+      ADMCAD.msg = (r.situacao === "atualizado" ? pn + " já tinha conta: o plano foi atualizado." : pn + " foi cadastrado.") + (r.avisado ? " A mensagem foi enviada pelo WhatsApp do Ática." : v.avisar ? " Não consegui mandar a mensagem agora; avise por fora." : "") + (r.falhaComprovante ? " Atenção: o comprovante não foi guardado, tente anexar de novo." : "");
+      ADMCAD.aberto = false; ADMCAD.arq = null; ADMCAD.v = { nome: "", whatsapp: "", email: "", plano: "teste", valor: "", forma: "Pix", avisar: true }; ADMCAD.lista = null; ADM.dados = null;
+    } else ADMCAD.erro = (r && r.erro) || "Não foi possível cadastrar agora.";
+    render();
+  };
+  c.querySelectorAll("[data-adc-comp]").forEach((b) => b.onclick = async () => { const w = window.open("", "_blank"); let r = null; try { r = await api("admin_comprovante", { id: b.dataset.adcComp }); } catch (e) {} if (r && r.ok && r.url) { if (w) w.location = r.url; else location.href = r.url; } else { if (w) w.close(); alert((r && r.erro) || "Não foi possível abrir o comprovante."); } });
 }
 // ---------- relatório de habitualidade, modo abordagem, treino em seco, conquistas e agenda ----------
 HUBS.documentos.itens.push(["abordagem", "Modo abordagem", "CR, CRAF e guia da arma que você está levando, numa tela só.", "guias"]);
