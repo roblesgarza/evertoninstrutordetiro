@@ -582,6 +582,7 @@ async function carregar() {
     if (r.erro) $("#conteudo").innerHTML = `<p class="cr">${esc(r.erro)}</p>`; return;
   }
   D = r; montarMenu(); render();
+  if (typeof clbListar === "function") clbListar();
   guardar.set("cac_cache", JSON.stringify({ em: Date.now(), D: r }));
   offFaixa(); setTimeout(() => { offEnviar(false); offGuardarDocs(); }, 2500);
   if (NATIVO && guardar.get("cac_lembretes") !== "0") NATIVO.agendarLembretes(r.calendario).catch(() => {});
@@ -1677,7 +1678,7 @@ function hubConta(k) {
   } catch (e) {}
   return 0;
 }
-function irPara(t, s) { tela = t; subTela = s || ""; montarMenu(); render(); window.scrollTo(0, 0); }
+function irPara(t, s) { if (t !== "clube" && typeof clbCameraParar === "function") clbCameraParar(); tela = t; subTela = s || ""; montarMenu(); render(); window.scrollTo(0, 0); }
 // ---------- Manejo de javali (protótipo: dados guardados neste aparelho) ----------
 ICON.caca = '<path d="M12 3l4 6h-2.5l3.5 5h-3l3 4H7l3-4H7l3.5-5H8z"/><path d="M12 18v3"/>';
 ICON.propriedades = '<path d="M3 20V10l6-4 6 4v10M9 20v-5h0M15 12l6 3v5H3"/><path d="M7 12h4"/>';
@@ -2488,7 +2489,7 @@ document.addEventListener("click", (e) => { if (e.target && e.target.closest && 
 // ---------- painel do administrador ----------
 let ADM = { dados: null, erro: "", carregando: false, filtro: "ativos" };
 async function admCarregar() { ADM.carregando = true; let r = null; try { r = await api("admin_painel"); } catch (e) {} ADM.carregando = false; if (r && r.ok && r.resumo) { ADM.dados = r; ADM.erro = ""; } else ADM.erro = (r && r.erro) || "Não foi possível carregar agora."; if (tela === "admin") render(); }
-function admNome(n) { const [t, s] = String(n).split("/"), base = { painel: "Início", documentos: "Documentos", balistica: "Balística", caderneta: "Caderneta", caca: "Manejo", conta: "Conta", acervo: "Acervo", guias: "Guias", calendario: "Prazos", habitualidade: "Habitualidade" }[t] || t; if (t === "nivel") return "Mudou o nível para " + String(s || "").replace("definido-", ""); if (!s) return base + (HUBS[t] ? " (menu)" : ""); const it = HUBS[t] && HUBS[t].itens.find((i) => i[0] === s); return base + " › " + (it ? it[1] : s); }
+function admNome(n) { const [t, s] = String(n).split("/"), base = { painel: "Início", documentos: "Documentos", balistica: "Balística", caderneta: "Caderneta", caca: "Manejo", conta: "Conta", clube: "Clube de tiro", acervo: "Acervo", guias: "Guias", calendario: "Prazos", habitualidade: "Habitualidade" }[t] || t; if (t === "nivel") return "Mudou o nível para " + String(s || "").replace("definido-", ""); if (!s) return base + (HUBS[t] ? " (menu)" : ""); const it = HUBS[t] && HUBS[t].itens.find((i) => i[0] === s); return base + " › " + (it ? it[1] : s); }
 const admQuando = (iso) => { if (!iso) return "nunca entrou"; const d = new Date(iso), h = (Date.now() - d) / 36e5; return h < 1 ? "agora há pouco" : h < 24 ? "há " + Math.round(h) + " h" : h < 48 ? "ontem" : "há " + Math.round(h / 24) + " dias"; };
 function renderAdmin(c) {
   const topo = `<button class="voltar-hub" id="ad-volta">‹ Conta</button><div class="topo"><div><h2>Administração</h2><p>Quem assina, quem usa, o que usa e o que deu erro.</p></div></div>`;
@@ -3800,6 +3801,7 @@ function renderTela(c, a, primeiro, docs) {
   if (tela === "admin") return renderAdmin(c);
   if (tela === "desp") return renderDesp(c);
   if (tela === "lote") return renderLote(c);
+  if (tela === "clube") { if (typeof renderClube === "function") return renderClube(c); c.innerHTML = '<div class="card">Carregando…</div>'; return; }
   const hub = HUBS[tela];
   if (!hub) { subTela = ""; return renderTela0(c, a, primeiro, docs); }
   if (subTela && !hub.itens.some((i) => i[0] === subTela)) subTela = "";
@@ -4038,6 +4040,7 @@ function renderTela0(c, a, primeiro, docs) {
         ${D.assinante && D.assinante.admin ? '<div class="opcao"><div><div class="t">Administração</div><div class="pequeno">Assinantes, acessos, uso por função e erros.</div></div><button class="btn sec" id="bt-admin">Abrir</button></div><div class="opcao"><div><div class="t">Enviar em lote</div><div class="pequeno">Mandar vários documentos para a conta de um cliente.</div></div><button class="btn sec" id="bt-lote">Abrir</button></div>' : ""}
         ${offCartao()}
         <div class="opcao"><div><div class="t">Despachantes e instrutores</div><div class="pequeno">Autorize quem cuida dos seus processos e laudos.</div></div><button class="btn sec" id="bt-desp">Abrir</button></div>
+        ${(D.assinante && D.assinante.admin) || (typeof CLB !== "undefined" && CLB.lista && CLB.lista.length) ? '<div class="opcao"><div><div class="t">Clube de tiro</div><div class="pequeno">Estoque de munição, saídas pelo celular, atiradores, acervo e relatório.</div></div><button class="btn sec" id="bt-clube">Abrir</button></div>' : ""}
         <div class="opcao"><div><div class="t">Falar com o Ática</div><div class="pequeno">Dúvidas, documentos e atendimento pelo WhatsApp.</div></div><a class="wpp" href="https://wa.me/5517991364877" target="_blank" rel="noopener">WhatsApp</a></div>
         <div class="opcao"><div><div class="t">Política de privacidade</div><div class="pequeno">Como seus dados e documentos são guardados.</div></div><a href="${SITE}/privacidade/" target="_blank" rel="noopener">Abrir</a></div>
         <div class="opcao" style="flex-wrap:wrap"><div><div class="t">Senha de acesso</div><div class="pequeno">Crie ou troque a senha usada para entrar.</div></div><button class="btn sec" id="bt-senha">Alterar</button>
@@ -4151,6 +4154,7 @@ if (guardar.get("cac_token")) { carregar(); travar(); } else mostrarLogin();
 (() => { let p = null; try { p = new URLSearchParams(location.search).get("perfil"); } catch (e) {} if (!p) return; let n = 0;
   const t = setInterval(() => { n++; if (typeof D === "object" && D && D.assinante) { clearInterval(t); irPara("balistica", "tiro"); } else if (n > 600) clearInterval(t); }, 500); })();
 </script>
+<script src="/painel/clube.js"></script>
 <script>if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});</script>
 </body>
 </html>
